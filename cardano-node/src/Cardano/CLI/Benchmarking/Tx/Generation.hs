@@ -698,9 +698,6 @@ runBenchmark benchTracer
                            , trSendRecvTxSubmission = submitTracer
                            }
 
-  let localAddr :: Maybe Network.Socket.AddrInfo
-      localAddr = Nothing
-
   remoteAddresses <- forM targetNodeAddresses $ \targetNodeAddress -> do
     let (anAddrFamily, targetNodeHost) =
           case getAddress $ naHostAddress targetNodeAddress of
@@ -718,8 +715,9 @@ runBenchmark benchTracer
           , addrCanonName  = Nothing
           }
 
+    (localAddr:_) <- liftIO $ getAddrInfo (Just hints) (Just "127.0.0.1") (Just "0")
     (remoteAddr:_) <- liftIO $ getAddrInfo (Just hints) (Just targetNodeHost) (Just targetNodePort)
-    return remoteAddr
+    return (localAddr, remoteAddr)
 
   let updROEnv
         :: ROEnv (Mempool.GenTxId ByronBlock) (GenTx ByronBlock)
@@ -764,7 +762,7 @@ runBenchmark benchTracer
       -- to the target nodes via 'ouroboros-network'.
       liftIO $ do
         let targetNodesAddrsAndTxsLists = zip (NE.toList remoteAddresses) txsLists
-        allAsyncs <- forM targetNodesAddrsAndTxsLists $ \(remoteAddr, txsList) -> do
+        allAsyncs <- forM targetNodesAddrsAndTxsLists $ \((localAddr, remoteAddr), txsList) -> do
           -- Launch connection and submission threads for a peer
           -- (corresponding to one target node).
           txAuxes :: [CC.UTxO.ATxAux ByteString] <- STM.atomically $ STM.takeTMVar txsList
@@ -1179,7 +1177,7 @@ launchTxPeer
   -- a "global" stop variable, set to True to force shutdown
   -> TopLevelConfig block
   -- the configuration
-  -> Maybe Network.Socket.AddrInfo
+  -> Network.Socket.AddrInfo
   -- local address binding (if wanted)
   -> Network.Socket.AddrInfo
   -- Remote address

@@ -355,7 +355,7 @@ dnsSubscriptionTarget :: RemoteAddress -> DnsSubscriptionTarget
 dnsSubscriptionTarget ra =
   DnsSubscriptionTarget { dstDomain  = BSC.pack (raAddress ra)
                         , dstPort    = raPort ra
-                        , dstValency = raValency ra
+                        , dstValency = fromIntegral (raValency ra)
                         }
 
 extractFilePathsAndGenHash :: NodeProtocolMode -> (MiscellaneousFilepaths, Text)
@@ -370,7 +370,7 @@ ipSubscriptionTargets :: [NodeAddress] -> IPSubscriptionTarget
 ipSubscriptionTargets ipProdAddrs =
   let ips = nodeAddressToSockAddr <$> ipProdAddrs
   in IPSubscriptionTarget { ispIps = ips
-                          , ispValency = length ips
+                          , ispValency = fromIntegral (length ips)
                           }
 
 -- | NodeIds are only required for mock protocols

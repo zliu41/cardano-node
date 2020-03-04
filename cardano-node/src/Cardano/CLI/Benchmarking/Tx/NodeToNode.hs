@@ -200,7 +200,7 @@ benchmarkConnectTxSubmit
   -- ^ For tracing the send/receive actions
   -> TopLevelConfig blk
   -- ^ The particular block protocol
-  -> Maybe AddrInfo
+  -> AddrInfo
   -- ^ local address information (typically local interface/port to use)
   -> AddrInfo
   -- ^ remote address information
@@ -215,7 +215,7 @@ benchmarkConnectTxSubmit iocp trs cfg localAddr remoteAddr myTxSubClient = do
         nctHandshakeTracer = trSendRecvConnect trs
       }
     peerMultiplex
-    (addrAddress <$> localAddr)
+    (addrAddress localAddr)
     (addrAddress remoteAddr)
  where
   myCodecs :: ProtocolCodecs blk DeserialiseFailure m
