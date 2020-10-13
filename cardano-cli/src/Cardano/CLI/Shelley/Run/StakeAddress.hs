@@ -16,9 +16,9 @@ import           Control.Monad.Trans.Except.Extra (firstExceptT, newExceptT)
 import           Cardano.Api
 import           Cardano.Api.Shelley
 
-import           Cardano.CLI.Shelley.Key (InputDecodeError, VerificationKeyOrFile,
-                     VerificationKeyOrHashOrFile, readVerificationKeyOrFile,
-                     readVerificationKeyOrHashOrFile)
+import           Cardano.CLI.Shelley.Key (InputDecodeError, OutputDirection (..),
+                     VerificationKeyOrFile, VerificationKeyOrHashOrFile, readVerificationKeyOrFile,
+                     readVerificationKeyOrHashOrFile, writeOutputBech32)
 import           Cardano.CLI.Shelley.Parsers
 import           Cardano.CLI.Types
 
@@ -56,14 +56,14 @@ runStakeAddressKeyGen (VerificationKeyFile vkFp) (SigningKeyFile skFp) = do
     let vkey = getVerificationKey skey
     firstExceptT ShelleyStakeAddressCmdWriteFileError
       . newExceptT
-      $ writeFileTextEnvelope skFp (Just skeyDesc) skey
+      $ writeOutputBech32
+          (OutputDirectionFile skFp)
+          skey
     firstExceptT ShelleyStakeAddressCmdWriteFileError
       . newExceptT
-      $ writeFileTextEnvelope vkFp (Just vkeyDesc) vkey
-  where
-    skeyDesc, vkeyDesc :: TextEnvelopeDescr
-    skeyDesc = "Stake Signing Key"
-    vkeyDesc = "Stake Verification Key"
+      $ writeOutputBech32
+          (OutputDirectionFile vkFp)
+          vkey
 
 runStakeAddressKeyHash
   :: VerificationKeyOrFile StakeKey
