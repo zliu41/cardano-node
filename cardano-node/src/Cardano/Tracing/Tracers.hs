@@ -263,7 +263,6 @@ instance (StandardHash header, Eq peer) => ElidingTracer
 mkTracers
   :: forall peer localPeer blk.
      ( Consensus.RunNode blk
-     , HasKESMetricsData blk
      , TraceConstraints blk
      , Show peer, Eq peer
      , Show localPeer
