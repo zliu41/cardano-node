@@ -84,6 +84,7 @@ import qualified Ouroboros.Consensus.Storage.LedgerDB.OnDisk as LedgerDB
 import           Cardano.Tracing.Config
 import           Cardano.Tracing.Constraints (TraceConstraints)
 import           Cardano.Tracing.ConvertTxId (ConvertTxId)
+import           Cardano.Tracing.HasIssuer (BlockIssuerVerificationKeyHash (..), HasIssuer (..))
 import           Cardano.Tracing.Kernel
 import           Cardano.Tracing.Metrics
 import           Cardano.Tracing.MicroBenchmarking
@@ -346,6 +347,7 @@ mkTracers TracingOff _ _ =
 
 teeTraceChainTip
   :: ( ConvertRawHash blk
+     , HasIssuer blk
      , LedgerSupportsProtocol blk
      , InspectLedger blk
      , ToObject (Header blk)
@@ -399,6 +401,9 @@ traceChainInformation tr chainInfo = do
     traceNamedObject
       (appendName "tipBlockParentHash" tr')
       (meta, LogMessage tipBlockParentHashText)
+    traceNamedObject
+      (appendName "tipBlockIssuerVerificationKeyHash" tr')
+      (meta, LogMessage tipBlockIssuerVkHashText)
   where
     ChainInformation
       { slots
@@ -408,6 +413,7 @@ traceChainInformation tr chainInfo = do
       , slotInEpoch
       , tipBlockHash
       , tipBlockParentHash
+      , tipBlockIssuerVerificationKeyHash
       } = chainInfo
 
     tipBlockHashText :: Text
@@ -419,8 +425,15 @@ traceChainInformation tr chainInfo = do
         (Text.decodeLatin1 . B16.encode . toRawHash (Proxy @blk))
         tipBlockParentHash
 
+    tipBlockIssuerVkHashText :: Text
+    tipBlockIssuerVkHashText =
+      case tipBlockIssuerVerificationKeyHash of
+        NoBlockIssuer -> "NoBlockIssuer"
+        BlockIssuerVerificationKeyHash bs ->
+          Text.decodeLatin1 (B16.encode bs)
+
 teeTraceChainTip'
-  :: (HasHeader (Header blk), ConvertRawHash blk)
+  :: (HasHeader (Header blk), HasIssuer blk, ConvertRawHash blk)
   => Trace IO Text -> Tracer IO (WithSeverity (ChainDB.TraceEvent blk))
 teeTraceChainTip' tr =
     Tracer $ \(WithSeverity _ ev') ->
@@ -934,13 +947,15 @@ data ChainInformation blk = ChainInformation
     -- ^ Hash of the last adopted block.
   , tipBlockParentHash :: ChainHash (Header blk)
     -- ^ Hash of the parent block of the last adopted block.
+  , tipBlockIssuerVerificationKeyHash :: BlockIssuerVerificationKeyHash
+    -- ^ Hash of the last adopted block issuer's verification key.
   }
 
 chainInformation
-  :: forall blk. HasHeader (Header blk)
+  :: forall blk. (HasHeader (Header blk), HasIssuer blk)
   => ChainDB.NewTipInfo blk
-  -> AF.AnchoredFragment (Header blk)
-  -> AF.AnchoredFragment (Header blk)
+  -> AF.AnchoredFragment (Header blk) -- ^ Old fragment.
+  -> AF.AnchoredFragment (Header blk) -- ^ New fragment.
   -> ChainInformation blk
 chainInformation newTipInfo oldFrag frag = ChainInformation
     { slots       = unSlotNo $ fromWithOrigin 0 (AF.headSlot frag)
@@ -950,7 +965,17 @@ chainInformation newTipInfo oldFrag frag = ChainInformation
     , slotInEpoch = ChainDB.newTipSlotInEpoch newTipInfo
     , tipBlockHash = realPointHash (ChainDB.newTipPoint newTipInfo)
     , tipBlockParentHash = AF.headHash oldFrag
+    , tipBlockIssuerVerificationKeyHash = tipIssuerVkHash
     }
+  where
+    tipIssuerVkHash :: BlockIssuerVerificationKeyHash
+    tipIssuerVkHash =
+      case AF.head frag of
+        Left AF.AnchorGenesis ->
+          NoBlockIssuer
+        Left (AF.Anchor _s _h _b) ->
+          NoBlockIssuer
+        Right blk -> getIssuerVerificationKeyHash blk
 
 fragmentChainDensity ::
   HasHeader (Header blk)
