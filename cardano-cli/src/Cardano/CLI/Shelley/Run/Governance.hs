@@ -13,7 +13,8 @@ import           Control.Monad.Trans.Except.Extra (firstExceptT, left, newExcept
 import           Cardano.Api
 import           Cardano.Api.Shelley
 
-import           Cardano.CLI.Shelley.Key (InputDecodeError, VerificationKeyOrHashOrFile,
+import           Cardano.CLI.Shelley.Key (InputDecodeError, VerificationKeyOrFile,
+                     VerificationKeyOrHashOrFile, readVerificationKeyOrFile,
                      readVerificationKeyOrHashOrFile, readVerificationKeyOrHashOrTextEnvFile)
 import           Cardano.CLI.Shelley.Parsers
 import           Cardano.CLI.Types
@@ -62,7 +63,7 @@ runGovernanceCmd (GovernanceUpdateProposal out eNo genVKeys ppUp) =
 
 runGovernanceMIRCertificate
   :: Shelley.MIRPot
-  -> [VerificationKeyFile]
+  -> [VerificationKeyOrFile StakeKey]
   -- ^ Stake verification keys
   -> [Lovelace]
   -- ^ Reward amounts
@@ -82,18 +83,23 @@ runGovernanceMIRCertificate mirPot vKeys rwdAmts (OutputFile oFp) = do
     mirCertDesc :: TextEnvelopeDescr
     mirCertDesc = "Move Instantaneous Rewards Certificate"
 
-    checkEqualKeyRewards :: [VerificationKeyFile] -> [Lovelace] -> ExceptT ShelleyGovernanceCmdError IO ()
+    checkEqualKeyRewards
+      :: [VerificationKeyOrFile a]
+      -> [Lovelace]
+      -> ExceptT ShelleyGovernanceCmdError IO ()
     checkEqualKeyRewards keys rwds = do
        let numVKeys = length keys
            numRwdAmts = length rwds
        if numVKeys == numRwdAmts
        then return () else left $ ShelleyGovernanceCmdMIRCertificateKeyRewardMistmach oFp numVKeys numRwdAmts
 
-    readStakeKeyToCred :: VerificationKeyFile -> ExceptT ShelleyGovernanceCmdError IO StakeCredential
-    readStakeKeyToCred (VerificationKeyFile stVKey) = do
-      stakeVkey <- firstExceptT ShelleyGovernanceCmdTextEnvReadError
+    readStakeKeyToCred
+      :: VerificationKeyOrFile StakeKey
+      -> ExceptT ShelleyGovernanceCmdError IO StakeCredential
+    readStakeKeyToCred stakeVerKeyOrFile = do
+      stakeVkey <- firstExceptT ShelleyGovernanceCmdKeyReadError
         . newExceptT
-        $ readFileTextEnvelope (AsVerificationKey AsStakeKey) stVKey
+        $ readVerificationKeyOrFile AsStakeKey stakeVerKeyOrFile
       right . StakeCredentialByKey $ verificationKeyHash stakeVkey
 
 runGovernanceGenesisKeyDelegationCertificate

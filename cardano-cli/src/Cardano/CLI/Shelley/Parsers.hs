@@ -732,7 +732,7 @@ pGovernanceCmd =
     pMIRCertificate :: Parser GovernanceCmd
     pMIRCertificate = GovernanceMIRCertificate
                         <$> pMIRPot
-                        <*> some pStakeVerificationKeyFile
+                        <*> some pStakeVerificationKeyOrFile
                         <*> some pRewardAmt
                         <*> pOutputFile
 
