@@ -27,8 +27,5 @@ golden_shelleyAddressKeyGen = propertyOnce . H.moduleWorkspace "tmp" $ \tempDir 
   void $ H.readFile addressVKeyFile
   void $ H.readFile addressSKeyFile
 
-  H.assertFileOccurences 1 "PaymentVerificationKeyShelley" addressVKeyFile
-  H.assertFileOccurences 1 "PaymentSigningKeyShelley_ed25519" addressSKeyFile
-
-  H.assertEndsWithSingleNewline addressVKeyFile
-  H.assertEndsWithSingleNewline addressSKeyFile
+  H.assertFileOccurences 1 "addr_vk" addressVKeyFile
+  H.assertFileOccurences 1 "addr_sk" addressSKeyFile
