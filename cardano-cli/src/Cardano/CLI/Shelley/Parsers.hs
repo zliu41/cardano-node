@@ -17,6 +17,8 @@ import           Cardano.Prelude hiding (All, Any, option)
 import           Prelude (String)
 
 import           Cardano.Api
+import           Cardano.Api.DeserialiseAnyOf (InputFormat (..), deserialiseInput,
+                     renderInputDecodeError)
 import           Cardano.Api.Protocol (Protocol (..))
 import           Cardano.Api.Shelley
 
@@ -24,9 +26,8 @@ import           Cardano.Chain.Slotting (EpochSlots (..))
 import           Cardano.CLI.Mary.TxOutParser (parseTxOutAnyEra)
 import           Cardano.CLI.Mary.ValueParser (parseValue)
 import           Cardano.CLI.Shelley.Commands
-import           Cardano.CLI.Shelley.Key (InputFormat (..), VerificationKeyOrFile (..),
-                     VerificationKeyOrHashOrFile (..), VerificationKeyTextOrFile (..),
-                     deserialiseInput, renderInputDecodeError)
+import           Cardano.CLI.Shelley.Key (VerificationKeyOrFile (..),
+                     VerificationKeyOrHashOrFile (..), VerificationKeyTextOrFile (..))
 import           Cardano.CLI.Types
 import           Control.Monad.Fail (fail)
 import           Data.Attoparsec.Combinator ((<?>))
@@ -40,7 +41,6 @@ import qualified Data.ByteString.Base16 as B16
 import qualified Data.ByteString.Char8 as BSC
 import qualified Data.Char as Char
 import qualified Data.IP as IP
-import qualified Data.List.NonEmpty as NE
 import qualified Data.Set as Set
 import qualified Data.Text as Text
 import qualified Data.Text.Encoding as Text
@@ -2386,8 +2386,8 @@ readVerificationKey
 readVerificationKey asType =
     Opt.eitherReader deserialiseFromBech32OrHex
   where
-    keyFormats :: NonEmpty (InputFormat (VerificationKey keyrole))
-    keyFormats = NE.fromList [InputFormatBech32, InputFormatHex]
+    keyFormats :: [InputFormat (VerificationKey keyrole)]
+    keyFormats = [InputFormatBech32, InputFormatHex]
 
     deserialiseFromBech32OrHex
       :: String
@@ -2440,4 +2440,3 @@ readerFromParsecParser p =
 subParser :: String -> ParserInfo a -> Parser a
 subParser availableCommand pInfo =
   Opt.hsubparser $ Opt.command availableCommand pInfo <> Opt.metavar availableCommand
-

@@ -18,14 +18,14 @@ import qualified Data.Text as Text
 import           Control.Monad.Trans.Except.Extra (firstExceptT, hoistEither, newExceptT)
 
 import           Cardano.Api
+import           Cardano.Api.DeserialiseAnyOf (InputDecodeError)
 import           Cardano.Api.Shelley
 
 import           Shelley.Spec.Ledger.OCert (KESPeriod)
 
 import           Cardano.CLI.Shelley.Commands
-import           Cardano.CLI.Shelley.Key (InputDecodeError, OutputDirection (..),
-                     VerificationKeyOrFile, readSigningKeyFileAnyOf, readVerificationKeyOrFile,
-                     writeOutputBech32)
+import           Cardano.CLI.Shelley.Key (OutputDirection (..), VerificationKeyOrFile,
+                     readSigningKeyFileAnyOf, readVerificationKeyOrFile, writeOutputBech32)
 import           Cardano.CLI.Types (SigningKeyFile (..), VerificationKeyFile (..))
 
 {- HLINT ignore "Reduce duplication" -}

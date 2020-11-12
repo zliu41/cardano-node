@@ -23,13 +23,13 @@ import           Control.Monad.Trans.Except.Extra (firstExceptT, handleIOExceptT
                      newExceptT)
 
 import           Cardano.Api
+import           Cardano.Api.DeserialiseAnyOf (InputDecodeError)
 import           Cardano.Api.Shelley
 
-import           Cardano.CLI.Shelley.Key (InputDecodeError, OutputDirection (..),
-                     VerificationKeyOrFile, VerificationKeyTextOrFile,
-                     VerificationKeyTextOrFileError (..), readVerificationKeyOrFile,
-                     readVerificationKeyTextOrFileAnyOf, renderVerificationKeyTextOrFileError,
-                     writeOutputBech32)
+import           Cardano.CLI.Shelley.Key (OutputDirection (..), VerificationKeyOrFile,
+                     VerificationKeyTextOrFile, VerificationKeyTextOrFileError (..),
+                     readVerificationKeyOrFile, readVerificationKeyTextOrFileAnyOf,
+                     renderVerificationKeyTextOrFileError, writeOutputBech32)
 import           Cardano.CLI.Shelley.Parsers (AddressCmd (..), AddressKeyType (..), OutputFile (..))
 import           Cardano.CLI.Shelley.Run.Address.Info (ShelleyAddressInfoError, runAddressInfo)
 import           Cardano.CLI.Types

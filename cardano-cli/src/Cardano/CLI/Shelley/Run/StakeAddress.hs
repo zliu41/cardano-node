@@ -14,10 +14,11 @@ import qualified Data.Text.IO as Text
 import           Control.Monad.Trans.Except.Extra (firstExceptT, newExceptT)
 
 import           Cardano.Api
+import           Cardano.Api.DeserialiseAnyOf (InputDecodeError)
 import           Cardano.Api.Shelley
 
-import           Cardano.CLI.Shelley.Key (InputDecodeError, OutputDirection (..),
-                     VerificationKeyOrFile, VerificationKeyOrHashOrFile, readVerificationKeyOrFile,
+import           Cardano.CLI.Shelley.Key (OutputDirection (..), VerificationKeyOrFile,
+                     VerificationKeyOrHashOrFile, readVerificationKeyOrFile,
                      readVerificationKeyOrHashOrFile, writeOutputBech32)
 import           Cardano.CLI.Shelley.Parsers
 import           Cardano.CLI.Types

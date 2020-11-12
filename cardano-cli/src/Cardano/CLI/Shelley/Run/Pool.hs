@@ -14,14 +14,14 @@ import           Control.Monad.Trans.Except.Extra (firstExceptT, handleIOExceptT
 import qualified Data.ByteString.Char8 as BS
 
 import           Cardano.Api
+import           Cardano.Api.DeserialiseAnyOf (InputDecodeError)
 import           Cardano.Api.Shelley
 
 import qualified Shelley.Spec.Ledger.Slot as Shelley
 
 import           Cardano.CLI.Shelley.Commands
-import           Cardano.CLI.Shelley.Key (InputDecodeError, OutputDirection (..),
-                     VerificationKeyOrFile, readVerificationKeyOrFile,
-                     writeOutputBech32)
+import           Cardano.CLI.Shelley.Key (OutputDirection (..), VerificationKeyOrFile,
+                     readVerificationKeyOrFile, writeOutputBech32)
 
 
 data ShelleyPoolCmdError
