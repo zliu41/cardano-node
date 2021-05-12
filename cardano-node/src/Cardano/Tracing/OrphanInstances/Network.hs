@@ -380,6 +380,7 @@ instance HasSeverityAnnotation (TracePeerSelection addr) where
       TracePromoteWarmFailed     {} -> Error
       TracePromoteWarmDone       {} -> Info
       TraceDemoteWarmPeers       {} -> Info
+      TracePromoteWarmLocalPeers {} -> Info
       TraceDemoteWarmFailed      {} -> Error
       TraceDemoteWarmDone        {} -> Info
       TraceDemoteHotPeers        {} -> Info
