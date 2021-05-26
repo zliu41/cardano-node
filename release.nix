@@ -122,8 +122,7 @@ let
   onlyBuildOnDefaultSystem = [
     ["checks" "hlint"] ["dockerImage"] ["submitApiDockerImage"] ["clusterTests"] ["nixosTests"]
     [ "haskellPackages" "cardano-node-chairman" "checks" ]
-    [ "haskellPackages" "cardano-node-chairman" "coverageReport" ]
-    [ "cardano-node-profiled" "components" "exes" ]
+    [ "cardano-node-profiled" ] [ "cardano-node-eventlogged" ]
     [ "checks" "tests" "cardano-node-chairman" ]
     [ "workbench" ] [ "profiles" ]
   ];
