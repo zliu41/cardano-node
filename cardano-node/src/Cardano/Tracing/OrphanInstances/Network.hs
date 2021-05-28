@@ -355,8 +355,8 @@ instance HasSeverityAnnotation (WithMuxBearer peer MuxTrace) where
     MuxTraceShutdown -> Debug
     MuxTraceTerminating {} -> Debug
 
-instance HasPrivacyAnnotation TraceLocalRootPeers
-instance HasSeverityAnnotation TraceLocalRootPeers where
+instance HasPrivacyAnnotation (TraceLocalRootPeers exception)
+instance HasSeverityAnnotation (TraceLocalRootPeers exception) where
   getSeverityAnnotation _ = Info
 
 instance HasPrivacyAnnotation TracePublicRootPeers
@@ -579,9 +579,9 @@ instance (Show peer)
      <> " event: " <> pack (show ev)
 
 
-instance Transformable Text IO TraceLocalRootPeers where
+instance Show exception => Transformable Text IO (TraceLocalRootPeers exception) where
   trTransformer = trStructuredText
-instance HasTextFormatter TraceLocalRootPeers where
+instance Show exception => HasTextFormatter (TraceLocalRootPeers exception) where
     formatText a _ = pack (show a)
 
 instance Transformable Text IO TracePublicRootPeers where
@@ -1211,7 +1211,7 @@ instance (ToObject peer) => ToObject (WithMuxBearer peer MuxTrace) where
              , "bearer" .= toObject verb b
              , "event" .= show ev ]
 
-instance ToObject TraceLocalRootPeers where
+instance Show exception => ToObject (TraceLocalRootPeers exception) where
   toObject _verb ev =
     mkObject [ "kind" .= String "TraceLocalRootPeers"
              , "event" .= show ev ]
