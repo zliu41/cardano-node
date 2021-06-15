@@ -473,6 +473,7 @@ instance HasSeverityAnnotation (InboundGovernorTrace addr) where
       InboundGovernor.TrMuxCleanExit {}            -> Debug
       InboundGovernor.TrMuxErrored {}              -> Info
       InboundGovernor.TrInboundGovernorCounters {} -> Info
+      InboundGovernor.TrRemoteState {}             -> Debug
 
 --
 -- | instances of @Transformable@
@@ -1249,6 +1250,10 @@ instance Aeson.ToJSON AbstractState where
     toJSON (OutboundDupSt timeoutExpired) =
       Aeson.object [ "kind" .= String "OutboundDupSt"
                    , "timeoutState" .= String (pack . show $ timeoutExpired)
+                   ]
+    toJSON (OutboundIdleSt dataFlow) =
+      Aeson.object [ "kind"     .= String "OutboundIdleSt"
+                   , "dataFlow" .= String (pack . show $ dataFlow)
                    ]
     toJSON DuplexSt =
       Aeson.object [ "kind" .= String "DuplexSt" ]
