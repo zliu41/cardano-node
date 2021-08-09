@@ -54,6 +54,8 @@ library
                        Cardano.Benchmarking.Wallet
                        Cardano.Benchmarking.PlutusExample
 
+                       Cardano.ToId
+
   other-modules:       Paths_tx_generator
 
   build-depends:       aeson
@@ -84,6 +86,7 @@ library
                      , io-classes
                      , iohk-monitoring
                      , ixset-typed
+                     , locli
                      , network
                      , network-mux
                      , optparse-applicative

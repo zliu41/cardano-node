@@ -23,7 +23,7 @@ module Cardano.Benchmarking.Tracer
   , createTracers
   ) where
 
-import           Prelude (Show(..), String)
+import           Prelude (Show(..), String, error)
 
 import           Cardano.Prelude hiding (TypeError, show)
 
@@ -34,6 +34,8 @@ import qualified Data.Aeson as A
 import qualified Data.HashMap.Strict as HM
 import qualified Data.Text as T
 import           Data.Time.Clock (DiffTime, NominalDiffTime, getCurrentTime)
+
+import           Data.Id
 
 -- Mode-agnostic imports.
 import           Cardano.BM.Data.Tracer
@@ -52,6 +54,7 @@ import           Cardano.Tracing.OrphanInstances.Shelley()
 
 
 import           Cardano.Benchmarking.OuroborosImports
+import           Cardano.ToId ()
 import           Ouroboros.Network.Driver (TraceSendRecv (..))
 import           Ouroboros.Network.Protocol.TxSubmission2.Type (TxSubmission2)
 import           Ouroboros.Consensus.Ledger.SupportsMempool (GenTx, GenTxId)
@@ -133,6 +136,8 @@ data TraceBenchTxSubmit txid
   | TraceBenchTxSubIdle
   -- ^ Remote peer requested new transasctions but none were
   --   available, generator not keeping up?
+  | TraceBenchTxSubAudit !UtxoSpendSubmit
+  -- ^ We trace this in submission audit mode.
   | TraceBenchTxSubRateLimit DiffTime
   -- ^ Rate limiter bit, this much delay inserted to keep within
   --   configured rate.
@@ -148,6 +153,35 @@ instance Transformable Text IO (TraceBenchTxSubmit TxId) where
 
 instance HasSeverityAnnotation (TraceBenchTxSubmit TxId)
 instance HasPrivacyAnnotation  (TraceBenchTxSubmit TxId)
+
+-- | We trace this once we've successfully submitted a transaction to a node.
+data UtxoSpendSubmit
+  = UtxoSpendSubmit
+  { ussIns  :: [(Id Tx, Int)]
+  , ussTxId :: !(Id Tx)
+  , ussOuts :: [Id AddressInEra]
+  }
+  deriving stock (Show, Generic)
+instance ToJSON UtxoSpendSubmit
+
+class TxToSpendSubmit a where
+  txToSpendSubmit :: a -> UtxoSpendSubmit
+
+data AddressType
+  = ATValue
+  | ATScript
+
+instance TxToSpendSubmit (TxInMode CardanoMode) where
+  txToSpendSubmit (TxInMode tx _) =
+    UtxoSpendSubmit
+    { ussIns  = toId <$> txIns (getTxBodyContent txBody)
+    , ussTxId = coerceId (toId tx)
+    , ussOuts = toId . txOutAddress <$> txOuts (getTxBodyContent txBody)
+    }
+   where
+     body = getTxBody tx
+     txOutAddress (TxOut addr _ _) = addr
+  txToSpendSubmit TxInByronSpecial{} = error "Byron specials not supported."
 
 -- | Summary of a tx submission run.
 data SubmissionSummary

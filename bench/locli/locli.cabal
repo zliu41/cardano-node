@@ -16,6 +16,7 @@ library
 
   exposed-modules:     Data.Accum
                        Data.Distribution
+                       Data.Id
 
                        Cardano.Analysis.Profile
                        Cardano.Analysis.TopHandler
@@ -41,6 +42,7 @@ library
                      , async
                      , attoparsec
                      , attoparsec-iso8601
+                     , base16-bytestring
                      , bytestring
                      , cardano-config
                      , cardano-prelude
