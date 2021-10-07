@@ -1,9 +1,7 @@
 {-# LANGUAGE FlexibleContexts     #-}
 {-# LANGUAGE FlexibleInstances    #-}
 {-# LANGUAGE ScopedTypeVariables  #-}
-{-# LANGUAGE TypeApplications     #-}
 {-# LANGUAGE TypeFamilies         #-}
-{-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 {-# OPTIONS_GHC -Wno-orphans  #-}
@@ -22,28 +20,28 @@ import           Cardano.Logging
 import           Cardano.Prelude hiding (All, Show, show)
 import           Cardano.TraceDispatcher.Consensus.Formatting
 
+import           Cardano.Protocol.TPraos.OCert (KESPeriod (..))
 import           Ouroboros.Consensus.Block.Forging
 import           Ouroboros.Consensus.Node.Tracers (TraceLabelCreds (..))
 import qualified Ouroboros.Consensus.Shelley.Protocol.HotKey as HotKey
-import           Shelley.Spec.Ledger.OCert (KESPeriod (..))
 
 
 
 traceAsKESInfo
   :: forall m blk . (GetKESInfoX blk, MonadIO m)
   => Proxy blk
-  -> Trace m (TraceLabelCreds (HotKey.KESInfo))
+  -> Trace m (TraceLabelCreds HotKey.KESInfo)
   -> Trace m (TraceLabelCreds (ForgeStateInfo blk))
 traceAsKESInfo pr tr = traceAsMaybeKESInfo pr (filterTraceMaybe tr)
 
 traceAsMaybeKESInfo
   :: forall m blk . (GetKESInfoX blk, MonadIO m)
   => Proxy blk
-  -> Trace m (Maybe (TraceLabelCreds (HotKey.KESInfo)))
+  -> Trace m (Maybe (TraceLabelCreds HotKey.KESInfo))
   -> Trace m (TraceLabelCreds (ForgeStateInfo blk))
 traceAsMaybeKESInfo pr (Trace tr) = Trace $
   contramap
-        (\(lc, mbC, (TraceLabelCreds c e)) ->
+        (\(lc, mbC, TraceLabelCreds c e) ->
             case getKESInfoFromStateInfoX pr e of
               Just kesi -> (lc, mbC, Just (TraceLabelCreds c kesi))
               Nothing   -> (lc, mbC, Nothing))

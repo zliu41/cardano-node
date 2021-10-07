@@ -169,7 +169,7 @@ runNode cmdPc = do
       case getLast $ pncConfigFile cmdPc of
         Just fileName -> NL.readConfiguration (unConfigPath fileName)
         Nothing -> putTextLn "No configuration file name found!" >> exitFailure
-    baseTrace    <- NL.standardTracer Nothing
+    baseTrace    <- NL.standardTracer
     nodeInfo <- prepareNodeInfo nc p loggerConfiguration now
     forwardTrace <- withIOManager $ \iomgr -> NL.forwardTracer iomgr loggerConfiguration nodeInfo
     mbEkgTrace   <- case llEKGDirect loggingLayer of
@@ -721,4 +721,4 @@ prepareNodeInfo nc (SomeConsensusProtocol whichP pForInfo) tc nodeStartTime = do
   prepareNodeName =
     case NL.tcNodeName tc of
       Just aName -> return aName
-      Nothing -> pack <$> getHostName
+      Nothing    -> pack <$> getHostName

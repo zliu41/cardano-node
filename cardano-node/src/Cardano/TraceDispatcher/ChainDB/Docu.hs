@@ -167,17 +167,17 @@ docChainDBTraceEvent = Documented [
   , DocMsg
       (ChainDB.TraceAddBlockEvent
         (ChainDB.AddedToCurrentChain [] protoNTI protoAFH protoAFH))
-      [(["density"],
+      [("density",
         "The actual number of blocks created over the maximum expected number\
         \ of blocks that could be created over the span of the last @k@ blocks.")
-      , (["slots"],
+      , ("slots",
         "Number of slots in this chain fragment.")
-      , (["blocks"],
+      , ("blocks",
         "Number of blocks in this chain fragment.")
-      , (["slotInEpoch"],
+      , ("slotInEpoch",
         "Relative slot number of the tip of the current chain within the\
         \epoch..")
-      , (["epoch"],
+      , ("epoch",
         "In which epoch is the tip of the current chain.")
       ]
       "The new block fits onto the current chain (first\
@@ -186,17 +186,17 @@ docChainDBTraceEvent = Documented [
   , DocMsg
       (ChainDB.TraceAddBlockEvent
         (ChainDB.SwitchedToAFork [] protoNTI protoAFH protoAFH))
-      [(["density"],
+      [ ("density",
         "The actual number of blocks created over the maximum expected number\
         \ of blocks that could be created over the span of the last @k@ blocks.")
-      , (["slots"],
+      , ("slots",
         "Number of slots in this chain fragment.")
-      , (["blocks"],
+      , ("blocks",
         "Number of blocks in this chain fragment.")
-      , (["slotInEpoch"],
+      , ("slotInEpoch",
         "Relative slot number of the tip of the current chain within the\
         \epoch..")
-      , (["epoch"],
+      , ("epoch",
         "In which epoch is the tip of the current chain.")
       ]
       "The new block fits onto some fork and we have switched to that fork\
@@ -276,7 +276,7 @@ docChainDBTraceEvent = Documented [
       "A block was successfully copied to the ImmDB."
   , DocMsg
       (ChainDB.TraceCopyToImmutableDBEvent
-        (ChainDB.NoBlocksToCopyToImmutableDB))
+        ChainDB.NoBlocksToCopyToImmutableDB)
       []
       "There are no block to copy to the ImmDB."
   , DocMsg
@@ -550,12 +550,12 @@ docChainDBTraceEvent = Documented [
 
   , DocMsg
       (ChainDB.TraceVolatileDBEvent
-        (VolDB.DBAlreadyClosed))
+        VolDB.DBAlreadyClosed)
       []
       "When closing the DB it was found itis closed already."
   , DocMsg
       (ChainDB.TraceVolatileDBEvent
-        (VolDB.DBAlreadyOpen))
+        VolDB.DBAlreadyOpen)
       []
       "TODO Doc"
   , DocMsg
