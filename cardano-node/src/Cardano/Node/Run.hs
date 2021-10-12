@@ -37,6 +37,8 @@ import           Network.Socket (AddrInfo, Socket)
 import           System.Directory (canonicalizePath, createDirectoryIfMissing,
                      makeAbsolute)
 import           System.Environment (lookupEnv)
+import qualified System.Metrics as EKG
+
 #ifdef UNIX
 import           System.Posix.Files
 import           System.Posix.Types (FileMode)
@@ -165,17 +167,18 @@ runNode cmdPc = do
                       Right res -> return res
 
     -- New logging initialisation
+    let ekgServer' = ekgServer (llEKGDirect loggingLayer)
+    ekgStore <- EKG.newStore
     loggerConfiguration <-
       case getLast $ pncConfigFile cmdPc of
         Just fileName -> NL.readConfiguration (unConfigPath fileName)
         Nothing -> putTextLn "No configuration file name found!" >> exitFailure
     baseTrace    <- NL.standardTracer
     nodeInfo <- prepareNodeInfo nc p loggerConfiguration now
-    forwardTrace <- withIOManager $ \iomgr -> NL.forwardTracer iomgr loggerConfiguration nodeInfo
-    mbEkgTrace   <- case llEKGDirect loggingLayer of
-                      Nothing -> pure Nothing
-                      Just ekgDirect ->
-                        liftM Just (NL.ekgTracer (Right (ekgServer ekgDirect)))
+    forwardSink <- withIOManager $ \iomgr ->
+                        NL.initForwarding iomgr loggerConfiguration ekgStore nodeInfo
+    let forwardTrace = NL.forwardTracer forwardSink
+    ekgTrace   <- NL.ekgTracer (Right ekgServer')
     -- End new logging initialisation
 
     !trace <- setupTrace loggingLayer
@@ -209,17 +212,19 @@ runNode cmdPc = do
                           (llEKGDirect loggingLayer)
                           p2pMode
               -- Couldn't resolve it.
-              --tracers <- mkDispatchTracers
-              --         (Consensus.configBlock cfg)
-              --         (ncTraceConfig nc)
-              --         trace
-              --         nodeKernelData
-              --         (llEKGDirect loggingLayer)
-              --         baseTrace
-              --         forwardTrace
-              --         mbEkgTrace
-              --         loggerConfiguration
-              --         bi
+              {-
+              tracers <- mkDispatchTracers
+                       (Consensus.configBlock cfg)
+                       (ncTraceConfig nc)
+                       trace
+                       nodeKernelData
+                       (Just (llEKGDirect loggingLayer))
+                       baseTrace
+                       forwardTrace
+                       (Just ekgTrace)
+                       loggerConfiguration
+                       bi
+              -}
               Async.withAsync (handlePeersListSimple trace nodeKernelData)
                   $ \_peerLogingThread ->
                     -- We ignore peer loging thread if it dies, but it will be killed
