@@ -11,14 +11,14 @@ module Cardano.Logging.Tracer.DataPoint
 import           Control.Concurrent.STM.TVar (modifyTVar)
 import           Control.Monad.IO.Class
 import           Control.Monad.STM (atomically)
-import           Data.HashMap.Strict (insert)
+import           Data.Map.Strict (insert)
 import           Data.List (intersperse)
 import           Data.Text (Text)
 import           Data.Text.Lazy (toStrict)
 import           Data.Text.Lazy.Builder (fromText, singleton, toLazyText)
 
 import qualified Control.Tracer as T
-import           DataPoint.Forward.Utils (DataPoint (..), DataPointStore)
+import           Trace.Forward.Utils.DataPoint (DataPoint (..), DataPointStore)
 
 -- import           Cardano.Logging.DocuGenerator
 import           Cardano.Logging.Types

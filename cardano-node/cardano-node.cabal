@@ -138,7 +138,6 @@ library
                       , cborg >= 0.2.4 && < 0.3
                       , contra-tracer
                       , containers
-                      , datapoint-forward
                       , directory
                       , dns
                       , ekg

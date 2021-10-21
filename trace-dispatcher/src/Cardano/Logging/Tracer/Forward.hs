@@ -10,7 +10,7 @@ module Cardano.Logging.Tracer.Forward
 import           Control.Monad.IO.Class
 
 import qualified Control.Tracer as T
-import           Trace.Forward.Utils (ForwardSink, writeToSink)
+import           Trace.Forward.Utils.TraceObject (ForwardSink, writeToSink)
 
 import           Cardano.Logging.DocuGenerator
 import           Cardano.Logging.Types

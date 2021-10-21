@@ -13,7 +13,7 @@ import           Data.Aeson.Types (ToJSON)
 import           Data.Maybe (fromMaybe)
 import           Data.Text
 
-import           DataPoint.Forward.Utils (DataPoint (..))
+import           Trace.Forward.Utils.DataPoint (DataPoint (..))
 
 import           Cardano.Logging.Configuration
 import           Cardano.Logging.DocuGenerator

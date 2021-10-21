@@ -39,7 +39,6 @@ library
                       , cborg
                       , containers
                       , contra-tracer
-                      , datapoint-forward
                       , ekg
                       , ekg-core
                       , ekg-forward
@@ -91,12 +90,12 @@ executable trace-dispatcher-examples
                       , aeson
                       , bytestring
                       , containers
-                      , datapoint-forward
                       , ekg
                       , ekg-core
                       , hostname
                       , text
                       , trace-dispatcher
+                      , trace-forward
                       , time
                       , unagi-chan >= 0.4.1.4
                       , unliftio

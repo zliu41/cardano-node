@@ -10,8 +10,8 @@ module Examples.DataPoint (
 
 import qualified Data.Aeson as A
 import           Data.ByteString.Lazy.UTF8
-import qualified Data.HashMap.Strict as HM
-import           DataPoint.Forward.Utils (DataPoint (..))
+import qualified Data.Map.Strict as M
+import           Trace.Forward.Utils.DataPoint (DataPoint (..))
 import           GHC.Conc
 import           GHC.Generics (Generic)
 
@@ -41,7 +41,7 @@ emptyStats = BaseStats 0.0 100000000.0 (-100000000.0) 0 0.0
 
 testDataPoint :: IO ()
 testDataPoint = do
-    dpMap <- newTVarIO HM.empty
+    dpMap <- newTVarIO M.empty
     let rawDataPointTracer = dataPointTracer dpMap
     dpTracer <- mkDataPointTracer
                           rawDataPointTracer

@@ -51,6 +51,8 @@ config1 = TraceConfig {
       , tofQueueSize = 100
       }
     , tcNodeName = Nothing
+    , tcPeerFreqency = Nothing
+    , tcResourceFreqency = Nothing
     }
 
 config2 :: TraceConfig
@@ -66,6 +68,8 @@ config2 = TraceConfig {
       , tofQueueSize = 100
       }
     , tcNodeName = Just "node-1"
+    , tcPeerFreqency = Nothing
+    , tcResourceFreqency = Nothing
     }
 
 testConfig' :: MonadIO m => TraceConfig -> Trace m TestMessage -> Trace m TestMessage -> m ()

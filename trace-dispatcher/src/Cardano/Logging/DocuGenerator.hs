@@ -27,7 +27,7 @@ import           Data.Text.Lazy (toStrict)
 import           Data.Text.Lazy.Builder (Builder, fromString, fromText,
                      singleton)
 import           Data.Time (getZonedTime)
-import           DataPoint.Forward.Utils (DataPoint (..))
+import           Trace.Forward.Utils.DataPoint (DataPoint (..))
 
 data DocuResult =
   DocuTracer Builder

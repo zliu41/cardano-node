@@ -43,17 +43,18 @@ import           Ouroboros.Network.Socket (AcceptedConnectionsLimit (..),
                      connectToNode, newNetworkMutableState, nullNetworkConnectTracers,
                      nullNetworkServerTracers, withServerNode)
 
-import qualified DataPoint.Forward.Configuration as DPF
-import           DataPoint.Forward.Network.Forwarder
-import           DataPoint.Forward.Utils (DataPointStore, initDataPointStore)
 import qualified System.Metrics as EKG
 import qualified System.Metrics.Configuration as EKGF
 import           System.Metrics.Network.Forwarder
-import qualified Trace.Forward.Configuration as TF
-import           Trace.Forward.Network.Forwarder
-import           Trace.Forward.Utils
+import qualified Trace.Forward.Configuration.DataPoint as DPF
+import qualified Trace.Forward.Configuration.TraceObject as TF
+import           Trace.Forward.Run.DataPoint.Forwarder
+import           Trace.Forward.Run.TraceObject.Forwarder
+import           Trace.Forward.Utils.DataPoint
+import           Trace.Forward.Utils.TraceObject
 
 import           Cardano.Logging.Types
+import           Cardano.Logging.Utils (runInLoop)
 
 initForwarding :: forall m. (MonadIO m)
   => IOManager
@@ -89,7 +90,7 @@ initForwarding iomgr config ekgStore = liftIO $ do
   tfConfig =
     TF.ForwarderConfiguration
       { TF.forwarderTracer       = contramap show stdoutTracer
-      , TF.acceptorEndpoint      = TF.LocalPipe p
+      , TF.acceptorEndpoint      = p
       , TF.disconnectedQueueSize = 200000
       , TF.connectedQueueSize    = 2000
       }
@@ -98,7 +99,7 @@ initForwarding iomgr config ekgStore = liftIO $ do
   dpfConfig =
     DPF.ForwarderConfiguration
       { DPF.forwarderTracer  = contramap show stdoutTracer
-      , DPF.acceptorEndpoint = DPF.LocalPipe p
+      , DPF.acceptorEndpoint = p
       }
 
 launchForwarders
@@ -113,7 +114,7 @@ launchForwarders
   -> IO ()
 launchForwarders iomgr TraceConfig{tcForwarder} ekgConfig tfConfig dpfConfig ekgStore sink dpStore =
   void . async $
-    runActionInLoop
+    runInLoop
       (launchForwardersViaLocalSocket
          iomgr
          tcForwarder
@@ -123,8 +124,7 @@ launchForwarders iomgr TraceConfig{tcForwarder} ekgConfig tfConfig dpfConfig ekg
          sink
          ekgStore
          dpStore)
-      (TF.LocalPipe p)
-      1
+      p 1
  where
   LocalSocket p = tofAddress tcForwarder
 
@@ -171,9 +171,9 @@ doConnectToAcceptor snocket address timeLimits ekgConfig tfConfig dpfConfig sink
     (simpleSingletonVersions
        UnversionedProtocol
        UnversionedProtocolData
-         (forwarderApp [ (forwardEKGMetrics   ekgConfig ekgStore, 1)
-                       , (forwardTraceObjects tfConfig  sink,     2)
-                       , (forwardDataPoints   dpfConfig dpStore,  3)
+         (forwarderApp [ (forwardEKGMetrics       ekgConfig ekgStore, 1)
+                       , (forwardTraceObjectsInit tfConfig  sink,     2)
+                       , (forwardDataPointsInit   dpfConfig dpStore,  3)
                        ]
          )
     )
