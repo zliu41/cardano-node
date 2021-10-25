@@ -9,6 +9,8 @@ import           Examples.EKG
 import           Examples.FrequencyLimiting
 import           Examples.Routing
 import           Examples.Trivial
+import           Examples.DataPoint
+
 
 main :: IO ()
 main = do
@@ -20,3 +22,4 @@ main = do
     testLimiting
     docTracers
     testEKG
+    testDataPoint

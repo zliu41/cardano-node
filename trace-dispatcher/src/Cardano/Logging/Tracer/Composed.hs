@@ -3,11 +3,15 @@
 module Cardano.Logging.Tracer.Composed (
     mkCardanoTracer
   , mkCardanoTracer'
+  , mkDataPointTracer
   , MessageOrLimit(..)
   ) where
 
-import           Data.Maybe                       (fromMaybe)
+import           Data.Maybe (fromMaybe)
 import           Data.Text
+import           Data.Aeson.Types(ToJSON)
+
+import           DataPoint.Forward.Utils (DataPoint(..))
 
 import           Cardano.Logging.Configuration
 import           Cardano.Logging.Formatter
@@ -15,7 +19,7 @@ import           Cardano.Logging.FrequencyLimiter (LimitingMessage (..))
 import           Cardano.Logging.Trace
 import           Cardano.Logging.Types
 
-import qualified Control.Tracer                   as NT
+import qualified Control.Tracer as NT
 
 data MessageOrLimit m = Message m | Limit LimitingMessage
 
@@ -119,3 +123,13 @@ mkCardanoTracer' trStdout trForward mbTrEkg name namesFor severityFor privacyFor
         case mbEkgTrace <> mbForwardTrace <> mbStdoutTrace of
           Nothing -> pure $ Trace NT.nullTracer
           Just tr -> pure (preFormatted backends tr)
+
+-- A simple dataPointTracer which supports building a namespace and entering a hook
+-- function.
+mkDataPointTracer :: forall dp. ToJSON dp
+  => Trace IO DataPoint
+  -> (dp -> [Text])
+  -> IO (Trace IO dp)
+mkDataPointTracer trDataPoint namesFor = do
+    let tr = NT.contramap DataPoint trDataPoint
+    pure $ withNamesAppended namesFor tr

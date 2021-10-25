@@ -21,6 +21,7 @@ library
                       Cardano.Logging.Formatter
                       Cardano.Logging.Forwarding
                       Cardano.Logging.FrequencyLimiter
+                      Cardano.Logging.Tracer.DataPoint
                       Cardano.Logging.Tracer.EKG
                       Cardano.Logging.Tracer.Standard
                       Cardano.Logging.Tracer.Forward
@@ -80,6 +81,7 @@ executable trace-dispatcher-examples
                       Examples.Routing
                       Examples.EKG
                       Examples.Configuration
+                      Examples.DataPoint
                       Examples.FrequencyLimiting
                       Examples.Documentation
     hs-source-dirs:   examples
@@ -89,6 +91,7 @@ executable trace-dispatcher-examples
                       , aeson
                       , bytestring
                       , containers
+                      , datapoint-forward
                       , ekg
                       , ekg-core
                       , hostname
@@ -100,6 +103,7 @@ executable trace-dispatcher-examples
                       , unliftio-core
                       , stm
                       , unordered-containers
+                      , utf8-string
                       , yaml
   ghc-options:         -Wall
                        -Wcompat
