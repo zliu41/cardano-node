@@ -108,8 +108,6 @@ import qualified Cardano.Api.Protocol.Types as Protocol
 
 import           Cardano.Config.Git.Rev (gitRev)
 
-import           Trace.Forward.Protocol.Type (NodeInfo)
-
 import           Cardano.Node.Configuration.Socket (SocketOrSocketInfo (..),
                      gatherConfiguredSockets, getSocketOrSocketInfoAddr)
 import qualified Cardano.Node.Configuration.TopologyP2P as TopologyP2P
@@ -174,11 +172,15 @@ runNode cmdPc = do
         Just fileName -> NL.readConfiguration (unConfigPath fileName)
         Nothing -> putTextLn "No configuration file name found!" >> exitFailure
     baseTrace    <- NL.standardTracer
-    nodeInfo <- prepareNodeInfo nc p loggerConfiguration now
-    forwardSink <- withIOManager $ \iomgr ->
-                        NL.initForwarding iomgr loggerConfiguration ekgStore nodeInfo
+    _nodeInfo <- prepareNodeInfo nc p loggerConfiguration now
+    (forwardSink, _dpStore)
+      <- withIOManager $ \iomgr -> NL.initForwarding iomgr loggerConfiguration ekgStore
     let forwardTrace = NL.forwardTracer forwardSink
     ekgTrace   <- NL.ekgTracer (Left ekgStore)
+    -- let forwardDataPoint = NL.dataPointTracer dpStore -- Something like that, right?
+    -- Then, since we already have 'dpStore', we have to write 'nodeInfo' to it, because
+    -- 'cardano-tracer' will ask it as soon as possible.
+    -- writeToStore dpStore "NodeInfo" (DataPoint nodeInfo) -- Direct way.
     -- End new logging initialisation
 
     !trace <- setupTrace loggingLayer

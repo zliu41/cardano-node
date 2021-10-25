@@ -1,4 +1,5 @@
 {-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GeneralisedNewtypeDeriving #-}
@@ -39,6 +40,7 @@ module Cardano.Node.Types
   , SocketPath(..)
   , TopologyFile(..)
   , NodeDiffusionMode (..)
+  , NodeInfo (..)
     -- * Consensus protocol configuration
   , NodeByronProtocolConfiguration(..)
   , NodeHardForkProtocolConfiguration(..)
@@ -58,6 +60,7 @@ import           Data.IP (IP (..), IPv4, IPv6)
 import qualified Data.IP as IP
 import qualified Data.Text as Text
 import qualified Data.Text.Encoding as Text
+import           Data.Time.Clock (UTCTime)
 import qualified Network.DNS as DNS (Domain)
 import           Network.Socket (PortNumber, SockAddr (..))
 
@@ -490,3 +493,13 @@ renderVRFPrivateKeyFilePermissionError err =
     GenericPermissionsExist fp ->
       "VRF private key file at: " <> Text.pack fp
       <> "has \"generic\" file permissions. Please remove all \"generic\" file permissions."
+
+-- | Basic information about the node.
+data NodeInfo = NodeInfo
+  { niName            :: !Text
+  , niProtocol        :: !Text
+  , niVersion         :: !Text
+  , niCommit          :: !Text
+  , niStartTime       :: !UTCTime
+  , niSystemStartTime :: !UTCTime
+  } deriving (Eq, Generic, Show)
