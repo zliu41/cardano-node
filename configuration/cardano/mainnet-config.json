@@ -52,7 +52,6 @@
   "TracingVerbosity": "NormalVerbosity",
   "TurnOnLogMetrics": true,
   "TurnOnLogging": true,
-  "TurnOnLogging": true,
   "defaultBackends": [
     "KatipBK"
   ],
@@ -93,7 +92,7 @@
   ],
   "setupScribes": [
     {
-      "scFormat": "ScText",
+      "scFormat": "ScJson",
       "scKind": "StdoutSK",
       "scName": "stdout",
       "scRotation": null

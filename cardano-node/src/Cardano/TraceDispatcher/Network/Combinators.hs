@@ -729,7 +729,7 @@ severityHandshake'' (AnyMessageAndAgency _agency msg) = severityHandshake''' msg
 
 severityHandshake''' :: Message (HS.Handshake nt CBOR.Term) from to -> SeverityS
 severityHandshake''' HS.MsgProposeVersions {}  = Info
-severityHandshake''' HS.MsgProposeVersions' {} = Info
+severityHandshake''' HS.MsgReplyVersions {}    = Info
 severityHandshake''' HS.MsgAcceptVersion {}    = Info
 severityHandshake''' HS.MsgRefuse {}           = Info
 
@@ -747,7 +747,7 @@ namesForHandshake'' (AnyMessageAndAgency _agency msg) = namesForHandshake''' msg
 
 namesForHandshake''' :: Message (HS.Handshake nt CBOR.Term) from to -> [Text]
 namesForHandshake''' HS.MsgProposeVersions {}  = ["ProposeVersions"]
-namesForHandshake''' HS.MsgProposeVersions' {} = ["ProposeVersions'"]
+namesForHandshake''' HS.MsgReplyVersions {}    = ["ReplyVersions"]
 namesForHandshake''' HS.MsgAcceptVersion {}    = ["AcceptVersion"]
 namesForHandshake''' HS.MsgRefuse {}           = ["Refuse"]
 
@@ -765,7 +765,7 @@ severityLocalHandshake'' (AnyMessageAndAgency _agency msg) = severityLocalHandsh
 
 severityLocalHandshake''' :: Message (HS.Handshake nt CBOR.Term) from to -> SeverityS
 severityLocalHandshake''' HS.MsgProposeVersions {}  = Info
-severityLocalHandshake''' HS.MsgProposeVersions' {} = Info
+severityLocalHandshake''' HS.MsgReplyVersions {}  = Info
 severityLocalHandshake''' HS.MsgAcceptVersion {}    = Info
 severityLocalHandshake''' HS.MsgRefuse {}           = Info
 
@@ -783,7 +783,7 @@ namesForLocalHandshake'' (AnyMessageAndAgency _agency msg) = namesForLocalHandsh
 
 namesForLocalHandshake''' :: Message (HS.Handshake nt CBOR.Term) from to -> [Text]
 namesForLocalHandshake''' HS.MsgProposeVersions {}  = ["ProposeVersions"]
-namesForLocalHandshake''' HS.MsgProposeVersions' {} = ["ProposeVersions'"]
+namesForLocalHandshake''' HS.MsgReplyVersions {}    = ["ReplyVersions"]
 namesForLocalHandshake''' HS.MsgAcceptVersion {}    = ["AcceptVersion"]
 namesForLocalHandshake''' HS.MsgRefuse {}           = ["Refuse"]
 

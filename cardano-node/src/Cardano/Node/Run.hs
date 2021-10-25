@@ -108,7 +108,7 @@ import qualified Cardano.Api.Protocol.Types as Protocol
 
 import           Cardano.Config.Git.Rev (gitRev)
 
-import           Trace.Forward.Protocol.Type (NodeInfo (..))
+import           Trace.Forward.Protocol.Type (NodeInfo)
 
 import           Cardano.Node.Configuration.Socket (SocketOrSocketInfo (..),
                      gatherConfiguredSockets, getSocketOrSocketInfoAddr)
@@ -214,16 +214,16 @@ runNode cmdPc = do
               -- Couldn't resolve it.
               {-
               tracers <- mkDispatchTracers
-                       (Consensus.configBlock cfg)
-                       (ncTraceConfig nc)
-                       trace
-                       nodeKernelData
-                       (Just (llEKGDirect loggingLayer))
-                       baseTrace
-                       forwardTrace
-                       (Just ekgTrace)
-                       loggerConfiguration
-                       bi
+                           (Consensus.configBlock cfg)
+                           (ncTraceConfig nc)
+                           trace
+                           nodeKernelData
+                           (Just (llEKGDirect loggingLayer))
+                           baseTrace
+                           forwardTrace
+                           (Just ekgTrace)
+                           loggerConfiguration
+                           bi
               -}
               Async.withAsync (handlePeersListSimple trace nodeKernelData)
                   $ \_peerLogingThread ->
