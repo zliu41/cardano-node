@@ -211,10 +211,13 @@ formatContextMachine hostname application LoggingContext {..} obj = do
   let severity = (pack . show) (fromMaybe Info lcSeverity)
       tid      = fromMaybe ((pack . show) thid)
                     ((stripPrefix "ThreadId " . pack . show) thid)
-      ns       = application : lcNamespace
+      ns       = fromString hostname
+                    <> singleton ':'
+                    <> mconcat (intersperse (singleton '.')
+                        (map fromText (application : lcNamespace)))
       ts       = pack $ formatTime defaultTimeLocale "%F %H:%M:%S%4Q" time
   pure $ AE.pairs $    "at"      .= ts
-                    <> "ns"      .= ns
+                    <> "ns"      .= toStrict (toLazyText ns)
                     <> "message" .= obj
                     <> "sev"     .= severity
                     <> "thread"  .= tid
