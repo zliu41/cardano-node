@@ -166,7 +166,7 @@ instance (  LogFormatting (Header blk)
   forMachine details (ChainDB.TraceLedgerReplayEvent v) =
     kindContext "LedgerReplayEvent" $ forMachine details v
   forMachine details (ChainDB.TraceImmutableDBEvent v) =
-    kindContext "ImmutableDBEvent" $ forMachine details v
+    kindContext "ImmDbEvent" $ forMachine details v
   forMachine details (ChainDB.TraceVolatileDBEvent v) =
     kindContext "VolatileDBEvent" $ forMachine details v
 
@@ -461,7 +461,7 @@ instance LogFormatting (ChainDB.TraceGCEvent blk) where
       mkObject [ "kind" .= String "PerformedGC"
                , "slot" .= forMachine dtals slot ]
   forMachine dtals (ChainDB.ScheduledGC slot difft) =
-      mkObject $ [ "kind" .= String "TraceGCEvent.ScheduledGC"
+      mkObject $ [ "kind" .= String "ScheduledGC"
                  , "slot" .= forMachine dtals slot ] <>
                  [ "difft" .= String ((Text.pack . show) difft) | dtals >= DDetailed]
 
@@ -621,8 +621,7 @@ instance (ConvertRawHash blk, LedgerSupportsProtocol blk)
   => LogFormatting (ChainDB.TraceInitChainSelEvent blk) where
   forHuman (ChainDB.InitChainSelValidation v) = forHuman v
 
-  forMachine dtal (ChainDB.InitChainSelValidation v) =
-    kindContext "InitChainSelValidation" $ forMachine dtal v
+  forMachine dtal (ChainDB.InitChainSelValidation v) = forMachine dtal v
 
   asMetrics (ChainDB.InitChainSelValidation v) = asMetrics v
 

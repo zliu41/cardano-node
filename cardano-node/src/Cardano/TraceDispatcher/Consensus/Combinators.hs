@@ -87,15 +87,15 @@ severityChainSyncClientEvent' TraceTermination {}       = Notice
 
 namesForChainSyncClientEvent' :: TraceChainSyncClientEvent blk -> [Text]
 namesForChainSyncClientEvent' TraceDownloadedHeader {} =
-      ["DownloadedHeader"]
+      ["ChainSyncClientEvent.DownloadedHeader"]
 namesForChainSyncClientEvent' TraceFoundIntersection {} =
-      ["FoundIntersection"]
+      ["ChainSyncClientEvent.FoundIntersection"]
 namesForChainSyncClientEvent' TraceRolledBack {} =
-      ["RolledBack"]
+      ["ChainSyncClientEvent.RolledBack"]
 namesForChainSyncClientEvent' TraceException {} =
-      ["Exception"]
+      ["ChainSyncClientEvent.Exception"]
 namesForChainSyncClientEvent' TraceTermination {} =
-      ["Termination"]
+      ["ChainSyncClientEvent.Termination"]
 
 severityChainSyncServerEvent :: TraceChainSyncServerEvent blk -> SeverityS
 severityChainSyncServerEvent TraceChainSyncServerRead        {} = Info
@@ -105,13 +105,13 @@ severityChainSyncServerEvent TraceChainSyncRollBackward      {} = Info
 
 namesForChainSyncServerEvent :: TraceChainSyncServerEvent blk -> [Text]
 namesForChainSyncServerEvent TraceChainSyncServerRead        {} =
-      ["ServerRead"]
+      ["ChainSyncServerEvent.ServerRead"]
 namesForChainSyncServerEvent TraceChainSyncServerReadBlocked {} =
-      ["ServerReadBlocked"]
+      ["ChainSyncServerEvent.ServerReadBlocked"]
 namesForChainSyncServerEvent TraceChainSyncRollForward       {} =
-      ["RollForward"]
+      ["ChainSyncServerEvent.RollForward"]
 namesForChainSyncServerEvent TraceChainSyncRollBackward      {} =
-      ["RollBackward"]
+      ["ChainSyncServerEvent.RollBackward"]
 
 severityBlockFetchDecision ::
      [BlockFetch.TraceLabelPeer peer (FetchDecision [Point header])]
