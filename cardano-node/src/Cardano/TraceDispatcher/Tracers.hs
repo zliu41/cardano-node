@@ -1,12 +1,12 @@
 {-# LANGUAGE AllowAmbiguousTypes   #-}
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE FlexibleInstances     #-}
+{-# LANGUAGE LambdaCase            #-}
 {-# LANGUAGE MonoLocalBinds        #-}
 {-# LANGUAGE PackageImports        #-}
 {-# LANGUAGE QuantifiedConstraints #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE TypeApplications      #-}
-{-# LANGUAGE TypeSynonymInstances  #-}
 
 {-# OPTIONS_GHC -Wno-unused-imports  #-}
 {-# OPTIONS_GHC -Wno-deprecations  #-}
@@ -27,18 +27,19 @@ import           Cardano.Logging.Resources.Types
 import           Cardano.Prelude hiding (trace)
 import           Cardano.TraceDispatcher.BasicInfo.Combinators
 import           Cardano.TraceDispatcher.BasicInfo.Types (BasicInfo)
+import           Cardano.TraceDispatcher.ChainDB.BlockReplayProgress
 import           Cardano.TraceDispatcher.ChainDB.Combinators
 import           Cardano.TraceDispatcher.ChainDB.Docu
 import           Cardano.TraceDispatcher.Consensus.Combinators
 import           Cardano.TraceDispatcher.Consensus.Docu
 import           Cardano.TraceDispatcher.Consensus.ForgingThreadStats
-                     (docForgeStats, forgeThreadStats, ForgeThreadStats)
+                     (ForgeThreadStats, docForgeStats, forgeThreadStats)
 import           Cardano.TraceDispatcher.Consensus.StateInfo
 import           Cardano.TraceDispatcher.Formatting ()
 import           Cardano.TraceDispatcher.Network.Combinators
 import           Cardano.TraceDispatcher.Network.Docu
-import           Cardano.TraceDispatcher.Peer
 import           Cardano.TraceDispatcher.Network.Formatting ()
+import           Cardano.TraceDispatcher.Peer
 import           Cardano.TraceDispatcher.Resources (namesForResources,
                      severityResources, startResourceTracer)
 import qualified "trace-dispatcher" Control.Tracer as NT
@@ -81,6 +82,7 @@ import qualified Ouroboros.Consensus.Node.Tracers as Consensus
 import           Ouroboros.Consensus.Shelley.Ledger.Block
 import qualified Ouroboros.Consensus.Shelley.Protocol.HotKey as HotKey
 import qualified Ouroboros.Consensus.Storage.ChainDB as ChainDB
+import qualified Ouroboros.Consensus.Storage.LedgerDB.OnDisk as LedgerDB
 import           Ouroboros.Consensus.Storage.Serialisation (SerialisedHeader)
 
 
@@ -148,6 +150,12 @@ mkDispatchTracers _blockConfig (TraceDispatcher _trSel) _tr nodeKernel _ekgDirec
                 "ChainDB"
                 namesForChainDBTraceEvents
                 severityChainDB
+                allPublic
+    rbTr    <- mkCardanoTracer
+                trBase trForward mbTrEKG
+                "ReplayBlock"
+                namesForReplayBlockStats
+                severityReplayBlockStats
                 allPublic
     cscTr  <- mkCardanoTracer
                 trBase trForward mbTrEKG
@@ -364,8 +372,8 @@ mkDispatchTracers _blockConfig (TraceDispatcher _trSel) _tr nodeKernel _ekgDirec
     rsTr   <- mkCardanoTracer
                 trBase trForward mbTrEKG
                 "Resources"
-                (\ _ -> [])
-                (\ _ -> Info)
+                (const [])
+                (const Info)
                 allPublic
     biTr   <- mkCardanoTracer
                 trBase trForward mbTrEKG
@@ -381,11 +389,13 @@ mkDispatchTracers _blockConfig (TraceDispatcher _trSel) _tr nodeKernel _ekgDirec
                 allPublic
 
     configureTracers trConfig docChainDBTraceEvent    [cdbmTr]
+    configureTracers trConfig docReplayedBlock        [rbTr]
     configureTracers trConfig docChainSyncClientEvent [cscTr]
     configureTracers trConfig docChainSyncServerEvent [csshTr]
     configureTracers trConfig docChainSyncServerEvent [cssbTr]
     configureTracers trConfig docBlockFetchDecision   [bfdTr]
     configureTracers trConfig docBlockFetchClient     [bfcTr]
+    configureTracers trConfig docReplayedBlock        [rbTr]
     configureTracers trConfig docBlockFetchServer     [bfsTr]
     configureTracers trConfig docForgeStateInfo       [fsiTr]
     configureTracers trConfig docTxInbound            [txiTr]
@@ -419,27 +429,28 @@ mkDispatchTracers _blockConfig (TraceDispatcher _trSel) _tr nodeKernel _ekgDirec
     configureTracers trConfig docBasicInfo            [biTr]
     configureTracers trConfig docPeers                [pTr]
 
--- -- TODO JNF Code for debugging frequency limiting
---     void . forkIO $
---       sendContinously
---         0.1
---         cdbmTr
---         (ChainDB.TraceOpenEvent
---           (ChainDB.OpenedDB (Point Origin) (Point Origin)))
--- -- End of  debugging code
-
     mapM_ (traceWith biTr) basicInfos
     startResourceTracer rsTr
     startPeerTracer pTr nodeKernel
 
+    replayBlockTracer <- withReplayedBlock rbTr
+    let cdbmTr' = filterTrace
+                      (\case (_, Just _, _) -> True
+                             (_, Nothing, ChainDB.TraceLedgerReplayEvent
+                                            (LedgerDB.ReplayedBlock {})) -> False
+                             (_, Nothing, _) -> True)
+                      cdbmTr
+
     pure Tracers
-      { chainDBTracer = Tracer (traceWith cdbmTr)
+      { chainDBTracer = Tracer (traceWith cdbmTr')
+                        <> Tracer (traceWith replayBlockTracer)
       , consensusTracers = Consensus.Tracers
         { Consensus.chainSyncClientTracer = Tracer (traceWith cscTr)
         , Consensus.chainSyncServerHeaderTracer = Tracer (traceWith csshTr)
         , Consensus.chainSyncServerBlockTracer = Tracer (traceWith cssbTr)
         , Consensus.blockFetchDecisionTracer = Tracer (traceWith bfdTr)
         , Consensus.blockFetchClientTracer = Tracer (traceWith bfcTr)
+
         , Consensus.blockFetchServerTracer = Tracer (traceWith bfsTr)
         , Consensus.forgeStateInfoTracer =
             Tracer (traceWith (traceAsKESInfo (Proxy @blk) fsiTr))
@@ -512,13 +523,14 @@ docTracers configFileName outputFileName _ = do
     trBase     <- docTracer (Stdout HumanFormatColoured)
     trForward  <- docTracer Forwarder
     mbTrEKG :: Maybe (Trace IO FormattedMessage) <-
-                  liftM Just (docTracer EKGBackend)
-    cdbmTr <- mkCardanoTracer
+                  fmap Just (docTracer EKGBackend)
+    cdbmTr <- mkCardanoTracer'
                 trBase trForward mbTrEKG
                 "ChainDB"
                 namesForChainDBTraceEvents
                 severityChainDB
                 allPublic
+                withAddedToCurrentChainEmptyLimited
     cscTr  <- mkCardanoTracer
                 trBase trForward mbTrEKG
                 "ChainSyncClient"
@@ -579,12 +591,12 @@ docTracers configFileName outputFileName _ = do
                 namesForLocalTxSubmissionServer
                 severityLocalTxSubmissionServer
                 allPublic
-    -- mpTr   <- mkCardanoTracer
-    --             "Mempool"
-    --             namesForMempool
-    --             severityMempool
-    --             allPublic
-    --             trBase trForward mbTrEKG
+    mpTr   <- mkCardanoTracer
+                trBase trForward mbTrEKG
+                "Mempool"
+                namesForMempool
+                severityMempool
+                allPublic
     fTr    <- mkCardanoTracer
                 trBase trForward mbTrEKG
                 "Forge"
@@ -754,7 +766,7 @@ docTracers configFileName outputFileName _ = do
     configureTracers trConfig docTxInbound            [txiTr]
     configureTracers trConfig docTxOutbound           [txoTr]
     configureTracers trConfig docLocalTxSubmissionServer [ltxsTr]
---    configureTracers trConfig docMempool              [mpTr]
+    configureTracers trConfig docMempool              [mpTr]
     configureTracers trConfig docForge                [fTr, fSttTr]
     configureTracers trConfig docBlockchainTime       [btTr]
     configureTracers trConfig docKeepAliveClient      [kacTr]
@@ -810,10 +822,10 @@ docTracers configFileName outputFileName _ = do
                 (docBlockFetchServer :: Documented
                   (TraceBlockFetchServerEvent blk))
                 [bfsTr]
-    -- fsiTrDoc    <- documentMarkdown
-    --             (docForgeStateInfo :: Documented
-    --               (Consensus.TraceLabelCreds HotKey.KESInfo))
-    --             [fsiTr]
+    fsiTrDoc    <- documentMarkdown
+                (docForgeStateInfo :: Documented
+                  (Consensus.TraceLabelCreds HotKey.KESInfo))
+                [fsiTr]
     txiTrDoc    <- documentMarkdown
                 (docTxInbound :: Documented
                   (BlockFetch.TraceLabelPeer Peer
@@ -828,10 +840,10 @@ docTracers configFileName outputFileName _ = do
                 (docLocalTxSubmissionServer :: Documented
                   (TraceLocalTxSubmissionServerEvent blk))
                 [ltxsTr]
-    -- mpTrDoc    <- documentMarkdown
-    --             (docMempool :: Documented
-    --               (TraceEventMempool blk))
-    --             [mpTr]
+    mpTrDoc    <- documentMarkdown
+                (docMempool :: Documented
+                  (TraceEventMempool blk))
+                [mpTr]
     fTrDoc    <- documentMarkdown
                 (docForge :: Documented
                   (ForgeTracerType blk))
@@ -964,7 +976,7 @@ docTracers configFileName outputFileName _ = do
             ++ txiTrDoc
             ++ txoTrDoc
             ++ ltxsTrDoc
---            ++ mpTrDoc
+            ++ mpTrDoc
             ++ fTrDoc
             ++ btTrDoc
             ++ kacTrDoc

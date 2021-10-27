@@ -81,6 +81,7 @@ library
                        Cardano.TraceDispatcher.Era.HardFork
                        Cardano.TraceDispatcher.Era.Shelley
                        Cardano.TraceDispatcher.Era.ConvertTxId
+                       Cardano.TraceDispatcher.ChainDB.BlockReplayProgress
                        Cardano.TraceDispatcher.ChainDB.Docu
                        Cardano.TraceDispatcher.ChainDB.Formatting
                        Cardano.TraceDispatcher.ChainDB.Combinators

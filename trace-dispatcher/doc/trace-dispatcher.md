@@ -384,7 +384,7 @@ foldTraceM :: MonadIO m
   -> m (Trace m a)
 
 foldMTraceM :: forall a acc m . MonadIO m
-  => (acc -> LoggingContext -> Maybe TraceControl -> a -> acc)
+  => (acc -> LoggingContext -> Maybe TraceControl -> a -> m acc)
   -> acc
   -> Trace m (Folding a acc)
   -> m (Trace m a)
