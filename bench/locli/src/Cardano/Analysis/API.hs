@@ -1,6 +1,7 @@
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE ImportQualifiedPost #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# OPTIONS_GHC -Wno-name-shadowing #-}
 {- HLINT ignore "Use head" -}
@@ -125,13 +126,15 @@ data BPErrorKind
 --
 -- * Key properties
 --
-isValidBlockEvent :: Profile -> BlockEvents -> Bool
-isValidBlockEvent Profile{genesis=GenesisProfile{..}} BlockEvents{..} = beForge &
-  \BlockForge{..} ->
-    -- 1. All timings account for processing of a single block
-    bfChainDelta == 1
-    -- 2. Block is >90% full
-    && bfBlockSize >= floor ((fromIntegral max_block_size :: Double) * 0.9)
+isValidBlockEvent :: Profile -> [BlockValidityCrit] -> BlockEvents -> Bool
+isValidBlockEvent Profile{genesis=GenesisProfile{..}} criteria BlockEvents{..} =
+  beForge & \bf -> all (testCriterion bf) criteria
+ where
+   testCriterion :: BlockForge -> BlockValidityCrit -> Bool
+   testCriterion BlockForge{..} = \case
+     BVCUnitaryChainDelta    -> bfChainDelta == 1
+     BVCBlockFullnessAbove f ->
+       bfBlockSize >= floor ((fromIntegral max_block_size :: Double) * f)
 
 isValidBlockObservation :: BlockObservation -> Bool
 isValidBlockObservation BlockObservation{..} =
