@@ -17,6 +17,7 @@ module Cardano.TraceDispatcher.Tracers
   , docTracers
   ) where
 
+import           Data.Aeson.Types (ToJSON)
 import qualified Data.Text.IO as T
 import           Network.Mux (MuxTrace (..), WithMuxBearer (..))
 import qualified Network.Socket as Socket
@@ -47,6 +48,8 @@ import qualified "trace-dispatcher" Control.Tracer as NT
 
 
 import           Cardano.Node.Configuration.Logging (EKGDirect)
+import           Cardano.Node.Types (NodeInfo)
+import           DataPoint.Forward.Utils (DataPoint)
 
 import qualified Cardano.BM.Data.Trace as Old
 import           Cardano.Tracing.Config (TraceOptions (..))
@@ -139,12 +142,18 @@ mkDispatchTracers
   -> Trace IO FormattedMessage
   -> Trace IO FormattedMessage
   -> Maybe (Trace IO FormattedMessage)
+  -> Trace IO DataPoint
   -> TraceConfig
   -> [BasicInfo]
+  -> NodeInfo
   -> IO (Tracers peer localPeer blk)
 mkDispatchTracers _blockConfig (TraceDispatcher _trSel) _tr nodeKernel _ekgDirect
-  trBase trForward mbTrEKG trConfig basicInfos = do
+  trBase trForward mbTrEKG trDataPoint trConfig basicInfos nodeInfo = do
     trace ("TraceConfig " <> show trConfig) $ pure ()
+    niTr <-   mkDataPointTracer
+                trDataPoint
+                (const ["NodeInfo"])
+    traceWith niTr nodeInfo
     cdbmTr <- mkCardanoTracer
                 trBase trForward mbTrEKG
                 "ChainDB"
@@ -491,7 +500,7 @@ mkDispatchTracers _blockConfig (TraceDispatcher _trSel) _tr nodeKernel _ekgDirec
       , basicInfoTracer = Tracer (traceWith biTr)
     }
 
-mkDispatchTracers blockConfig tOpts tr nodeKern ekgDirect _ _ _ _ _ =
+mkDispatchTracers blockConfig tOpts tr nodeKern ekgDirect _ _ _ _ _ _ _ =
   mkTracers blockConfig tOpts tr nodeKern ekgDirect
 
 -- -- TODO JNF Code for debugging frequency limiting
@@ -972,7 +981,7 @@ docTracers configFileName outputFileName _ = do
             ++ bfdTrDoc
             ++ bfcTrDoc
             ++ bfsTrDoc
---            ++ fsiTrDoc
+            ++ fsiTrDoc
             ++ txiTrDoc
             ++ txoTrDoc
             ++ ltxsTrDoc

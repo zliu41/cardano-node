@@ -138,6 +138,7 @@ library
                       , cborg >= 0.2.4 && < 0.3
                       , contra-tracer
                       , containers
+                      , datapoint-forward
                       , directory
                       , dns
                       , ekg
@@ -174,7 +175,6 @@ library
                       , time
                       , tracer-transformers
                       , trace-dispatcher
-                      , trace-forward
                       , trace-resources
                       , transformers
                       , transformers-except

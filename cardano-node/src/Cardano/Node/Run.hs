@@ -172,15 +172,12 @@ runNode cmdPc = do
         Just fileName -> NL.readConfiguration (unConfigPath fileName)
         Nothing -> putTextLn "No configuration file name found!" >> exitFailure
     baseTrace    <- NL.standardTracer
-    _nodeInfo <- prepareNodeInfo nc p loggerConfiguration now
-    (forwardSink, _dpStore)
+    nodeInfo <- prepareNodeInfo nc p loggerConfiguration now
+    (forwardSink, dpStore)
       <- withIOManager $ \iomgr -> NL.initForwarding iomgr loggerConfiguration ekgStore
     let forwardTrace = NL.forwardTracer forwardSink
+    let dataPointTracer = NL.dataPointTracer dpStore
     ekgTrace   <- NL.ekgTracer (Left ekgStore)
-    -- let forwardDataPoint = NL.dataPointTracer dpStore -- Something like that, right?
-    -- Then, since we already have 'dpStore', we have to write 'nodeInfo' to it, because
-    -- 'cardano-tracer' will ask it as soon as possible.
-    -- writeToStore dpStore "NodeInfo" (DataPoint nodeInfo) -- Direct way.
     -- End new logging initialisation
 
     !trace <- setupTrace loggingLayer
@@ -224,8 +221,10 @@ runNode cmdPc = do
                            baseTrace
                            forwardTrace
                            (Just ekgTrace)
+                           dataPointTracer
                            loggerConfiguration
                            bi
+                           nodeInfo
               -}
               Async.withAsync (handlePeersListSimple trace nodeKernelData)
                   $ \_peerLogingThread ->

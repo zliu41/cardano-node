@@ -1,11 +1,12 @@
-{-# LANGUAGE DeriveFunctor #-}
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE DerivingStrategies #-}
-{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE DeriveAnyClass             #-}
+{-# LANGUAGE DeriveFunctor              #-}
+{-# LANGUAGE DeriveGeneric              #-}
+{-# LANGUAGE DerivingStrategies         #-}
+{-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE GeneralisedNewtypeDeriving #-}
-{-# LANGUAGE NamedFieldPuns #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE MonoLocalBinds #-}
+{-# LANGUAGE MonoLocalBinds             #-}
+{-# LANGUAGE NamedFieldPuns             #-}
+{-# LANGUAGE OverloadedStrings          #-}
 
 module Cardano.Node.Types
   ( -- * Configuration
@@ -69,7 +70,8 @@ import qualified Cardano.Chain.Update as Byron
 import           Cardano.Crypto (RequiresNetworkMagic (..))
 import qualified Cardano.Crypto.Hash as Crypto
 import           Cardano.Node.Protocol.Types (Protocol (..))
-import           Ouroboros.Network.PeerSelection.RootPeersDNS (DomainAccessPoint (..))
+import           Ouroboros.Network.PeerSelection.RootPeersDNS
+                     (DomainAccessPoint (..))
 
 --TODO: things will probably be clearer if we don't use these newtype wrappers and instead
 -- use records with named fields in the CLI code.
@@ -114,7 +116,7 @@ newtype MaxConcurrencyDeadline = MaxConcurrencyDeadline
 -- | IPv4 or IPv6 address with a port number.
 data NodeAddress' addr = NodeAddress
   { naHostAddress :: !addr
-  , naPort :: !PortNumber
+  , naPort        :: !PortNumber
   } deriving (Eq, Ord, Show, Functor)
 
 type NodeIPAddress   = NodeAddress' NodeHostIPAddress
@@ -286,17 +288,17 @@ data NodeAlonzoProtocolConfiguration =
 
 data NodeByronProtocolConfiguration =
      NodeByronProtocolConfiguration {
-       npcByronGenesisFile         :: !GenesisFile
-     , npcByronGenesisFileHash     :: !(Maybe GenesisHash)
-     , npcByronReqNetworkMagic     :: !RequiresNetworkMagic
-     , npcByronPbftSignatureThresh :: !(Maybe Double)
+       npcByronGenesisFile                   :: !GenesisFile
+     , npcByronGenesisFileHash               :: !(Maybe GenesisHash)
+     , npcByronReqNetworkMagic               :: !RequiresNetworkMagic
+     , npcByronPbftSignatureThresh           :: !(Maybe Double)
 
        --TODO: eliminate these two: it can be hard-coded
        -- | Update application name.
-     , npcByronApplicationName     :: !Byron.ApplicationName
+     , npcByronApplicationName               :: !Byron.ApplicationName
 
        -- | Application (ie software) version.
-     , npcByronApplicationVersion  :: !Byron.NumSoftwareVersion
+     , npcByronApplicationVersion            :: !Byron.NumSoftwareVersion
 
        --TODO: eliminate these: it can be done automatically in consensus
        -- | These declare the version of the protocol that the node is prepared
@@ -340,7 +342,7 @@ data NodeHardForkProtocolConfiguration =
        -- Obviously if this is used, all the nodes in the test cluster must be
        -- configured the same, or they will disagree.
        --
-     , npcTestShelleyHardForkAtEpoch :: Maybe EpochNo
+     , npcTestShelleyHardForkAtEpoch        :: Maybe EpochNo
 
        -- | For testing purposes we support specifying that the hard fork
        -- happens at a given major protocol version. For example this can be
@@ -351,7 +353,7 @@ data NodeHardForkProtocolConfiguration =
        -- Obviously if this is used, all the nodes in the test cluster must be
        -- configured the same, or they will disagree.
        --
-     , npcTestShelleyHardForkAtVersion :: Maybe Word
+     , npcTestShelleyHardForkAtVersion      :: Maybe Word
 
        -- | For testing purposes we support specifying that the hard fork
        -- happens at an exact epoch number (ie the first epoch of the new era).
@@ -359,7 +361,7 @@ data NodeHardForkProtocolConfiguration =
        -- Obviously if this is used, all the nodes in the test cluster must be
        -- configured the same, or they will disagree.
        --
-     , npcTestAllegraHardForkAtEpoch :: Maybe EpochNo
+     , npcTestAllegraHardForkAtEpoch        :: Maybe EpochNo
 
        -- | For testing purposes we support specifying that the hard fork
        -- happens at a given major protocol version.
@@ -367,7 +369,7 @@ data NodeHardForkProtocolConfiguration =
        -- Obviously if this is used, all the nodes in the test cluster must be
        -- configured the same, or they will disagree.
        --
-     , npcTestAllegraHardForkAtVersion :: Maybe Word
+     , npcTestAllegraHardForkAtVersion      :: Maybe Word
 
        -- | For testing purposes we support specifying that the hard fork
        -- happens at an exact epoch number (ie the first epoch of the new era).
@@ -375,7 +377,7 @@ data NodeHardForkProtocolConfiguration =
        -- Obviously if this is used, all the nodes in the test cluster must be
        -- configured the same, or they will disagree.
        --
-     , npcTestMaryHardForkAtEpoch :: Maybe EpochNo
+     , npcTestMaryHardForkAtEpoch           :: Maybe EpochNo
 
        -- | For testing purposes we support specifying that the hard fork
        -- happens at a given major protocol version.
@@ -384,7 +386,7 @@ data NodeHardForkProtocolConfiguration =
        -- configured the same, or they will disagree.
        --
        --
-     , npcTestMaryHardForkAtVersion :: Maybe Word
+     , npcTestMaryHardForkAtVersion         :: Maybe Word
 
        -- | For testing purposes we support specifying that the hard fork
        -- happens at an exact epoch number (ie the first epoch of the new era).
@@ -392,7 +394,7 @@ data NodeHardForkProtocolConfiguration =
        -- Obviously if this is used, all the nodes in the test cluster must be
        -- configured the same, or they will disagree.
        --
-     , npcTestAlonzoHardForkAtEpoch :: Maybe EpochNo
+     , npcTestAlonzoHardForkAtEpoch         :: Maybe EpochNo
 
        -- | For testing purposes we support specifying that the hard fork
        -- happens at a given major protocol version.
@@ -400,7 +402,7 @@ data NodeHardForkProtocolConfiguration =
        -- Obviously if this is used, all the nodes in the test cluster must be
        -- configured the same, or they will disagree.
        --
-     , npcTestAlonzoHardForkAtVersion :: Maybe Word
+     , npcTestAlonzoHardForkAtVersion       :: Maybe Word
      }
   deriving (Eq, Show)
 
@@ -502,4 +504,4 @@ data NodeInfo = NodeInfo
   , niCommit          :: !Text
   , niStartTime       :: !UTCTime
   , niSystemStartTime :: !UTCTime
-  } deriving (Eq, Generic, Show)
+  } deriving (Eq, Generic, ToJSON, FromJSON, Show)
