@@ -142,11 +142,11 @@ instance LogFormatting (TraceForgeEvent LogBlock) where
       ]
 
   asMetrics (TraceStartLeadershipCheck slotNo) =
-    [IntM "aboutToLeadSlotLast" (fromIntegral $ unSlotNo slotNo)]
+    [IntM "cardano.node.aboutToLeadSlotLast" (fromIntegral $ unSlotNo slotNo)]
   asMetrics (TraceSlotIsImmutable slot _tipPoint _tipBlkNo) =
-    [IntM "slotIsImmutable" (fromIntegral $ unSlotNo slot)]
+    [IntM "cardano.node.slotIsImmutable" (fromIntegral $ unSlotNo slot)]
   asMetrics (TraceBlockFromFuture slot _slotNo) =
-    [IntM "blockFromFuture" (fromIntegral $ unSlotNo slot)]
+    [IntM "cardano.node.blockFromFuture" (fromIntegral $ unSlotNo slot)]
 
 traceForgeEventDocu :: Documented (TraceForgeEvent LogBlock)
 traceForgeEventDocu = Documented

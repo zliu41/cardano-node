@@ -54,53 +54,42 @@ namesForBasicInfo BIShelley {} = ["ShelleyBased"]
 namesForBasicInfo BIByron {}   = ["Byron"]
 namesForBasicInfo BINetwork {} = ["Network"]
 
-protoBasicInfoCommon :: BasicInfoCommon
-protoBasicInfoCommon = undefined
-
-protoBasicInfoShelley :: BasicInfoShelleyBased
-protoBasicInfoShelley = undefined
-
-protoBasicInfoByron :: BasicInfoByron
-protoBasicInfoByron = undefined
-
-protoBasicInfoNetwork :: BasicInfoNetwork
-protoBasicInfoNetwork = undefined
 
 docBasicInfo :: Documented BasicInfo
 docBasicInfo = Documented [
     DocMsg
-      (BICommon protoBasicInfoCommon)
+      (BICommon anyProto)
       []
-      "biConfigPath is the path to the config in use. \
-      \\nbiProtocol is the name of the protocol, e.g. \"Byron\", \"Shelley\" \
+      "_biConfigPath_: is the path to the config in use. \
+      \\n_biProtocol_: is the name of the protocol, e.g. \"Byron\", \"Shelley\" \
       \or \"Byron; Shelley\". \
-      \\nbiVersion is the version of the node software running. \
-      \\nbiCommit is the commit revision of the software running. \
-      \\nbiNodeStartTime gives the time this node was started."
+      \\n_biVersion_: is the version of the node software running. \
+      \\n_biCommit_: is the commit revision of the software running. \
+      \\n_biNodeStartTime_: gives the time this node was started."
   , DocMsg
-      (BIShelley protoBasicInfoShelley)
+      (BIShelley anyProto)
       []
       "bisEra is the current era, e.g. \"Shelley\", \"Allegra\", \"Mary\" \
       \or \"Alonzo\". \
-      \\nbisSystemStartTime TODO JNF \
-      \\nbisSlotLength gives the length of a slot as time interval. \
-      \\nbisEpochLength gives the number of slots which forms an epoch. \
-      \\nbisSlotsPerKESPeriod gives the slots per KES period."
+      \\n_bisSystemStartTime_: TODO JNF \
+      \\n_bisSlotLength_: gives the length of a slot as time interval. \
+      \\n_bisEpochLength_: gives the number of slots which forms an epoch. \
+      \\n_bisSlotsPerKESPeriod_: gives the slots per KES period."
   , DocMsg
-      (BIByron protoBasicInfoByron)
+      (BIByron anyProto)
       []
-      "bibSystemStartTime TODO JNF \
-      \\nbibSlotLength gives the length of a slot as time interval. \
-      \\nbibEpochLength gives the number of slots which forms an epoch."
+      "_bibSystemStartTime_: TODO JNF \
+      \\n_bibSlotLength_: gives the length of a slot as time interval. \
+      \\n_bibEpochLength_: gives the number of slots which forms an epoch."
   , DocMsg
-      (BINetwork protoBasicInfoNetwork)
+      (BINetwork anyProto)
       []
-      "niAddresses IPv4 or IPv6 socket ready to accept connections\
+      "_niAddresses_: IPv4 or IPv6 socket ready to accept connections\
       \or diffusion addresses. \
-      \\nniDiffusionMode shows if the node runs only initiator or both\
+      \\n_niDiffusionMode_: shows if the node runs only initiator or both\
       \initiator or responder node. \
-      \\nniDnsProducers shows the list of domain names to subscribe to. \
-      \\nniIpProducers shows the list of ip subscription addresses."
+      \\n_niDnsProducers_: shows the list of domain names to subscribe to. \
+      \\n_niIpProducers_: shows the list of ip subscription addresses."
   ]
 
 getBasicInfo ::

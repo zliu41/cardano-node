@@ -1,6 +1,5 @@
 {-# LANGUAGE DataKinds           #-}
 {-# LANGUAGE FlexibleInstances   #-}
-{-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
 module Cardano.Logging.Tracer.Forward
@@ -36,5 +35,5 @@ forwardTracer forwardSink =
   output _sink LoggingContext {} (Just Reset) _msg = liftIO $ do
     pure ()
   output _sink lk (Just c@Document {}) (FormattedForwarder lo) = do
-    docIt Forwarder (FormattedHuman False "") (lk, Just c, lo)
+    docIt Forwarder (FormattedForwarder lo) (lk, Just c, lo)
   output _sink LoggingContext {} _ _a = pure ()

@@ -62,11 +62,6 @@ data TraceStartLeadershipCheckPlus =
       , tsChainDensity :: Double
     }
 
--- newtype NodeKernelData blk =
---   NodeKernelData
---   { _unNodeKernelData :: IORef (StrictMaybe (NodeKernel IO RemoteConnectionId LocalConnectionId blk))
---   }
-
 forgeTracerTransform ::
   (  IsLedger (LedgerState blk)
   ,  LedgerQueriesX blk

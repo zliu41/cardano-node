@@ -106,7 +106,7 @@ class GetKESInfoX blk where
   getKESInfoFromStateInfoX _ _ = Nothing
 
 instance GetKESInfoX (ShelleyBlock era) where
-  getKESInfoFromStateInfoX _ fsi = Just fsi
+  getKESInfoFromStateInfoX _ = Just
 
 instance GetKESInfoX ByronBlock
 
@@ -215,7 +215,7 @@ instance ConvertRawHash blk
                ]
 
   asMetrics (TraceChainSyncRollForward _point) =
-      [CounterM "ChainSync.RollForward" Nothing]
+      [CounterM "cardano.node.chainSync.rollForward" Nothing]
   asMetrics _ = []
 
 instance (LogFormatting peer, Show peer)
@@ -228,7 +228,7 @@ instance (LogFormatting peer, Show peer)
     , "peers" .= toJSON
       (foldl' (\acc x -> forMachine DDetailed x : acc) [] xs) ]
 
-  asMetrics peers = [IntM "connectedPeers" (fromIntegral (length peers))]
+  asMetrics peers = [IntM "cardano.node.connectedPeers" (fromIntegral (length peers))]
 
 
 instance (LogFormatting peer, Show peer, LogFormatting a)
@@ -274,9 +274,9 @@ instance ConvertRawHash blk => LogFormatting (TraceBlockFetchServerEvent blk) wh
                                     @blk
                                     (renderHeaderHash (Proxy @blk))
                                     $ pointHash blk)]
-
+-- TODO JNF
   asMetrics (TraceBlockFetchServerSendBlock _p) =
-    [CounterM "served.block.count" Nothing]
+    [CounterM "cardano.node.served.block" Nothing]
 
 instance LogFormatting (TraceTxSubmissionInbound txid tx) where
   forMachine _dtal (TraceTxSubmissionCollected count) =
@@ -306,11 +306,11 @@ instance LogFormatting (TraceTxSubmissionInbound txid tx) where
       ]
 
   asMetrics (TraceTxSubmissionCollected count)=
-    [CounterM "submissions.submitted.count" (Just count)]
+    [CounterM "cardano.node.submissions.submitted" (Just count)]
   asMetrics (TraceTxSubmissionProcessed processed) =
-    [ CounterM "submissions.accepted.count"
+    [ CounterM "cardano.node.submissions.accepted"
         (Just (ptxcAccepted processed))
-    , CounterM "submissions.rejected.count"
+    , CounterM "cardano.node.submissions.rejected"
         (Just (ptxcRejected processed))
     ]
   asMetrics _ = []
@@ -379,25 +379,25 @@ instance
       ]
 
   asMetrics (TraceMempoolAddedTx _tx _mpSzBefore mpSz) =
-    [ IntM "txsInMempool" (fromIntegral $ msNumTxs mpSz)
-    , IntM "mempoolBytes" (fromIntegral $ msNumBytes mpSz)
+    [ IntM "cardano.node.txsInMempool" (fromIntegral $ msNumTxs mpSz)
+    , IntM "cardano.node.mempoolBytes" (fromIntegral $ msNumBytes mpSz)
     ]
   asMetrics (TraceMempoolRejectedTx _tx _txApplyErr mpSz) =
-    [ IntM "txsInMempool" (fromIntegral $ msNumTxs mpSz)
-    , IntM "mempoolBytes" (fromIntegral $ msNumBytes mpSz)
+    [ IntM "cardano.node.txsInMempool" (fromIntegral $ msNumTxs mpSz)
+    , IntM "cardano.node.mempoolBytes" (fromIntegral $ msNumBytes mpSz)
     ]
   asMetrics (TraceMempoolRemoveTxs _txs mpSz) =
-    [ IntM "txsInMempool" (fromIntegral $ msNumTxs mpSz)
-    , IntM "mempoolBytes" (fromIntegral $ msNumBytes mpSz)
+    [ IntM "cardano.node.txsInMempool" (fromIntegral $ msNumTxs mpSz)
+    , IntM "cardano.node.mempoolBytes" (fromIntegral $ msNumBytes mpSz)
     ]
   asMetrics (TraceMempoolManuallyRemovedTxs [] _txs1 mpSz) =
-    [ IntM "txsInMempool" (fromIntegral $ msNumTxs mpSz)
-    , IntM "mempoolBytes" (fromIntegral $ msNumBytes mpSz)
+    [ IntM "cardano.node.txsInMempool" (fromIntegral $ msNumTxs mpSz)
+    , IntM "cardano.node.mempoolBytes" (fromIntegral $ msNumBytes mpSz)
     ]
   asMetrics (TraceMempoolManuallyRemovedTxs txs _txs1 mpSz) =
-    [ IntM "txsInMempool" (fromIntegral $ msNumTxs mpSz)
-    , IntM "mempoolBytes" (fromIntegral $ msNumBytes mpSz)
-    , CounterM "txsProcessedNum" (Just (fromIntegral $ length txs))
+    [ IntM "cardano.node.txsInMempool" (fromIntegral $ msNumTxs mpSz)
+    , IntM "cardano.node.mempoolBytes" (fromIntegral $ msNumBytes mpSz)
+    , CounterM "cardano.node.txsProcessedNum" (Just (fromIntegral $ length txs))
     ]
 
 instance LogFormatting MempoolSize where
@@ -610,55 +610,55 @@ instance ( tx ~ GenTx blk
       --  <> ", TxIds: " <> showT (map txId txs) TODO Fix
 
   asMetrics (TraceForgeStateUpdateError slot reason) =
-    IntM "forgeStateUpdateError" (fromIntegral $ unSlotNo slot) :
+    IntM "cardano.node.forgeStateUpdateError" (fromIntegral $ unSlotNo slot) :
       (case getKESInfoX (Proxy @blk) reason of
         Nothing -> []
         Just kesInfo ->
           [ IntM
-              "operationalCertificateStartKESPeriod"
+              "cardano.node.operationalCertificateStartKESPeriod"
               (fromIntegral . unKESPeriod . HotKey.kesStartPeriod $ kesInfo)
           , IntM
-              "operationalCertificateExpiryKESPeriod"
+              "cardano.node.operationalCertificateExpiryKESPeriod"
               (fromIntegral . unKESPeriod . HotKey.kesEndPeriod $ kesInfo)
           , IntM
-              "currentKESPeriod"
+              "cardano.node.currentKESPeriod"
               0
           , IntM
-              "remainingKESPeriods"
+              "cardano.node.remainingKESPeriods"
               0
           ])
 
   asMetrics (TraceStartLeadershipCheck slot) =
-    [IntM "aboutToLeadSlotLast" (fromIntegral $ unSlotNo slot)]
+    [IntM "cardano.node.aboutToLeadSlotLast" (fromIntegral $ unSlotNo slot)]
   asMetrics (TraceSlotIsImmutable slot _tipPoint _tipBlkNo) =
-    [IntM "slotIsImmutable" (fromIntegral $ unSlotNo slot)]
+    [IntM "cardano.node.slotIsImmutable" (fromIntegral $ unSlotNo slot)]
   asMetrics (TraceBlockFromFuture slot _slotNo) =
-    [IntM "blockFromFuture" (fromIntegral $ unSlotNo slot)]
+    [IntM "cardano.node.blockFromFuture" (fromIntegral $ unSlotNo slot)]
   asMetrics (TraceBlockContext slot _tipBlkNo _tipPoint) =
-    [IntM "blockContext" (fromIntegral $ unSlotNo slot)]
+    [IntM "cardano.node.blockContext" (fromIntegral $ unSlotNo slot)]
   asMetrics (TraceNoLedgerState slot _) =
-    [IntM "couldNotForgeSlotLast" (fromIntegral $ unSlotNo slot)]
+    [IntM "cardano.node.couldNotForgeSlotLast" (fromIntegral $ unSlotNo slot)]
   asMetrics (TraceLedgerState slot _) =
-    [IntM "ledgerState" (fromIntegral $ unSlotNo slot)]
+    [IntM "cardano.node.ledgerState" (fromIntegral $ unSlotNo slot)]
   asMetrics (TraceNoLedgerView slot _) =
-    [IntM "couldNotForgeSlotLast" (fromIntegral $ unSlotNo slot)]
+    [IntM "cardano.node.couldNotForgeSlotLast" (fromIntegral $ unSlotNo slot)]
   asMetrics (TraceLedgerView slot) =
-    [IntM "ledgerView" (fromIntegral $ unSlotNo slot)]
+    [IntM "cardano.node.ledgerView" (fromIntegral $ unSlotNo slot)]
   -- see above
   asMetrics (TraceNodeCannotForge slot _reason) =
-    [IntM "nodeCannotForge" (fromIntegral $ unSlotNo slot)]
+    [IntM "cardano.node.nodeCannotForge" (fromIntegral $ unSlotNo slot)]
   asMetrics (TraceNodeNotLeader slot) =
-    [IntM "nodeNotLeader" (fromIntegral $ unSlotNo slot)]
+    [IntM "cardano.node.nodeNotLeader" (fromIntegral $ unSlotNo slot)]
   asMetrics (TraceNodeIsLeader slot) =
-    [IntM "nodeIsLeader" (fromIntegral $ unSlotNo slot)]
+    [IntM "cardano.node.nodeIsLeader" (fromIntegral $ unSlotNo slot)]
   asMetrics (TraceForgedBlock slot _ _ _) =
-    [IntM "forgedSlotLast" (fromIntegral $ unSlotNo slot)]
+    [IntM "cardano.node.forgedSlotLast" (fromIntegral $ unSlotNo slot)]
   asMetrics (TraceDidntAdoptBlock slot _) =
-    [IntM "notAdoptedSlotLast" (fromIntegral $ unSlotNo slot)]
+    [IntM "cardano.node.notAdoptedSlotLast" (fromIntegral $ unSlotNo slot)]
   asMetrics (TraceForgedInvalidBlock slot _ _) =
-    [IntM "forgedInvalidSlotLast" (fromIntegral $ unSlotNo slot)]
+    [IntM "cardano.node.forgedInvalidSlotLast" (fromIntegral $ unSlotNo slot)]
   asMetrics (TraceAdoptedBlock slot _ _) =
-    [IntM "adoptedSlotLast" (fromIntegral $ unSlotNo slot)]
+    [IntM "cardano.node.adoptedSlotLast" (fromIntegral $ unSlotNo slot)]
 
 instance LogFormatting TraceStartLeadershipCheckPlus where
   forMachine _dtal TraceStartLeadershipCheckPlus {..} =
@@ -674,8 +674,8 @@ instance LogFormatting TraceStartLeadershipCheckPlus where
       <> " delegMapSize " <> showT tsDelegMapSize
       <> " chainDensity " <> showT tsChainDensity
   asMetrics TraceStartLeadershipCheckPlus {..} =
-    [IntM "utxoSize" (fromIntegral tsUtxoSize),
-     IntM "delegMapSize" (fromIntegral tsDelegMapSize)]
+    [IntM "cardano.node.utxoSize" (fromIntegral tsUtxoSize),
+     IntM "cardano.node.delegMapSize" (fromIntegral tsDelegMapSize)]
      -- TODO JNF: Why not deleg map size?
 
 instance Show t => LogFormatting (TraceBlockchainTimeEvent t) where
@@ -725,4 +725,4 @@ instance Show remotePeer => LogFormatting (TraceKeepAliveClient remotePeer) wher
           dTime :: Time -> Double
           dTime (Time d) = realToFrac d
 
-    forHuman msg = showT msg
+    forHuman = showT

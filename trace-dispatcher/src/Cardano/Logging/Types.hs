@@ -49,7 +49,9 @@ import qualified Data.HashMap.Strict as HM
 import           Data.IORef
 import           Data.Map (Map)
 import qualified Data.Map as Map
-import           Data.Text (Text, pack)
+import qualified Data.Map.Strict as SMap
+
+import           Data.Text (Text, pack, unpack)
 import           Data.Text.Lazy (toStrict)
 import           Data.Time (UTCTime)
 import           GHC.Generics
@@ -130,7 +132,10 @@ data DocMsg a = DocMsg {
     dmPrototype :: a
   , dmMetricsMD :: [(Text, Text)]
   , dmMarkdown  :: Text
-} deriving (Show)
+}
+
+instance Show (DocMsg a) where
+  show (DocMsg _  _ md) = unpack md
 
 -- | Context any log message carries
 data LoggingContext = LoggingContext {
@@ -241,16 +246,19 @@ data BackendConfig =
     Forwarder
   | Stdout FormatLogging
   | EKGBackend
+  | DatapointBackend
   deriving (Eq, Ord, Show, Generic)
 
 instance AE.ToJSON BackendConfig where
   toJSON Forwarder  = AE.String "Forwarder"
+  toJSON DatapointBackend  = AE.String "DatapointBackend"
   toJSON EKGBackend = AE.String "EKGBackend"
   toJSON (Stdout f) = AE.String $ "Stdout " <> (pack . show) f
 
 instance AE.FromJSON BackendConfig where
   parseJSON (AE.String "Forwarder")            = pure Forwarder
   parseJSON (AE.String "EKGBackend")           = pure EKGBackend
+  parseJSON (AE.String "DatapointBackend")     = pure DatapointBackend  
   parseJSON (AE.String "Stdout HumanFormatColoured")
                                                = pure $ Stdout HumanFormatColoured
   parseJSON (AE.String "Stdout HumanFormatUncoloured")
@@ -350,15 +358,15 @@ data TraceControl where
 newtype DocCollector = DocCollector (IORef (Map Int LogDoc))
 
 data LogDoc = LogDoc {
-    ldDoc        :: Text
-  , ldMetricsDoc :: Map Text Text
-  , ldNamespace  :: [Namespace]
-  , ldSeverity   :: [SeverityS]
-  , ldPrivacy    :: [Privacy]
-  , ldDetails    :: [DetailLevel]
-  , ldBackends   :: [(BackendConfig, FormattedMessage)]
-  , ldFiltered   :: [SeverityF]
-  , ldLimiter    :: [(Text, Double)]
+    ldDoc        :: ! Text
+  , ldMetricsDoc :: ! (SMap.Map Text Text)
+  , ldNamespace  :: ! [Namespace]
+  , ldSeverity   :: ! [SeverityS]
+  , ldPrivacy    :: ! [Privacy]
+  , ldDetails    :: ! [DetailLevel]
+  , ldBackends   :: ! [(BackendConfig, FormattedMessage)]
+  , ldFiltered   :: ! [SeverityF]
+  , ldLimiter    :: ! [(Text, Double)]
 } deriving(Eq, Show)
 
 emptyLogDoc :: Text -> [(Text, Text)] -> LogDoc
@@ -396,17 +404,17 @@ instance LogFormatting b => LogFormatting (Folding a b) where
 
 instance LogFormatting Double where
   forMachine _dtal d = mkObject [ "val" .= AE.String ((pack . show) d)]
-  forHuman d         = (pack . show) d
+  forHuman           = pack . show
   asMetrics d        = [DoubleM "" d]
 
 instance LogFormatting Int where
   forMachine _dtal i = mkObject [ "val" .= AE.String ((pack . show) i)]
-  forHuman i         = (pack . show) i
+  forHuman           = pack . show
   asMetrics i        = [IntM "" (fromIntegral i)]
 
 instance LogFormatting Integer where
   forMachine _dtal i = mkObject [ "val" .= AE.String ((pack . show) i)]
-  forHuman i         = (pack . show) i
+  forHuman           = pack . show
   asMetrics i        = [IntM "" i]
 
 ---------------------------------------------------------------------------

@@ -399,7 +399,7 @@ instance LogFormatting NtN.AcceptConnectionsPolicyTrace where
       mkObject [ "kind" .= String "ServerTraceAcceptConnectionResume"
                , "numberOfConnection" .= show numOfConnections
                ]
-    forHuman m = showT m
+    forHuman   = showT
 
 instance (LogFormatting peer, Show peer) =>
     LogFormatting (WithMuxBearer peer MuxTrace) where

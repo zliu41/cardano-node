@@ -50,11 +50,10 @@ metricsFormatter application (Trace tr) =
           in T.traceWith tr (lc { lcNamespace = application : lcNamespace lc}
                             , Nothing
                             , FormattedMetrics metrics)
-        (lc, Just ctrl, v) ->
-          let metrics = asMetrics v
-          in T.traceWith tr (lc { lcNamespace = application : lcNamespace lc}
+        (lc, Just ctrl, _v) ->
+          T.traceWith tr (lc { lcNamespace = application : lcNamespace lc}
                             , Just ctrl
-                            , FormattedMetrics metrics)
+                            , FormattedMetrics [])
 
 -- | Format this trace as TraceObject for the trace forwarder
 forwardFormatter

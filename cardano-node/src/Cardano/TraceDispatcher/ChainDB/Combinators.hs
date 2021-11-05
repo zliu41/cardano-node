@@ -246,22 +246,22 @@ namesForChainDBTraceEvents (ChainDB.TraceIteratorEvent
       ["IteratorEvent", "SwitchBackToVolatileDB"]
 namesForChainDBTraceEvents (ChainDB.TraceLedgerEvent
   (LedgerDB.InvalidSnapshot {})) =
-      ["TraceLedgerEvent", "InvalidSnapshot"]
+      ["LedgerEvent", "InvalidSnapshot"]
 namesForChainDBTraceEvents (ChainDB.TraceLedgerEvent
   (LedgerDB.TookSnapshot {})) =
-      ["TraceLedgerEvent", "TookSnapshot"]
+      ["LedgerEvent", "TookSnapshot"]
 namesForChainDBTraceEvents (ChainDB.TraceLedgerEvent
   (LedgerDB.DeletedSnapshot {})) =
-      ["TraceLedgerEvent", "DeletedSnapshot"]
+      ["LedgerEvent", "DeletedSnapshot"]
 namesForChainDBTraceEvents (ChainDB.TraceLedgerReplayEvent
   (LedgerDB.ReplayFromGenesis {})) =
-      ["TraceLedgerEvent", "ReplayFromGenesis"]
+      ["LedgerEvent", "ReplayFromGenesis"]
 namesForChainDBTraceEvents (ChainDB.TraceLedgerReplayEvent
   (LedgerDB.ReplayFromSnapshot {})) =
-      ["TraceLedgerEvent", "ReplayFromSnapshot"]
+      ["LedgerEvent", "ReplayFromSnapshot"]
 namesForChainDBTraceEvents (ChainDB.TraceLedgerReplayEvent
   (LedgerDB.ReplayedBlock {})) =
-      ["TraceLedgerEvent", "ReplayedBlock"]
+      ["LedgerEvent", "ReplayedBlock"]
 namesForChainDBTraceEvents (ChainDB.TraceImmutableDBEvent
   ImmDB.NoValidLastLocation) =
       ["ImmDbEvent", "NoValidLastLocation"]
@@ -311,19 +311,19 @@ namesForChainDBTraceEvents (ChainDB.TraceImmutableDBEvent ImmDB.DBClosed) =
       ["ImmDbEvent", "DBClosed"]
 namesForChainDBTraceEvents (ChainDB.TraceImmutableDBEvent
   (ImmDB.TraceCacheEvent (ImmDB.TraceCurrentChunkHit {}))) =
-      ["ImmDbEvent", "CacheEvent", "TraceCurrentChunkHit"]
+      ["ImmDbEvent", "CacheEvent", "CurrentChunkHit"]
 namesForChainDBTraceEvents (ChainDB.TraceImmutableDBEvent
   (ImmDB.TraceCacheEvent (ImmDB.TracePastChunkHit {}))) =
-      ["ImmDbEvent", "CacheEvent", "TracePastChunkHit"]
+      ["ImmDbEvent", "CacheEvent", "PastChunkHit"]
 namesForChainDBTraceEvents (ChainDB.TraceImmutableDBEvent
   (ImmDB.TraceCacheEvent (ImmDB.TracePastChunkMiss {}))) =
-      ["ImmDbEvent", "CacheEvent", "TracePastChunkMiss"]
+      ["ImmDbEvent", "CacheEvent", "PastChunkMiss"]
 namesForChainDBTraceEvents (ChainDB.TraceImmutableDBEvent
   (ImmDB.TraceCacheEvent (ImmDB.TracePastChunkEvict {}))) =
-      ["ImmDbEvent", "CacheEvent", "TracePastChunkEvict"]
+      ["ImmDbEvent", "CacheEvent", "PastChunkEvict"]
 namesForChainDBTraceEvents (ChainDB.TraceImmutableDBEvent
   (ImmDB.TraceCacheEvent (ImmDB.TracePastChunksExpired {}))) =
-      ["ImmDbEvent", "CacheEvent", "TracePastChunkEvict"]
+      ["ImmDbEvent", "CacheEvent", "PastChunkExpired"]
 namesForChainDBTraceEvents (ChainDB.TraceVolatileDBEvent
   VolDb.DBAlreadyClosed) =
     ["VolatileDbEvent", "DBAlreadyClosed"]

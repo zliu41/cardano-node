@@ -46,7 +46,6 @@ testDataPoint = do
     dpTracer <- mkDataPointTracer
                           rawDataPointTracer
                           namesForBaseStats
-                          pure
     traceWith dpTracer emptyStats
     dps <- readTVarIO dpMap
     print dps

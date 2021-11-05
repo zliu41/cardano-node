@@ -42,6 +42,7 @@ module Cardano.Node.Types
   , TopologyFile(..)
   , NodeDiffusionMode (..)
   , NodeInfo (..)
+  , docNodeInfoTraceEvent
     -- * Consensus protocol configuration
   , NodeByronProtocolConfiguration(..)
   , NodeHardForkProtocolConfiguration(..)
@@ -69,6 +70,7 @@ import           Cardano.Api
 import qualified Cardano.Chain.Update as Byron
 import           Cardano.Crypto (RequiresNetworkMagic (..))
 import qualified Cardano.Crypto.Hash as Crypto
+import qualified Cardano.Logging as NL
 import           Cardano.Node.Protocol.Types (Protocol (..))
 import           Ouroboros.Network.PeerSelection.RootPeersDNS
                      (DomainAccessPoint (..))
@@ -498,10 +500,24 @@ renderVRFPrivateKeyFilePermissionError err =
 
 -- | Basic information about the node.
 data NodeInfo = NodeInfo
-  { niName            :: !Text
-  , niProtocol        :: !Text
-  , niVersion         :: !Text
-  , niCommit          :: !Text
-  , niStartTime       :: !UTCTime
-  , niSystemStartTime :: !UTCTime
+  { niName            :: Text
+  , niProtocol        :: Text
+  , niVersion         :: Text
+  , niCommit          :: Text
+  , niStartTime       :: UTCTime
+  , niSystemStartTime :: UTCTime
   } deriving (Eq, Generic, ToJSON, FromJSON, Show)
+
+docNodeInfoTraceEvent :: NL.Documented NodeInfo
+docNodeInfoTraceEvent = NL.Documented [
+    NL.DocMsg
+      (NodeInfo "" "" "" "" NL.anyProto NL.anyProto)
+        []
+        "Basic information about this node collected at startup\
+        \\n\
+        \\n _niName_: Name of the node. \
+        \\n _niProtocol_: Protocol which this nodes uses. \
+        \\n _niVersion_: Software version which this node is using. \
+        \\n _niStartTime_: Start time of this node. \
+        \\n _niSystemStartTime_: How long did the start of the node took."
+  ]

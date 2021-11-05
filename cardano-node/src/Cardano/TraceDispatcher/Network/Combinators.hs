@@ -484,7 +484,7 @@ severityIPSubscription WithIPList {..} = case wilEvent of
     SubscriptionTraceConnectException _ e ->
         case fromException $ SomeException e of
              Just (_::SubscriberError) -> Debug
-             Nothing                   -> Error
+             _                         -> Error
     SubscriptionTraceSocketAllocationException {} -> Error
     SubscriptionTraceTryConnectToPeer {} -> Info
     SubscriptionTraceSkippingPeer {} -> Info
@@ -500,7 +500,7 @@ severityIPSubscription WithIPList {..} = case wilEvent of
     SubscriptionTraceApplicationException _ e ->
         case fromException $ SomeException e of
              Just (_::SubscriberError) -> Debug
-             Nothing                   -> Error
+             _                         -> Error
     SubscriptionTraceAllocateSocket {} -> Debug
     SubscriptionTraceCloseSocket {} -> Info
 
@@ -545,7 +545,7 @@ severityDNSSubscription NtN.WithDomainName {..} = case wdnEvent of
     SubscriptionTraceConnectException _ e ->
         case fromException $ SomeException e of
              Just (_::SubscriberError) -> Debug
-             Nothing                   -> Error
+             _                         -> Error
     SubscriptionTraceSocketAllocationException {} -> Error
     SubscriptionTraceTryConnectToPeer {} -> Info
     SubscriptionTraceSkippingPeer {} -> Info
@@ -561,7 +561,7 @@ severityDNSSubscription NtN.WithDomainName {..} = case wdnEvent of
     SubscriptionTraceApplicationException _ e ->
         case fromException $ SomeException e of
              Just (_::SubscriberError) -> Debug
-             Nothing                   -> Error
+             _                         -> Error
     SubscriptionTraceAllocateSocket {} -> Debug
     SubscriptionTraceCloseSocket {} -> Debug
 
@@ -728,10 +728,10 @@ severityHandshake'' :: AnyMessageAndAgency (HS.Handshake nt CBOR.Term) -> Severi
 severityHandshake'' (AnyMessageAndAgency _agency msg) = severityHandshake''' msg
 
 severityHandshake''' :: Message (HS.Handshake nt CBOR.Term) from to -> SeverityS
-severityHandshake''' HS.MsgProposeVersions {}  = Info
-severityHandshake''' HS.MsgReplyVersions {}    = Info
-severityHandshake''' HS.MsgAcceptVersion {}    = Info
-severityHandshake''' HS.MsgRefuse {}           = Info
+severityHandshake''' HS.MsgProposeVersions {} = Info
+severityHandshake''' HS.MsgReplyVersions {}   = Info
+severityHandshake''' HS.MsgAcceptVersion {}   = Info
+severityHandshake''' HS.MsgRefuse {}          = Info
 
 namesForHandshake :: NtN.HandshakeTr -> [Text]
 namesForHandshake (WithMuxBearer _ e) = namesForHandshake' e
@@ -746,10 +746,10 @@ namesForHandshake'' :: AnyMessageAndAgency (HS.Handshake nt CBOR.Term) -> [Text]
 namesForHandshake'' (AnyMessageAndAgency _agency msg) = namesForHandshake''' msg
 
 namesForHandshake''' :: Message (HS.Handshake nt CBOR.Term) from to -> [Text]
-namesForHandshake''' HS.MsgProposeVersions {}  = ["ProposeVersions"]
-namesForHandshake''' HS.MsgReplyVersions {}    = ["ReplyVersions"]
-namesForHandshake''' HS.MsgAcceptVersion {}    = ["AcceptVersion"]
-namesForHandshake''' HS.MsgRefuse {}           = ["Refuse"]
+namesForHandshake''' HS.MsgProposeVersions {} = ["ProposeVersions"]
+namesForHandshake''' HS.MsgReplyVersions {}   = ["ReplyVersions"]
+namesForHandshake''' HS.MsgAcceptVersion {}   = ["AcceptVersion"]
+namesForHandshake''' HS.MsgRefuse {}          = ["Refuse"]
 
 severityLocalHandshake :: NtC.HandshakeTr -> SeverityS
 severityLocalHandshake (WithMuxBearer _ e) = severityLocalHandshake' e
@@ -764,10 +764,10 @@ severityLocalHandshake'' :: AnyMessageAndAgency (HS.Handshake nt CBOR.Term) -> S
 severityLocalHandshake'' (AnyMessageAndAgency _agency msg) = severityLocalHandshake''' msg
 
 severityLocalHandshake''' :: Message (HS.Handshake nt CBOR.Term) from to -> SeverityS
-severityLocalHandshake''' HS.MsgProposeVersions {}  = Info
-severityLocalHandshake''' HS.MsgReplyVersions {}  = Info
-severityLocalHandshake''' HS.MsgAcceptVersion {}    = Info
-severityLocalHandshake''' HS.MsgRefuse {}           = Info
+severityLocalHandshake''' HS.MsgProposeVersions {} = Info
+severityLocalHandshake''' HS.MsgReplyVersions {}   = Info
+severityLocalHandshake''' HS.MsgAcceptVersion {}   = Info
+severityLocalHandshake''' HS.MsgRefuse {}          = Info
 
 namesForLocalHandshake :: NtC.HandshakeTr -> [Text]
 namesForLocalHandshake (WithMuxBearer _ e) = namesForLocalHandshake' e
@@ -782,10 +782,10 @@ namesForLocalHandshake'' :: AnyMessageAndAgency (HS.Handshake nt CBOR.Term) -> [
 namesForLocalHandshake'' (AnyMessageAndAgency _agency msg) = namesForLocalHandshake''' msg
 
 namesForLocalHandshake''' :: Message (HS.Handshake nt CBOR.Term) from to -> [Text]
-namesForLocalHandshake''' HS.MsgProposeVersions {}  = ["ProposeVersions"]
-namesForLocalHandshake''' HS.MsgReplyVersions {}    = ["ReplyVersions"]
-namesForLocalHandshake''' HS.MsgAcceptVersion {}    = ["AcceptVersion"]
-namesForLocalHandshake''' HS.MsgRefuse {}           = ["Refuse"]
+namesForLocalHandshake''' HS.MsgProposeVersions {} = ["ProposeVersions"]
+namesForLocalHandshake''' HS.MsgReplyVersions {}   = ["ReplyVersions"]
+namesForLocalHandshake''' HS.MsgAcceptVersion {}   = ["AcceptVersion"]
+namesForLocalHandshake''' HS.MsgRefuse {}          = ["Refuse"]
 
 severityDiffusionInit :: ND.DiffusionInitializationTracer -> SeverityS
 severityDiffusionInit ND.RunServer {}                         = Info

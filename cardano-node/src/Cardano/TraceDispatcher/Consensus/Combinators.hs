@@ -196,12 +196,7 @@ namesForBlockFetchServer TraceBlockFetchServerSendBlock {} = ["SendBlock"]
 severityTxInbound ::
     BlockFetch.TraceLabelPeer peer (TraceTxSubmissionInbound (GenTxId blk) (GenTx blk))
   -> SeverityS
-severityTxInbound (BlockFetch.TraceLabelPeer _p ti) = severityTxInbound' ti
-
-severityTxInbound' ::
-    TraceTxSubmissionInbound (GenTxId blk) (GenTx blk)
-  -> SeverityS
-severityTxInbound' _ti = Info
+severityTxInbound (BlockFetch.TraceLabelPeer _p _ti) = Info
 
 namesForTxInbound ::
     BlockFetch.TraceLabelPeer peer (TraceTxSubmissionInbound (GenTxId blk) (GenTx blk))
@@ -211,11 +206,11 @@ namesForTxInbound (BlockFetch.TraceLabelPeer _p ti) = namesForTxInbound' ti
 namesForTxInbound' ::
     TraceTxSubmissionInbound (GenTxId blk) (GenTx blk)
   -> [Text]
-namesForTxInbound' TraceTxSubmissionCollected {} =
+namesForTxInbound' (TraceTxSubmissionCollected _) =
     ["TxSubmissionCollected"]
-namesForTxInbound' TraceTxSubmissionProcessed {} =
+namesForTxInbound' (TraceTxSubmissionProcessed _) =
     ["TxSubmissionProcessed"]
-namesForTxInbound' TraceTxInboundTerminated {}   =
+namesForTxInbound' TraceTxInboundTerminated   =
     ["TxInboundTerminated"]
 namesForTxInbound' TraceTxInboundCanRequestMoreTxs {} =
     ["TxInboundCanRequestMoreTxs"]
@@ -225,12 +220,7 @@ namesForTxInbound' TraceTxInboundCannotRequestMoreTxs {} =
 severityTxOutbound ::
     BlockFetch.TraceLabelPeer peer (TraceTxSubmissionOutbound (GenTxId blk) (GenTx blk))
   -> SeverityS
-severityTxOutbound (BlockFetch.TraceLabelPeer _p ti) = severityTxOutbound' ti
-
-severityTxOutbound' ::
-    TraceTxSubmissionOutbound (GenTxId blk) (GenTx blk)
-  -> SeverityS
-severityTxOutbound' _ti = Info
+severityTxOutbound (BlockFetch.TraceLabelPeer _p _ti) = Info
 
 namesForTxOutbound ::
     BlockFetch.TraceLabelPeer peer (TraceTxSubmissionOutbound (GenTxId blk) (GenTx blk))
@@ -262,13 +252,11 @@ severityMempool ::
   -> SeverityS
 severityMempool _ = Info
 
--- TODO: not working with undefines because of bang patterns
 namesForMempool :: TraceEventMempool blk -> [Text]
--- namesForMempool (TraceMempoolAddedTx _ _ _)            = ["AddedTx"]
--- namesForMempool TraceMempoolRejectedTx {}         = ["RejectedTx"]
--- namesForMempool TraceMempoolRemoveTxs {}          = ["RemoveTxs"]
--- namesForMempool TraceMempoolManuallyRemovedTxs {} = ["ManuallyRemovedTxs"]
-namesForMempool _            = []
+namesForMempool TraceMempoolAddedTx {}            = ["AddedTx"]
+namesForMempool TraceMempoolRejectedTx {}         = ["RejectedTx"]
+namesForMempool TraceMempoolRemoveTxs {}          = ["RemoveTxs"]
+namesForMempool TraceMempoolManuallyRemovedTxs {} = ["ManuallyRemovedTxs"]
 
 severityForge :: ForgeTracerType blk -> SeverityS
 severityForge (Left t)  = severityForge' t

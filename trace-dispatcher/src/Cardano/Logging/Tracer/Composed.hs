@@ -5,15 +5,18 @@ module Cardano.Logging.Tracer.Composed (
   , mkCardanoTracer'
   , mkDataPointTracer
   , MessageOrLimit(..)
+  , documentTracer
   ) where
 
+import           Control.Exception (catch, SomeException)
+import           Data.Aeson.Types (ToJSON)
 import           Data.Maybe (fromMaybe)
 import           Data.Text
-import           Data.Aeson.Types(ToJSON)
 
-import           DataPoint.Forward.Utils (DataPoint(..))
+import           DataPoint.Forward.Utils (DataPoint (..))
 
 import           Cardano.Logging.Configuration
+import           Cardano.Logging.DocuGenerator
 import           Cardano.Logging.Formatter
 import           Cardano.Logging.FrequencyLimiter (LimitingMessage (..))
 import           Cardano.Logging.Trace
@@ -133,3 +136,22 @@ mkDataPointTracer :: forall dp. ToJSON dp
 mkDataPointTracer trDataPoint namesFor = do
     let tr = NT.contramap DataPoint trDataPoint
     pure $ withNamesAppended namesFor tr
+
+documentTracer ::
+     TraceConfig
+  -> Trace IO a
+  -> Documented a
+  -> IO [(Namespace, DocuResult)]
+documentTracer trConfig trace trDoc = do
+    res <- catch (do
+              configureTracers trConfig trDoc [trace]
+              pure True)
+          (\(e :: SomeException) -> do
+            putStrLn $ "Configuration exception" <> show e <> show trDoc
+            pure False)
+    if res
+      then  catch (documentMarkdown trDoc [trace])
+              (\(e :: SomeException) -> do
+                putStrLn $ "Documentation exception" <> show e <> show trDoc
+                pure [])
+      else pure []

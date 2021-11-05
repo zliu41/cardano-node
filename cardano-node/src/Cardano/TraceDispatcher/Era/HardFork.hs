@@ -53,7 +53,7 @@ import           Ouroboros.Consensus.Util.Condense (Condense (..))
 
 
 --
--- instances for hashes -- TODO ROL : put here 
+-- instances for hashes -- TODO ROL : put here
 --
 -- instance Condense (OneEraHash xs) where
 --     condense = condense . Base16.encode . SBS.fromShort . getOneEraHash
