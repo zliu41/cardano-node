@@ -1,0 +1,20 @@
+{
+  "LocalRoots": {
+    "groups": [
+      {
+        "localRoots": {
+          "addrs": [
+            {
+              "addr": "relays-new.cardano-mainnet.iohk.io",
+              "port": 3001
+            }
+          ],
+          "advertise": false
+        },
+        "valency": 1
+      }
+    ]
+  }
+  , "PublicRoots": []
+}
+
