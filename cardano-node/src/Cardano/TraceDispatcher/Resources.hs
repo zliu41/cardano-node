@@ -12,15 +12,19 @@ import           Cardano.Prelude hiding (trace)
 
 startResourceTracer ::
      Trace IO ResourceStats
+  -> Int
   -> IO ()
-startResourceTracer tr = do
-    void $ forkIO $ forever $ do
+startResourceTracer tr delayMilliseconds = do
+    as <- async resourceThread
+    link as
+  where
+    resourceThread :: IO ()
+    resourceThread = forever $ do
       mbrs <- readResourceStats
       case mbrs of
         Just rs -> traceWith tr rs
         Nothing -> pure ()
-      threadDelay 1000000 -- TODO JNF:  make configurable
-                               -- in microseconds
+      threadDelay (delayMilliseconds * 1000)
 
 namesForResources :: ResourceStats -> [Text]
 namesForResources _ = []

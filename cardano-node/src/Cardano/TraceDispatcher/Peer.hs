@@ -41,12 +41,17 @@ import           Cardano.Tracing.Kernel
 startPeerTracer ::
      Trace IO [PeerT blk]
   -> NodeKernelData blk
+  -> Int
   -> IO ()
-startPeerTracer tr nodeKern = do
-    void $ forkIO $ forever $ do
-      peers <- getCurrentPeers nodeKern
-      traceWith tr peers
-      threadDelay 2000000 -- 2 seconds. TODO JNF:  make configurable
+startPeerTracer tr nodeKern delayMilliseconds = do
+    as <- async peersThread
+    link as
+  where
+    peersThread :: IO ()
+    peersThread = forever $ do
+          peers <- getCurrentPeers nodeKern
+          traceWith tr peers
+          threadDelay (delayMilliseconds * 1000)
 
 data PeerT blk = PeerT
     RemoteConnectionId

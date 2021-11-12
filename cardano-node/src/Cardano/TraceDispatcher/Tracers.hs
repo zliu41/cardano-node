@@ -18,6 +18,7 @@ module Cardano.TraceDispatcher.Tracers
   ) where
 
 import           Data.Aeson.Types (ToJSON)
+import           Data.Maybe (fromMaybe)
 import qualified Data.Text.IO as T
 import           Network.Mux (MuxTrace (..), WithMuxBearer (..))
 import qualified Network.Socket as Socket
@@ -439,8 +440,13 @@ mkDispatchTracers _blockConfig (TraceDispatcher _trSel) _tr nodeKernel _ekgDirec
     configureTracers trConfig docPeers                [pTr]
 
     mapM_ (traceWith biTr) basicInfos
-    startResourceTracer rsTr
-    startPeerTracer pTr nodeKernel
+    startResourceTracer
+      rsTr
+      (fromMaybe 1000 (tcResourceFreqency trConfig))
+    startPeerTracer
+      pTr
+      nodeKernel
+      (fromMaybe 2000 (tcPeerFreqency trConfig))
 
     replayBlockTracer <- withReplayedBlock rbTr
     let cdbmTr' = filterTrace
