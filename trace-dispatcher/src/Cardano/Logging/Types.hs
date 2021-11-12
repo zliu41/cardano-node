@@ -258,7 +258,7 @@ instance AE.ToJSON BackendConfig where
 instance AE.FromJSON BackendConfig where
   parseJSON (AE.String "Forwarder")            = pure Forwarder
   parseJSON (AE.String "EKGBackend")           = pure EKGBackend
-  parseJSON (AE.String "DatapointBackend")     = pure DatapointBackend  
+  parseJSON (AE.String "DatapointBackend")     = pure DatapointBackend
   parseJSON (AE.String "Stdout HumanFormatColoured")
                                                = pure $ Stdout HumanFormatColoured
   parseJSON (AE.String "Stdout HumanFormatUncoloured")
@@ -331,8 +331,12 @@ data TraceConfig = TraceConfig {
     tcOptions   :: Map.Map Namespace [ConfigOption]
      -- | Options for the forwarder
   , tcForwarder :: TraceOptionForwarder
-    -- | Opional human-readable name of the node.
+    -- | Optional human-readable name of the node.
   , tcNodeName  :: Maybe Text
+    -- | Optional peer trace frequency in milliseconds.
+  , tcPeerFreqency  :: Maybe Int
+    -- | Optional resource trace frequency in milliseconds.
+  , tcResourceFreqency :: Maybe Int
 }
   deriving (Eq, Ord, Show)
 
@@ -341,6 +345,8 @@ emptyTraceConfig = TraceConfig {
     tcOptions = Map.empty
   , tcForwarder = defaultForwarder
   , tcNodeName = Nothing
+  , tcPeerFreqency = Just 2000 -- Every 2 seconds
+  , tcResourceFreqency = Just 1000 -- Every second
   }
 
 ---------------------------------------------------------------------------
