@@ -5,7 +5,7 @@ module Cardano.TraceDispatcher.ChainDB.Combinators
   ) where
 
 import           Cardano.Logging
-import           Cardano.Prelude
+import           Cardano.Prelude hiding (trace)
 
 import           Ouroboros.Consensus.Ledger.Inspect (LedgerEvent (..))
 import qualified Ouroboros.Consensus.Storage.ChainDB as ChainDB
@@ -18,11 +18,17 @@ import qualified Ouroboros.Consensus.Storage.VolatileDB.Impl as VolDb
 withAddedToCurrentChainEmptyLimited ::
      Trace IO (ChainDB.TraceEvent blk)
   -> IO (Trace IO (ChainDB.TraceEvent blk))
-withAddedToCurrentChainEmptyLimited tr = routingTrace selecting tr
-  where
-    selecting (ChainDB.TraceAddBlockEvent (ChainDB.AddedToCurrentChain events _ _ _)) | null events =
-      limitFrequency 1.25 "AddedToCurrentChain Limiter" tr mempty
-    selecting _ = pure tr
+withAddedToCurrentChainEmptyLimited tr = do
+  ltr <- limitFrequency 1.25 "AddedToCurrentChainLimiter" tr mempty
+  routingTrace (selecting ltr) tr
+ where
+    selecting
+      ltr
+      (ChainDB.TraceAddBlockEvent (ChainDB.AddedToCurrentChain events _ _ _)) =
+        if null events
+          then pure ltr
+          else pure tr
+    selecting _ _ = pure tr
 
 severityChainDB :: ChainDB.TraceEvent blk -> SeverityS
 severityChainDB (ChainDB.TraceAddBlockEvent v)          = gsTraceAddBlockEvent v

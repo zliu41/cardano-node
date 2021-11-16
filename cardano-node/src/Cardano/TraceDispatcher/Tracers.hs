@@ -155,12 +155,13 @@ mkDispatchTracers _blockConfig (TraceDispatcher _trSel) _tr nodeKernel _ekgDirec
                 trDataPoint
                 (const ["NodeInfo"])
     traceWith niTr nodeInfo
-    cdbmTr <- mkCardanoTracer
+    cdbmTr <- mkCardanoTracer'
                 trBase trForward mbTrEKG
                 "ChainDB"
                 namesForChainDBTraceEvents
                 severityChainDB
                 allPublic
+                withAddedToCurrentChainEmptyLimited
     rbTr    <- mkCardanoTracer
                 trBase trForward mbTrEKG
                 "ReplayBlock"
@@ -321,7 +322,7 @@ mkDispatchTracers _blockConfig (TraceDispatcher _trSel) _tr nodeKernel _ekgDirec
                 allPublic
     dnssTr  <-  mkCardanoTracer
                 trBase trForward mbTrEKG
-                "DnsSubscription"
+                "DNSSubscription"
                 namesForDNSSubscription
                 severityDNSSubscription
                 allPublic
@@ -692,7 +693,7 @@ docTracers configFileName outputFileName _ = do
                 allPublic
     dnssTr  <-  mkCardanoTracer
                 trBase trForward mbTrEKG
-                "DnsSubscription"
+                "DNSSubscription"
                 namesForDNSSubscription
                 severityDNSSubscription
                 allPublic
@@ -761,6 +762,12 @@ docTracers configFileName outputFileName _ = do
                 "BasicInfo"
                 namesForBasicInfo
                 severityBasicInfo
+                allPublic
+    pTr   <- mkCardanoTracer
+                trBase trForward mbTrEKG
+                "Peers"
+                namesForPeers
+                severityPeers
                 allPublic
 
 -- BasicInfo
@@ -904,6 +911,8 @@ docTracers configFileName outputFileName _ = do
         (docResourceStats :: Documented ResourceStats)
     biTrDoc <- documentTracer trConfig biTr
         (docBasicInfo :: Documented BasicInfo)
+    pTrDoc <- documentTracer trConfig pTr
+        (docPeers :: Documented [PeerT blk])
 
     let bl = niTrDoc
             ++ cdbmTrDoc
@@ -946,6 +955,7 @@ docTracers configFileName outputFileName _ = do
 
             ++ rsTrDoc
             ++ biTrDoc
+            ++ pTrDoc
 
     res <- buildersToText bl trConfig
     T.writeFile outputFileName res
