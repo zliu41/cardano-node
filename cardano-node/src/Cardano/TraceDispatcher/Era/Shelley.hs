@@ -60,6 +60,7 @@ import           Cardano.Ledger.Alonzo.Rules.Utxow (AlonzoPredFail (..))
 import qualified Cardano.Ledger.Alonzo.Tx as Alonzo
 import qualified Cardano.Ledger.AuxiliaryData as Core
 import           Cardano.Ledger.BaseTypes (strictMaybeToMaybe)
+import           Cardano.Ledger.Chain
 import qualified Cardano.Ledger.Core as Core
 import qualified Cardano.Ledger.Crypto as Core
 import qualified Cardano.Ledger.Era as Ledger
@@ -72,7 +73,6 @@ import qualified Cardano.Ledger.ShelleyMA.Timelocks as MA
 import           Cardano.Ledger.Shelley.API hiding (ShelleyBasedEra)
 
 import           Cardano.Ledger.Shelley.Rules.Bbody
-import           Cardano.Ledger.Shelley.Rules.Chain
 import           Cardano.Ledger.Shelley.Rules.Deleg
 import           Cardano.Ledger.Shelley.Rules.Delegs
 import           Cardano.Ledger.Shelley.Rules.Delpl
@@ -196,7 +196,6 @@ instance LogFormatting HotKey.KESInfo where
   asMetrics forgeStateInfo =
       let maxKesEvos = endKesPeriod - startKesPeriod
           oCertExpiryKesPeriod = startKesPeriod + maxKesEvos
-          -- TODO JNF: What is the sense of it?
       in  [
             IntM "operationalCertificateStartKESPeriod"
               (fromIntegral startKesPeriod)
@@ -275,10 +274,6 @@ instance Core.Crypto crypto => LogFormatting (ChainTransitionError crypto) where
              ]
 
 instance ( ShelleyBasedEra era
-         , LogFormatting (PredicateFailure (Core.EraRule "UTXOW" era))
-         , LogFormatting (PredicateFailure (Core.EraRule "BBODY" era))
-         , LogFormatting (PredicateFailure (Core.EraRule "TICK" era))
-         , LogFormatting (PredicateFailure (Core.EraRule "TICKN" era))
          ) => LogFormatting (ChainPredicateFailure era) where
   forMachine _dtal (HeaderSizeTooLargeCHAIN hdrSz maxHdrSz) =
     mkObject [ "kind" .= String "HeaderSizeTooLarge"
@@ -301,11 +296,6 @@ instance ( ShelleyBasedEra era
                       \understand the new major protocol version. This node \
                       \must be upgraded before it can continue with the new \
                       \protocol version."
-  forMachine dtal (BbodyFailure f) = forMachine dtal f
-  forMachine dtal (TickFailure  f) = forMachine dtal f
-  forMachine dtal (TicknFailure  f) = forMachine dtal f
-  forMachine dtal (PrtclFailure f) = forMachine dtal f
-  forMachine dtal (PrtclSeqFailure f) = forMachine dtal f
 
 instance LogFormatting (PrtlSeqFailure crypto) where
   forMachine _dtal (WrongSlotIntervalPrtclSeq (SlotNo lastSlot) (SlotNo currSlot)) =
@@ -427,6 +417,7 @@ renderScriptPurpose (Alonzo.Certifying cert) =
 
 
 instance ( ShelleyBasedEra era
+         , Ledger.Crypto era ~ StandardCrypto
          , ToJSON (Core.AuxiliaryDataHash (Ledger.Crypto era))
          , LogFormatting (PredicateFailure (UTXO era))
          , LogFormatting (PredicateFailure (Core.EraRule "UTXO" era))
@@ -467,6 +458,10 @@ instance ( ShelleyBasedEra era
              ]
   forMachine _dtal InvalidMetadata =
     mkObject [ "kind" .= String "InvalidMetadata"
+             ]
+  forMachine _dtal (ExtraneousScriptWitnessesUTXOW shashes) =
+    mkObject [ "kind" .= String "ExtraneousScriptWitnessesUTXOW"
+             , "scriptHashes" .= Set.map Api.fromShelleyScriptHash shashes
              ]
 
 instance ( ShelleyBasedEra era

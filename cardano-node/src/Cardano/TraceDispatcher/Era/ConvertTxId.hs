@@ -1,7 +1,7 @@
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE FlexibleContexts     #-}
+{-# LANGUAGE FlexibleInstances    #-}
+{-# LANGUAGE ScopedTypeVariables  #-}
+{-# LANGUAGE TypeApplications     #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Cardano.TraceDispatcher.Era.ConvertTxId
@@ -14,13 +14,13 @@ import           Data.SOP.Strict
 import qualified Cardano.Crypto.Hash as Crypto
 import qualified Cardano.Crypto.Hashing as Byron.Crypto
 import qualified Cardano.Ledger.SafeHash as Ledger
+import qualified Cardano.Ledger.TxIn as Ledger
 import           Ouroboros.Consensus.Byron.Ledger.Block (ByronBlock)
 import           Ouroboros.Consensus.Byron.Ledger.Mempool (TxId (..))
 import           Ouroboros.Consensus.HardFork.Combinator
 import           Ouroboros.Consensus.Shelley.Ledger.Block (ShelleyBlock)
 import           Ouroboros.Consensus.Shelley.Ledger.Mempool (TxId (..))
 import           Ouroboros.Consensus.TypeFamilyWrappers
-import qualified Cardano.Ledger.Shelley.TxBody as Shelley
 
 
 -- | Convert a transaction ID to raw bytes.
@@ -37,8 +37,7 @@ instance ConvertTxId' ByronBlock where
 
 instance ConvertTxId' (ShelleyBlock c) where
   txIdToRawBytes (ShelleyTxId txId) =
-    Crypto.hashToBytes . Ledger.extractHash . Shelley._unTxId $ txId
-
+    Crypto.hashToBytes . Ledger.extractHash . Ledger._unTxId $ txId
 instance All ConvertTxId' xs
       => ConvertTxId' (HardForkBlock xs) where
   txIdToRawBytes =

@@ -75,7 +75,7 @@ import qualified Network.Socket as Socket
 
 import           Ouroboros.Network.Block (Point, Serialised, Tip)
 import qualified Ouroboros.Network.BlockFetch.ClientState as BlockFetch
-import           Ouroboros.Network.Codec (AnyMessageAndAgency (..))
+import           Network.TypedProtocol.Codec (AnyMessageAndAgency (..))
 import qualified Ouroboros.Network.Diffusion as ND
 import qualified Ouroboros.Network.NodeToClient as NtC
 import           Ouroboros.Network.NodeToNode (DnsTrace (..),

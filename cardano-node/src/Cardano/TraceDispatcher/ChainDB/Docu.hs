@@ -467,7 +467,7 @@ docChainDBTraceEvent = Documented [
       (ChainDB.TraceVolatileDBEvent
         VolDB.DBAlreadyOpen)
       []
-      "TODO Doc"
+      "TODO TracerDoc"
   , DocMsg
       (ChainDB.TraceVolatileDBEvent
         (VolDB.Truncate anyProto anyProto anyProto))

@@ -37,7 +37,7 @@ import           Ouroboros.Consensus.Node.Run (SerialiseNodeToNodeConstraints,
 
 import           Ouroboros.Network.Block (HasHeader, Point, Serialised,
                      blockHash)
-import           Ouroboros.Network.Codec (AnyMessageAndAgency (..),
+import           Network.TypedProtocol.Codec (AnyMessageAndAgency (..),
                      PeerHasAgency (..))
 import qualified Ouroboros.Network.Diffusion as ND
 import           Ouroboros.Network.Driver.Simple (TraceSendRecv (..))

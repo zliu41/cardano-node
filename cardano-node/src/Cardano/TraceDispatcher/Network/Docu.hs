@@ -42,7 +42,7 @@ import           Ouroboros.Consensus.Ledger.SupportsMempool (ApplyTxErr, GenTx,
 
 import           Ouroboros.Network.Block (Point, Tip)
 import qualified Ouroboros.Network.BlockFetch.ClientState as BlockFetch
-import           Ouroboros.Network.Codec (AnyMessageAndAgency (..))
+import           Network.TypedProtocol.Codec (AnyMessageAndAgency (..))
 import qualified Ouroboros.Network.Diffusion as ND
 import           Ouroboros.Network.Driver.Simple (TraceSendRecv (..))
 import qualified Ouroboros.Network.NodeToClient as NtC

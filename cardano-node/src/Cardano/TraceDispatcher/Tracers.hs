@@ -50,7 +50,7 @@ import qualified "trace-dispatcher" Control.Tracer as NT
 
 import           Cardano.Node.Configuration.Logging (EKGDirect)
 import           Cardano.Node.Types (NodeInfo, docNodeInfoTraceEvent)
-import           DataPoint.Forward.Utils (DataPoint)
+import           Trace.Forward.Utils.DataPoint (DataPoint)
 
 import qualified Cardano.BM.Data.Trace as Old
 import           Cardano.Tracing.Config (TraceOptions (..))
