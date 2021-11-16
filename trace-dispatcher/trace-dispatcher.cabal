@@ -27,6 +27,7 @@ library
                       Cardano.Logging.Tracer.Forward
                       Cardano.Logging.Tracer.Composed
                       Cardano.Logging.Utils
+                      Cardano.Logging.Version
                       Control.Tracer.Arrow
                       Control.Tracer
 
@@ -44,6 +45,7 @@ library
                       , ekg-forward
                       , hostname
                       , network
+                      , ouroboros-network
                       , ouroboros-network-framework
                       , serialise
                       , stm

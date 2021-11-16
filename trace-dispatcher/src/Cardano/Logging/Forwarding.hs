@@ -23,17 +23,15 @@ import           Data.Word (Word16)
 import           Ouroboros.Network.Driver.Limits (ProtocolTimeLimits)
 import           Ouroboros.Network.ErrorPolicy (nullErrorPolicies)
 import           Ouroboros.Network.IOManager (IOManager)
+import           Ouroboros.Network.Magic (NetworkMagic)
 import           Ouroboros.Network.Mux (MiniProtocol (..),
                      MiniProtocolLimits (..), MiniProtocolNum (..),
                      MuxMode (..), OuroborosApplication (..),
                      RunMiniProtocol (..), miniProtocolLimits, miniProtocolNum,
                      miniProtocolRun)
 import           Ouroboros.Network.Protocol.Handshake.Codec
-                     (cborTermVersionDataCodec, noTimeLimitsHandshake)
+                     (cborTermVersionDataCodec, codecHandshake, noTimeLimitsHandshake)
 import           Ouroboros.Network.Protocol.Handshake.Type (Handshake)
-import           Ouroboros.Network.Protocol.Handshake.Unversioned
-                     (UnversionedProtocol (..), UnversionedProtocolData (..),
-                     unversionedHandshakeCodec, unversionedProtocolDataCodec)
 import           Ouroboros.Network.Protocol.Handshake.Version
                      (acceptableVersion, simpleSingletonVersions)
 import           Ouroboros.Network.Snocket (Snocket, localAddressFromPath,
@@ -55,18 +53,21 @@ import           Trace.Forward.Utils.TraceObject
 
 import           Cardano.Logging.Types
 import           Cardano.Logging.Utils (runInLoop)
+import           Cardano.Logging.Version
 
 initForwarding :: forall m. (MonadIO m)
   => IOManager
   -> TraceConfig
+  -> NetworkMagic
   -> EKG.Store
   -> m (ForwardSink TraceObject, DataPointStore)
-initForwarding iomgr config ekgStore = liftIO $ do
+initForwarding iomgr config networkMagic ekgStore = liftIO $ do
   forwardSink <- initForwardSink tfConfig
   dpStore <- initDataPointStore
   launchForwarders
     iomgr
     config
+    networkMagic
     ekgConfig
     tfConfig
     dpfConfig
@@ -105,6 +106,7 @@ initForwarding iomgr config ekgStore = liftIO $ do
 launchForwarders
   :: IOManager
   -> TraceConfig
+  -> NetworkMagic
   -> EKGF.ForwarderConfiguration
   -> TF.ForwarderConfiguration TraceObject
   -> DPF.ForwarderConfiguration
@@ -112,11 +114,13 @@ launchForwarders
   -> ForwardSink TraceObject
   -> DataPointStore
   -> IO ()
-launchForwarders iomgr TraceConfig{tcForwarder} ekgConfig tfConfig dpfConfig ekgStore sink dpStore =
+launchForwarders iomgr TraceConfig{tcForwarder} networkMagic
+                 ekgConfig tfConfig dpfConfig ekgStore sink dpStore =
   void . async $
     runInLoop
       (launchForwardersViaLocalSocket
          iomgr
+         networkMagic
          tcForwarder
          ekgConfig
          tfConfig
@@ -130,6 +134,7 @@ launchForwarders iomgr TraceConfig{tcForwarder} ekgConfig tfConfig dpfConfig ekg
 
 launchForwardersViaLocalSocket
   :: IOManager
+  -> NetworkMagic
   -> TraceOptionForwarder
   -> EKGF.ForwarderConfiguration
   -> TF.ForwarderConfiguration TraceObject
@@ -138,21 +143,22 @@ launchForwardersViaLocalSocket
   -> EKG.Store
   -> DataPointStore
   -> IO ()
-launchForwardersViaLocalSocket iomgr
+launchForwardersViaLocalSocket iomgr networkMagic
   TraceOptionForwarder {tofAddress=(LocalSocket p), tofMode=Initiator}
   ekgConfig tfConfig dpfConfig sink ekgStore dpStore =
-    doConnectToAcceptor (localSnocket iomgr) (localAddressFromPath p)
+    doConnectToAcceptor networkMagic (localSnocket iomgr) (localAddressFromPath p)
       noTimeLimitsHandshake ekgConfig tfConfig dpfConfig sink ekgStore dpStore
-launchForwardersViaLocalSocket iomgr
+launchForwardersViaLocalSocket iomgr networkMagic
   TraceOptionForwarder {tofAddress=(LocalSocket p), tofMode=Responder}
   ekgConfig tfConfig dpfConfig sink ekgStore dpStore =
-    doListenToAcceptor (localSnocket iomgr) (localAddressFromPath p)
+    doListenToAcceptor networkMagic (localSnocket iomgr) (localAddressFromPath p)
       noTimeLimitsHandshake ekgConfig tfConfig dpfConfig sink ekgStore dpStore
 
 doConnectToAcceptor
-  :: Snocket IO fd addr
+  :: NetworkMagic
+  -> Snocket IO fd addr
   -> addr
-  -> ProtocolTimeLimits (Handshake UnversionedProtocol Term)
+  -> ProtocolTimeLimits (Handshake ForwardingVersion Term)
   -> EKGF.ForwarderConfiguration
   -> TF.ForwarderConfiguration TraceObject
   -> DPF.ForwarderConfiguration
@@ -160,22 +166,23 @@ doConnectToAcceptor
   -> EKG.Store
   -> DataPointStore
   -> IO ()
-doConnectToAcceptor snocket address timeLimits ekgConfig tfConfig dpfConfig sink ekgStore dpStore = do
+doConnectToAcceptor networkMagic snocket address timeLimits
+                    ekgConfig tfConfig dpfConfig sink ekgStore dpStore = do
   connectToNode
     snocket
-    unversionedHandshakeCodec
+    (codecHandshake forwardingVersionCodec)
     timeLimits
-    (cborTermVersionDataCodec unversionedProtocolDataCodec)
+    (cborTermVersionDataCodec forwardingCodecCBORTerm)
     nullNetworkConnectTracers
     acceptableVersion
     (simpleSingletonVersions
-       UnversionedProtocol
-       UnversionedProtocolData
-         (forwarderApp [ (forwardEKGMetrics       ekgConfig ekgStore, 1)
-                       , (forwardTraceObjectsInit tfConfig  sink,     2)
-                       , (forwardDataPointsInit   dpfConfig dpStore,  3)
-                       ]
-         )
+       ForwardingV_1
+       (ForwardingVersionData networkMagic)
+       (forwarderApp [ (forwardEKGMetrics       ekgConfig ekgStore, 1)
+                     , (forwardTraceObjectsInit tfConfig  sink,     2)
+                     , (forwardDataPointsInit   dpfConfig dpStore,  3)
+                     ]
+       )
     )
     Nothing
     address
@@ -195,9 +202,10 @@ doConnectToAcceptor snocket address timeLimits ekgConfig tfConfig dpfConfig sink
 
 doListenToAcceptor
   :: Ord addr
-  => Snocket IO fd addr
+  => NetworkMagic
+  -> Snocket IO fd addr
   -> addr
-  -> ProtocolTimeLimits (Handshake UnversionedProtocol Term)
+  -> ProtocolTimeLimits (Handshake ForwardingVersion Term)
   -> EKGF.ForwarderConfiguration
   -> TF.ForwarderConfiguration TraceObject
   -> DPF.ForwarderConfiguration
@@ -205,7 +213,8 @@ doListenToAcceptor
   -> EKG.Store
   -> DataPointStore
   -> IO ()
-doListenToAcceptor snocket address timeLimits ekgConfig tfConfig dpfConfig sink ekgStore dpStore = do
+doListenToAcceptor networkMagic snocket address timeLimits
+                   ekgConfig tfConfig dpfConfig sink ekgStore dpStore = do
   networkState <- newNetworkMutableState
   race_ (cleanNetworkMutableState networkState)
         $ withServerNode
@@ -214,19 +223,19 @@ doListenToAcceptor snocket address timeLimits ekgConfig tfConfig dpfConfig sink 
             networkState
             (AcceptedConnectionsLimit maxBound maxBound 0)
             address
-            unversionedHandshakeCodec
+            (codecHandshake forwardingVersionCodec)
             timeLimits
-            (cborTermVersionDataCodec unversionedProtocolDataCodec)
+            (cborTermVersionDataCodec forwardingCodecCBORTerm)
             acceptableVersion
             (simpleSingletonVersions
-              UnversionedProtocol
-              UnversionedProtocolData
-              (SomeResponderApplication $
-                forwarderApp [ (forwardEKGMetricsResp   ekgConfig ekgStore, 1)
-                             , (forwardTraceObjectsResp tfConfig  sink,     2)
-                             , (forwardDataPointsResp   dpfConfig dpStore,  3)
-                             ]
-              )
+               ForwardingV_1
+               (ForwardingVersionData networkMagic)
+               (SomeResponderApplication $
+                 forwarderApp [ (forwardEKGMetricsResp   ekgConfig ekgStore, 1)
+                              , (forwardTraceObjectsResp tfConfig  sink,     2)
+                              , (forwardDataPointsResp   dpfConfig dpStore,  3)
+                              ]
+               )
             )
             nullErrorPolicies
             $ \_ serverAsync ->
