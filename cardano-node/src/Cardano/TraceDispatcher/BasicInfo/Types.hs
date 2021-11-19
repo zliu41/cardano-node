@@ -11,18 +11,18 @@ module Cardano.TraceDispatcher.BasicInfo.Types
 
 
 import           Data.Aeson (Value (String), (.=))
+import           Data.Text (pack)
 import           Data.Time.Clock (NominalDiffTime, UTCTime)
 import           Network.Socket (SockAddr)
-import           Data.Text (pack)
 
 import           Cardano.Api (NetworkMagic (..))
 import           Cardano.Logging
 import           Cardano.Node.Configuration.Socket (SocketOrSocketInfo (..))
 import           Cardano.Prelude hiding (trace)
 
-import           Ouroboros.Consensus.Node (DnsSubscriptionTarget (..),
-                     IPSubscriptionTarget (..))
 import           Ouroboros.Network.NodeToNode (DiffusionMode (..))
+import           Ouroboros.Network.Subscription.Dns (DnsSubscriptionTarget (..))
+import           Ouroboros.Network.Subscription.Ip (IPSubscriptionTarget (..))
 
 
 data BasicInfo =

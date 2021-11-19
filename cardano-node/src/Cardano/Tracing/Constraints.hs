@@ -1,6 +1,8 @@
 {-# LANGUAGE ConstraintKinds  #-}
+{-# LANGUAGE DataKinds        #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE MonoLocalBinds   #-}
+
 
 module Cardano.Tracing.Constraints
   ( TraceConstraints
@@ -11,15 +13,9 @@ import           Prelude (Show)
 import           Data.Aeson
 
 import           Cardano.BM.Tracing (ToObject)
-import           Cardano.Node.Queries (ConvertTxId, LedgerQueries)
-import           Cardano.Node.Queries.ConvertTxId (ConvertTxId)
-import           Cardano.Node.Queries.Ledger (LedgerQueries)
 import           Cardano.Logging (LogFormatting)
-import           Cardano.TraceDispatcher.Consensus.Formatting (GetKESInfoX (..),
-                     HasKESInfoX (..))
-import           Cardano.TraceDispatcher.Consensus.StartLeadershipCheck
-                     (LedgerQueriesX)
-import           Cardano.TraceDispatcher.Era.ConvertTxId (ConvertTxId')
+import           Cardano.Node.Queries (ConvertTxId, GetKESInfo (..),
+                     HasKESInfo (..), HasKESMetricsData (..), LedgerQueries)
 
 import           Cardano.Ledger.Alonzo (AlonzoEra)
 import           Cardano.Ledger.Alonzo.PParams (PParamsUpdate)
@@ -27,9 +23,10 @@ import           Cardano.Ledger.Alonzo.Rules.Bbody (AlonzoBbodyPredFail)
 import           Cardano.Ledger.Alonzo.Rules.Utxo (UtxoPredicateFailure)
 import           Cardano.Ledger.Alonzo.Rules.Utxow (AlonzoPredFail)
 import           Cardano.Ledger.Alonzo.TxBody (TxOut)
-import           Ouroboros.Consensus.Block (BlockProtocol, CannotForge,
-                     ForgeStateUpdateError, Header)
 import           Cardano.Ledger.Crypto (StandardCrypto)
+
+import           Ouroboros.Consensus.Block (BlockProtocol, CannotForge,
+                     ConvertRawHash, ForgeStateUpdateError, Header)
 import           Ouroboros.Consensus.HeaderValidation (OtherHeaderEnvelopeError)
 import           Ouroboros.Consensus.Ledger.Abstract (LedgerError)
 import           Ouroboros.Consensus.Ledger.Inspect (LedgerEvent, LedgerUpdate,
@@ -39,22 +36,25 @@ import           Ouroboros.Consensus.Ledger.SupportsMempool (ApplyTxErr,
 import           Ouroboros.Consensus.Protocol.Abstract (ValidationErr)
 import           Ouroboros.Consensus.Shelley.Ledger.Mempool (GenTx, TxId)
 
+import           Ouroboros.Network.ConnectionId (ConnectionId)
+import           Ouroboros.Network.Snocket (LocalAddress (..))
+import           Ouroboros.Network.NodeToNode (RemoteAddress)
+
 -- | Tracing-related constraints for monitoring purposes.
 type TraceConstraints blk =
-    ( ConvertTxId' blk
-    , ConvertTxId blk
+    ( ConvertTxId blk
     , HasTxs blk
     , HasTxId (GenTx blk)
     , LedgerQueries blk
-    , LedgerQueriesX blk
     , ToJSON   (TxId (GenTx blk))
     , ToJSON   (TxOut (AlonzoEra StandardCrypto))
     , ToJSON   (PParamsUpdate (AlonzoEra StandardCrypto))
     , HasKESMetricsData blk
     , HasKESInfo blk
-    , HasKESInfoX blk
-    , GetKESInfoX blk
-
+    , ConvertRawHash blk
+    , GetKESInfo blk
+    , Show blk
+    , Show (Header blk)
 
     , ToObject (ApplyTxErr blk)
     , ToObject (GenTx blk)
@@ -65,8 +65,6 @@ type TraceConstraints blk =
     , ToObject (ValidationErr (BlockProtocol blk))
     , ToObject (CannotForge blk)
     , ToObject (ForgeStateUpdateError blk)
-
-    -- TODO: handle the implications in the new logging
     , ToObject (UtxoPredicateFailure (AlonzoEra StandardCrypto))
     , ToObject (AlonzoBbodyPredFail (AlonzoEra StandardCrypto))
     , ToObject (AlonzoPredFail (AlonzoEra StandardCrypto))
@@ -77,7 +75,6 @@ type TraceConstraints blk =
     , LogFormatting (GenTx blk)
     , LogFormatting (Header blk)
     , LogFormatting (LedgerError blk)
-    , LogFormatting (LedgerEvent blk)
     , LogFormatting (OtherHeaderEnvelopeError blk)
     , LogFormatting (ValidationErr (BlockProtocol blk))
     , LogFormatting (CannotForge blk)
@@ -85,7 +82,4 @@ type TraceConstraints blk =
     , LogFormatting (UtxoPredicateFailure (AlonzoEra StandardCrypto))
     , LogFormatting (AlonzoBbodyPredFail (AlonzoEra StandardCrypto))
     , LogFormatting (AlonzoPredFail (AlonzoEra StandardCrypto))
-
-    , Show blk
-    , Show (Header blk)
     )

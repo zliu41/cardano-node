@@ -1,5 +1,6 @@
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE DataKinds           #-}
+{-# LANGUAGE FlexibleContexts    #-}
+{-# LANGUAGE NamedFieldPuns      #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
 module Cardano.Node.Protocol.Shelley
@@ -26,8 +27,8 @@ import qualified Data.Aeson as Aeson
 import qualified Data.ByteString as BS
 import qualified Data.Text as T
 
-import           Control.Monad.Trans.Except.Extra (firstExceptT, handleIOExceptT, hoistEither,
-                   newExceptT)
+import           Control.Monad.Trans.Except.Extra (firstExceptT,
+                     handleIOExceptT, hoistEither, newExceptT)
 
 import qualified Cardano.Crypto.Hash.Class as Crypto
 import           Cardano.Ledger.Crypto (StandardCrypto)
@@ -37,8 +38,10 @@ import qualified Ouroboros.Consensus.Cardano as Consensus
 import qualified Ouroboros.Consensus.Mempool.TxLimits as TxLimits
 import           Ouroboros.Consensus.Protocol.TPraos (TPraosCanBeLeader (..))
 import           Ouroboros.Consensus.Shelley.Eras (StandardShelley)
-import           Ouroboros.Consensus.Shelley.Node (Nonce (..), ProtocolParamsShelley (..),
-                   ProtocolParamsShelleyBased (..), TPraosLeaderCredentials (..))
+import           Ouroboros.Consensus.Shelley.Node (Nonce (..),
+                     ProtocolParamsShelley (..),
+                     ProtocolParamsShelleyBased (..),
+                     TPraosLeaderCredentials (..))
 
 import           Cardano.Ledger.BaseTypes (ProtVer (..))
 import qualified Cardano.Ledger.Shelley.Genesis as Shelley
@@ -70,8 +73,8 @@ import           Cardano.Node.Protocol.Types
 --
 -- This also serves a purpose as a sanity check that we have all the necessary
 -- type class instances available.
-mkSomeConsensusProtocolShelley
-  :: NodeShelleyProtocolConfiguration
+mkSomeConsensusProtocolShelley ::
+  NodeShelleyProtocolConfiguration
   -> Maybe ProtocolFilepaths
   -> ExceptT ShelleyProtocolInstantiationError IO SomeConsensusProtocol
 mkSomeConsensusProtocolShelley NodeShelleyProtocolConfiguration {
@@ -261,8 +264,8 @@ data ShelleyProtocolInstantiationError =
   deriving Show
 
 instance Error ShelleyProtocolInstantiationError where
-  displayError (GenesisReadError err) = displayError err
-  displayError (GenesisValidationError err) = displayError err
+  displayError (GenesisReadError err)            = displayError err
+  displayError (GenesisValidationError err)      = displayError err
   displayError (PraosLeaderCredentialsError err) = displayError err
 
 

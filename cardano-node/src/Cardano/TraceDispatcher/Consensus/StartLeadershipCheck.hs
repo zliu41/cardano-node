@@ -10,7 +10,6 @@ module Cardano.TraceDispatcher.Consensus.StartLeadershipCheck
     TraceStartLeadershipCheckPlus (..)
   , ForgeTracerType
   , forgeTracerTransform
-  , LedgerQueriesX (..)
   ) where
 
 
@@ -18,7 +17,6 @@ import           Cardano.Logging
 import           Cardano.Prelude
 import qualified "trace-dispatcher" Control.Tracer as T
 import           Data.IORef (readIORef)
-import qualified Data.Map.Strict as Map
 
 import qualified Ouroboros.Network.AnchoredFragment as AF
 import           Ouroboros.Network.Block (BlockNo (..), blockNo, unBlockNo)
@@ -26,12 +24,7 @@ import           Ouroboros.Network.NodeToClient (LocalConnectionId)
 import           Ouroboros.Network.NodeToNode (RemoteConnectionId)
 
 import           Ouroboros.Consensus.Block (SlotNo (..))
-import qualified Ouroboros.Consensus.Byron.Ledger.Block as Byron
-import qualified Ouroboros.Consensus.Byron.Ledger.Ledger as Byron
-import qualified Ouroboros.Consensus.Cardano as Cardano
-import qualified Ouroboros.Consensus.Cardano.Block as Cardano
 import           Ouroboros.Consensus.HardFork.Combinator
-import           Ouroboros.Consensus.HardFork.Combinator.Embed.Unary
 import           Ouroboros.Consensus.Ledger.Abstract (IsLedger)
 import           Ouroboros.Consensus.Ledger.Extended (ExtLedgerState,
                      ledgerState)
@@ -39,14 +32,10 @@ import           Ouroboros.Consensus.Node (NodeKernel (..))
 import           Ouroboros.Consensus.Node.Tracers
 import qualified Ouroboros.Consensus.Storage.ChainDB as ChainDB
 
-import qualified Cardano.Chain.Block as Byron
-import qualified Cardano.Chain.UTxO as Byron
 import           Cardano.Slotting.Slot (fromWithOrigin)
+import           Cardano.Node.Queries (LedgerQueries(..))
 
 import           Cardano.Ledger.BaseTypes (StrictMaybe (..), fromSMaybe)
-import qualified Ouroboros.Consensus.Shelley.Ledger as Shelley
-import qualified Cardano.Ledger.Shelley.LedgerState as Shelley
-import qualified Cardano.Ledger.Shelley.UTxO as Shelley
 
 import           Cardano.Tracing.Kernel (NodeKernelData (..))
 
@@ -64,7 +53,7 @@ data TraceStartLeadershipCheckPlus =
 
 forgeTracerTransform ::
   (  IsLedger (LedgerState blk)
-  ,  LedgerQueriesX blk
+  ,  LedgerQueries blk
   ,  AF.HasHeader (Header blk))
   => NodeKernelData blk
   -> Trace IO (ForgeTracerType blk)
@@ -76,8 +65,8 @@ forgeTracerTransform nodeKern (Trace tr) = pure $ Trace $ T.arrow $ T.emit $
         query <- mapNodeKernelDataIO
                     (\nk ->
                        (,,)
-                         <$> nkQueryLedger (ledgerUtxoSizeX . ledgerState) nk
-                         <*> nkQueryLedger (ledgerDelegMapSizeX . ledgerState) nk
+                         <$> nkQueryLedger (ledgerUtxoSize . ledgerState) nk
+                         <*> nkQueryLedger (ledgerDelegMapSize . ledgerState) nk
                          <*> nkQueryChain fragmentChainDensity nk)
                     nodeKern
         fromSMaybe (pure ())
@@ -133,50 +122,6 @@ nkQueryChain ::
   -> IO a
 nkQueryChain f NodeKernel{getChainDB} =
   f <$> atomically (ChainDB.getCurrentChain getChainDB)
-
-class LedgerQueriesX blk where
-  ledgerUtxoSizeX     :: LedgerState blk -> Int
-  ledgerDelegMapSizeX :: LedgerState blk -> Int
-
-instance LedgerQueriesX Byron.ByronBlock where
-  ledgerUtxoSizeX = Map.size . Byron.unUTxO . Byron.cvsUtxo . Byron.byronLedgerState
-  ledgerDelegMapSizeX _ = 0
-
-instance LedgerQueriesX (Shelley.ShelleyBlock era) where
-  ledgerUtxoSizeX =
-      (\(Shelley.UTxO xs)-> Map.size xs)
-    . Shelley._utxo
-    . Shelley._utxoState
-    . Shelley.esLState
-    . Shelley.nesEs
-    . Shelley.shelleyLedgerState
-  ledgerDelegMapSizeX =
-      Map.size
-    . Shelley._delegations
-    . Shelley._dstate
-    . Shelley._delegationState
-    . Shelley.esLState
-    . Shelley.nesEs
-    . Shelley.shelleyLedgerState
-
-instance (LedgerQueriesX x, NoHardForks x)
-      => LedgerQueriesX (HardForkBlock '[x]) where
-  ledgerUtxoSizeX = ledgerUtxoSizeX . project
-  ledgerDelegMapSizeX = ledgerDelegMapSizeX . project
-
-instance LedgerQueriesX (Cardano.CardanoBlock c) where
-  ledgerUtxoSizeX = \case
-    Cardano.LedgerStateByron   ledgerByron   -> ledgerUtxoSizeX ledgerByron
-    Cardano.LedgerStateShelley ledgerShelley -> ledgerUtxoSizeX ledgerShelley
-    Cardano.LedgerStateAllegra ledgerAllegra -> ledgerUtxoSizeX ledgerAllegra
-    Cardano.LedgerStateMary    ledgerMary    -> ledgerUtxoSizeX ledgerMary
-    Cardano.LedgerStateAlonzo  ledgerAlonzo  -> ledgerUtxoSizeX ledgerAlonzo
-  ledgerDelegMapSizeX = \case
-    Cardano.LedgerStateByron   ledgerByron   -> ledgerDelegMapSizeX ledgerByron
-    Cardano.LedgerStateShelley ledgerShelley -> ledgerDelegMapSizeX ledgerShelley
-    Cardano.LedgerStateAllegra ledgerAllegra -> ledgerDelegMapSizeX ledgerAllegra
-    Cardano.LedgerStateMary    ledgerMary    -> ledgerDelegMapSizeX ledgerMary
-    Cardano.LedgerStateAlonzo  ledgerAlonzo  -> ledgerDelegMapSizeX ledgerAlonzo
 
 
 mapNodeKernelDataIO ::

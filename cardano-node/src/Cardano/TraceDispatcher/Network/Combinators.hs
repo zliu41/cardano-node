@@ -62,6 +62,9 @@ module Cardano.TraceDispatcher.Network.Combinators
   , severityDiffusionInit
   , namesForDiffusionInit
 
+  , severityLedgerPeers
+  , namesForLedgerPeers
+
 
   ) where
 
@@ -73,15 +76,17 @@ import qualified Codec.CBOR.Term as CBOR
 import           Network.Mux (MuxTrace (..), WithMuxBearer (..))
 import qualified Network.Socket as Socket
 
+import           Network.TypedProtocol.Codec (AnyMessageAndAgency (..))
 import           Ouroboros.Network.Block (Point, Serialised, Tip)
 import qualified Ouroboros.Network.BlockFetch.ClientState as BlockFetch
-import           Network.TypedProtocol.Codec (AnyMessageAndAgency (..))
 import qualified Ouroboros.Network.Diffusion as ND
 import qualified Ouroboros.Network.NodeToClient as NtC
 import           Ouroboros.Network.NodeToNode (DnsTrace (..),
                      ErrorPolicyTrace (..), SubscriptionTrace (..),
                      TraceSendRecv (..), WithAddr (..), WithIPList (..))
 import qualified Ouroboros.Network.NodeToNode as NtN
+import           Ouroboros.Network.PeerSelection.LedgerPeers
+                     (TraceLedgerPeers (..))
 import           Ouroboros.Network.Protocol.BlockFetch.Type (BlockFetch (..),
                      Message (..))
 import           Ouroboros.Network.Protocol.ChainSync.Type (ChainSync (..),
@@ -100,6 +105,7 @@ import           Ouroboros.Consensus.Block (Header)
 import           Ouroboros.Consensus.Ledger.SupportsMempool (ApplyTxErr, GenTx,
                      GenTxId)
 import           Ouroboros.Consensus.Storage.Serialisation (SerialisedHeader)
+
 
 severityTChainSync :: BlockFetch.TraceLabelPeer peer (TraceSendRecv
     (ChainSync (Serialised blk) (Point blk) (Tip blk))) -> SeverityS
@@ -715,7 +721,7 @@ namesForMux' MuxTraceStartedOnDemand {}       = ["StartedOnDemand"]
 namesForMux' MuxTraceTerminating {}           = ["Terminating"]
 namesForMux' MuxTraceShutdown {}              = ["Shutdown"]
 
-severityHandshake :: NtN.HandshakeTr -> SeverityS
+severityHandshake :: NtN.HandshakeTr adr ver -> SeverityS
 severityHandshake (WithMuxBearer _ e) = severityHandshake' e
 
 severityHandshake' ::
@@ -733,7 +739,7 @@ severityHandshake''' HS.MsgReplyVersions {}   = Info
 severityHandshake''' HS.MsgAcceptVersion {}   = Info
 severityHandshake''' HS.MsgRefuse {}          = Info
 
-namesForHandshake :: NtN.HandshakeTr -> [Text]
+namesForHandshake :: NtN.HandshakeTr adr ver -> [Text]
 namesForHandshake (WithMuxBearer _ e) = namesForHandshake' e
 
 namesForHandshake' ::
@@ -751,7 +757,7 @@ namesForHandshake''' HS.MsgReplyVersions {}   = ["ReplyVersions"]
 namesForHandshake''' HS.MsgAcceptVersion {}   = ["AcceptVersion"]
 namesForHandshake''' HS.MsgRefuse {}          = ["Refuse"]
 
-severityLocalHandshake :: NtC.HandshakeTr -> SeverityS
+severityLocalHandshake :: NtC.HandshakeTr adr ver -> SeverityS
 severityLocalHandshake (WithMuxBearer _ e) = severityLocalHandshake' e
 
 severityLocalHandshake' ::
@@ -769,7 +775,7 @@ severityLocalHandshake''' HS.MsgReplyVersions {}   = Info
 severityLocalHandshake''' HS.MsgAcceptVersion {}   = Info
 severityLocalHandshake''' HS.MsgRefuse {}          = Info
 
-namesForLocalHandshake :: NtC.HandshakeTr -> [Text]
+namesForLocalHandshake :: NtC.HandshakeTr adr ver -> [Text]
 namesForLocalHandshake (WithMuxBearer _ e) = namesForLocalHandshake' e
 
 namesForLocalHandshake' ::
@@ -787,7 +793,7 @@ namesForLocalHandshake''' HS.MsgReplyVersions {}   = ["ReplyVersions"]
 namesForLocalHandshake''' HS.MsgAcceptVersion {}   = ["AcceptVersion"]
 namesForLocalHandshake''' HS.MsgRefuse {}          = ["Refuse"]
 
-severityDiffusionInit :: ND.DiffusionInitializationTracer -> SeverityS
+severityDiffusionInit :: ND.InitializationTracer rard ladr -> SeverityS
 severityDiffusionInit ND.RunServer {}                         = Info
 severityDiffusionInit ND.RunLocalServer {}                    = Info
 severityDiffusionInit ND.UsingSystemdSocket {}                = Info
@@ -804,7 +810,7 @@ severityDiffusionInit ND.UnsupportedLocalSystemdSocket {}     = Info
 severityDiffusionInit ND.UnsupportedReadySocketCase {}        = Info
 severityDiffusionInit ND.DiffusionErrored {}                  = Info
 
-namesForDiffusionInit  :: ND.DiffusionInitializationTracer -> [Text]
+namesForDiffusionInit  :: ND.InitializationTracer rard ladr -> [Text]
 namesForDiffusionInit  ND.RunServer {}                         =
   ["RunServer"]
 namesForDiffusionInit  ND.RunLocalServer {}                    =
@@ -835,3 +841,25 @@ namesForDiffusionInit  ND.UnsupportedReadySocketCase {}        =
   ["UnsupportedReadySocketCase"]
 namesForDiffusionInit  ND.DiffusionErrored {}                  =
   ["DiffusionErrored"]
+
+severityLedgerPeers :: TraceLedgerPeers -> SeverityS
+severityLedgerPeers PickedPeer {}                  = Debug
+severityLedgerPeers PickedPeers {}                 = Info
+severityLedgerPeers FetchingNewLedgerState {}      = Info
+severityLedgerPeers DisabledLedgerPeers {}         = Info
+severityLedgerPeers TraceUseLedgerAfter {}         = Info
+severityLedgerPeers WaitingOnRequest {}            = Debug
+severityLedgerPeers RequestForPeers {}             = Debug
+severityLedgerPeers ReusingLedgerState {}          = Debug
+severityLedgerPeers FallingBackToBootstrapPeers {} = Info
+
+namesForLedgerPeers :: TraceLedgerPeers -> [Text]
+namesForLedgerPeers PickedPeer {}                  = ["PickedPeer"]
+namesForLedgerPeers PickedPeers {}                 = ["PickedPeers"]
+namesForLedgerPeers FetchingNewLedgerState {}      = ["FetchingNewLedgerState"]
+namesForLedgerPeers DisabledLedgerPeers {}         = ["DisabledLedgerPeers"]
+namesForLedgerPeers TraceUseLedgerAfter {}         = ["TraceUseLedgerAfter"]
+namesForLedgerPeers WaitingOnRequest {}            = ["WaitingOnRequest"]
+namesForLedgerPeers RequestForPeers {}             = ["RequestForPeers"]
+namesForLedgerPeers ReusingLedgerState {}          = ["ReusingLedgerState"]
+namesForLedgerPeers FallingBackToBootstrapPeers {} = ["FallingBackToBootstrapPeers"]

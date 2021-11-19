@@ -15,6 +15,7 @@ module Cardano.Node.Queries
   -- * KES
   , MaxKESEvolutions (..)
   , OperationalCertStartKESPeriod (..)
+  , GetKESInfo(..)
   , HasKESInfo(..)
   , KESMetricsData (..)
   , HasKESMetricsData (..)
@@ -172,6 +173,33 @@ instance All HasKESMetricsData xs => HasKESMetricsData (HardForkBlock xs) where
              => WrapForgeStateInfo blk
              -> K KESMetricsData blk
       getOne = K . getKESMetricsData (Proxy @blk) . unwrapForgeStateInfo
+
+--
+-- * GetKESInfo
+--
+class GetKESInfo blk where
+  getKESInfoFromStateInfo :: Proxy blk -> ForgeStateInfo blk -> Maybe HotKey.KESInfo
+  getKESInfoFromStateInfo _ _ = Nothing
+
+instance GetKESInfo (ShelleyBlock era) where
+  getKESInfoFromStateInfo _ = Just
+
+instance GetKESInfo ByronBlock
+
+instance All GetKESInfo xs => GetKESInfo (HardForkBlock xs) where
+  getKESInfoFromStateInfo _ forgeStateInfo =
+      case forgeStateInfo of
+        CurrentEraLacksBlockForging _ -> Nothing
+        CurrentEraForgeStateUpdated currentEraForgeStateInfo ->
+            hcollapse
+          . hcmap (Proxy @GetKESInfo) getOne
+          . getOneEraForgeStateInfo
+          $ currentEraForgeStateInfo
+    where
+      getOne :: forall blk. GetKESInfo blk
+             => WrapForgeStateInfo blk
+             -> K (Maybe HotKey.KESInfo) blk
+      getOne = K . getKESInfoFromStateInfo (Proxy @blk) . unwrapForgeStateInfo
 
 --
 -- * General ledger

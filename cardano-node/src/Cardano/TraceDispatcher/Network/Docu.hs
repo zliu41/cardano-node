@@ -22,6 +22,7 @@ module Cardano.TraceDispatcher.Network.Docu
   , docHandshake
   , docLocalHandshake
   , docDiffusionInit
+  , docLedgerPeers
   ) where
 
 import           Cardano.Prelude
@@ -33,22 +34,27 @@ import           Network.Mux (MiniProtocolNum (..), MuxBearerState (..),
 import           Network.Mux.Types (MiniProtocolDir (..), MuxSDUHeader (..),
                      RemoteClockModel (..))
 import qualified Network.Socket as Socket
-import           Unsafe.Coerce
 import           System.IO.Unsafe (unsafePerformIO)
+import           Unsafe.Coerce
 
 import           Cardano.Logging
 import           Ouroboros.Consensus.Ledger.SupportsMempool (ApplyTxErr, GenTx,
                      GenTxId)
 
+import           Network.TypedProtocol.Codec (AnyMessageAndAgency (..))
 import           Ouroboros.Network.Block (Point, Tip)
 import qualified Ouroboros.Network.BlockFetch.ClientState as BlockFetch
-import           Network.TypedProtocol.Codec (AnyMessageAndAgency (..))
 import qualified Ouroboros.Network.Diffusion as ND
 import           Ouroboros.Network.Driver.Simple (TraceSendRecv (..))
 import qualified Ouroboros.Network.NodeToClient as NtC
 import           Ouroboros.Network.NodeToNode (ErrorPolicyTrace (..),
                      WithAddr (..))
 import qualified Ouroboros.Network.NodeToNode as NtN
+import           Ouroboros.Network.PeerSelection.LedgerPeers (AccPoolStake (..),
+                     NumberOfPeers (..), PoolStake (..), TraceLedgerPeers (..),
+                     UseLedgerAfter (..))
+import           Ouroboros.Network.PeerSelection.RelayAccessPoint
+                     (RelayAccessPoint (..))
 import           Ouroboros.Network.Protocol.BlockFetch.Type
 import           Ouroboros.Network.Protocol.ChainSync.Type (ChainSync (..),
                      Message (..))
@@ -58,8 +64,8 @@ import qualified Ouroboros.Network.Protocol.LocalTxSubmission.Type as LTS
 import           Ouroboros.Network.Protocol.Trans.Hello.Type (Message (..))
 import qualified Ouroboros.Network.Protocol.TxSubmission.Type as TXS
 import qualified Ouroboros.Network.Protocol.TxSubmission2.Type as TXS
-import           Ouroboros.Network.Snocket (FileDescriptor,
-                     LocalAddress (..), socketFileDescriptor)
+import           Ouroboros.Network.Snocket (FileDescriptor, LocalAddress (..),
+                     socketFileDescriptor)
 import           Ouroboros.Network.Subscription.Dns (DnsTrace (..),
                      WithDomainName (..))
 import           Ouroboros.Network.Subscription.Ip (WithIPList (..))
@@ -107,9 +113,6 @@ protoSockAddr = Socket.SockAddrUnix "loopback"
 
 protoLocalAddress :: LocalAddress
 protoLocalAddress = LocalAddress "loopback"
-
-protoFilePath :: FilePath
-protoFilePath = "loopback"
 
 {-# NOINLINE protoFileDescriptor #-}
 protoFileDescriptor :: FileDescriptor
@@ -726,7 +729,7 @@ docDNSResolver = Documented [
     ]
 
 docErrorPolicy :: Documented (WithAddr Socket.SockAddr ErrorPolicyTrace)
-docErrorPolicy = docErrorPolicy' protoSockAddr
+docErrorPolicy = docErrorPolicy' anyProto
 
 docLocalErrorPolicy :: Documented (WithAddr LocalAddress ErrorPolicyTrace)
 docLocalErrorPolicy = docErrorPolicy' protoLocalAdress
@@ -940,7 +943,7 @@ docMux = Documented [
         "Mux shutdown."
   ]
 
-docHandshake :: Documented NtN.HandshakeTr
+docHandshake :: Documented (NtN.HandshakeTr adr ver)
 docHandshake = Documented [
       DocMsg
         (WithMuxBearer protoPeer
@@ -967,7 +970,7 @@ docHandshake = Documented [
         "It refuses to run any version."
     ]
 
-docLocalHandshake :: Documented NtC.HandshakeTr
+docLocalHandshake :: Documented (NtC.HandshakeTr adr ver)
 docLocalHandshake = Documented [
       DocMsg
         (WithMuxBearer protoPeer
@@ -995,10 +998,10 @@ docLocalHandshake = Documented [
     ]
 
 -- Everything strict in DiffusionInitializationTracer
-docDiffusionInit :: Documented ND.DiffusionInitializationTracer
+docDiffusionInit :: Documented (ND.InitializationTracer Socket.SockAddr LocalAddress)
 docDiffusionInit = Documented [
     DocMsg
-      (ND.RunServer protoSockAddr)
+      (ND.RunServer (pure protoSockAddr))
       []
       "RunServer TODO"
   , DocMsg
@@ -1006,27 +1009,27 @@ docDiffusionInit = Documented [
       []
       "RunLocalServer TODO"
   , DocMsg
-      (ND.UsingSystemdSocket protoFilePath)
+      (ND.UsingSystemdSocket protoLocalAddress)
       []
       "UsingSystemdSocket TODO"
   , DocMsg
-      (ND.CreateSystemdSocketForSnocketPath protoFilePath)
+      (ND.CreateSystemdSocketForSnocketPath protoLocalAddress)
       []
       "CreateSystemdSocketForSnocketPath TODO"
   , DocMsg
-      (ND.CreatedLocalSocket protoFilePath)
+      (ND.CreatedLocalSocket protoLocalAddress)
       []
       "CreatedLocalSocket TODO"
   , DocMsg
-      (ND.ConfiguringLocalSocket protoFilePath protoFileDescriptor)
+      (ND.ConfiguringLocalSocket protoLocalAddress protoFileDescriptor)
       []
       "ConfiguringLocalSocket TODO"
   , DocMsg
-      (ND.ListeningLocalSocket protoFilePath protoFileDescriptor)
+      (ND.ListeningLocalSocket protoLocalAddress protoFileDescriptor)
       []
       "ListeningLocalSocket TODO"
   , DocMsg
-      (ND.LocalSocketUp protoFilePath protoFileDescriptor)
+      (ND.LocalSocketUp protoLocalAddress protoFileDescriptor)
       []
       "LocalSocketUp TODO"
   , DocMsg
@@ -1057,4 +1060,52 @@ docDiffusionInit = Documented [
       (ND.DiffusionErrored protoSomeException)
       []
       "DiffusionErrored TODO"
+  ]
+
+docLedgerPeers :: Documented TraceLedgerPeers
+docLedgerPeers = Documented [
+    DocMsg
+      (PickedPeer
+        (RelayAccessDomain  protoDomain 1)
+        (AccPoolStake 0.5)
+        (PoolStake 0.5))
+      []
+      "Trace for a peer picked with accumulated and relative stake of its pool."
+  , DocMsg
+      (PickedPeers (NumberOfPeers 1) [])
+      []
+      "Trace for the number of peers we wanted to pick and the list of peers picked."
+  , DocMsg
+      (FetchingNewLedgerState 1)
+      []
+      "Trace for fetching a new list of peers from the ledger. Int is the number of peers\
+      \ returned."
+  , DocMsg
+      DisabledLedgerPeers
+      []
+      "Trace for when getting peers from the ledger is disabled, that is DontUseLedger."
+  , DocMsg
+      DisabledLedgerPeers
+      []
+      "Trace for when getting peers from the ledger is disabled, that is DontUseLedger."
+  , DocMsg
+      (TraceUseLedgerAfter DontUseLedger)
+      []
+      "Trace UseLedgerAfter value."
+  , DocMsg
+      WaitingOnRequest
+      []
+      ""
+  , DocMsg
+      WaitingOnRequest
+      []
+      "RequestForPeers (NumberOfPeers 1)"
+  , DocMsg
+      (ReusingLedgerState 1 protoDiffTime)
+      []
+      ""
+  , DocMsg
+      FallingBackToBootstrapPeers
+      []
+      ""
   ]

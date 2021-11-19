@@ -196,7 +196,16 @@ namesForBlockFetchServer TraceBlockFetchServerSendBlock {} = ["SendBlock"]
 severityTxInbound ::
     BlockFetch.TraceLabelPeer peer (TraceTxSubmissionInbound (GenTxId blk) (GenTx blk))
   -> SeverityS
-severityTxInbound (BlockFetch.TraceLabelPeer _p _ti) = Info
+severityTxInbound (BlockFetch.TraceLabelPeer _p ti) = severityTxInbound' ti
+
+severityTxInbound' ::
+    TraceTxSubmissionInbound (GenTxId blk) (GenTx blk)
+  -> SeverityS
+severityTxInbound' TraceTxSubmissionCollected {} = Debug
+severityTxInbound' TraceTxSubmissionProcessed {} = Debug
+severityTxInbound' TraceTxInboundTerminated = Notice
+severityTxInbound' TraceTxInboundCannotRequestMoreTxs {} = Debug
+severityTxInbound' TraceTxInboundCanRequestMoreTxs {} = Debug
 
 namesForTxInbound ::
     BlockFetch.TraceLabelPeer peer (TraceTxSubmissionInbound (GenTxId blk) (GenTx blk))

@@ -80,7 +80,6 @@ library
                        Cardano.TraceDispatcher.Era.Byron
                        Cardano.TraceDispatcher.Era.HardFork
                        Cardano.TraceDispatcher.Era.Shelley
-                       Cardano.TraceDispatcher.Era.ConvertTxId
                        Cardano.TraceDispatcher.ChainDB.BlockReplayProgress
                        Cardano.TraceDispatcher.ChainDB.Docu
                        Cardano.TraceDispatcher.ChainDB.Formatting
@@ -98,6 +97,7 @@ library
                        Cardano.TraceDispatcher.Network.Docu
                        Cardano.TraceDispatcher.Network.Formatting
                        Cardano.TraceDispatcher.Network.Combinators
+                       Cardano.TraceDispatcher.Network.P2P                       
                        Cardano.TraceDispatcher.Formatting
                        Cardano.TraceDispatcher.Render
                        Cardano.TraceDispatcher.Tracers

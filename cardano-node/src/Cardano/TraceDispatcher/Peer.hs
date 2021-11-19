@@ -25,7 +25,7 @@ import qualified Data.Text as Text
 import           Text.Printf (printf)
 
 import           Ouroboros.Consensus.Block (Header)
-import           Ouroboros.Consensus.Node (remoteAddress)
+import           Ouroboros.Network.ConnectionId (remoteAddress)
 import           Ouroboros.Consensus.Util.Orphans ()
 
 import qualified Ouroboros.Network.AnchoredFragment as Net

@@ -20,11 +20,12 @@ import           Network.Mux (MuxTrace (..), WithMuxBearer (..))
 import qualified Network.Socket as Socket
 import           Text.Show
 
-import           Cardano.TraceDispatcher.Era.ConvertTxId
+import           Cardano.Node.Queries (ConvertTxId (..))
 import           Cardano.TraceDispatcher.Formatting ()
 import           Cardano.TraceDispatcher.Render
 
 import           Cardano.Logging
+import           Cardano.Node.Configuration.TopologyP2P (UseLedger (..))
 import           Cardano.Prelude hiding (Show, show)
 
 import           Ouroboros.Consensus.Block (ConvertRawHash, GetHeader,
@@ -35,14 +36,16 @@ import           Ouroboros.Consensus.Ledger.SupportsMempool (GenTx, HasTxId,
 import           Ouroboros.Consensus.Node.Run (SerialiseNodeToNodeConstraints,
                      estimateBlockSize)
 
-import           Ouroboros.Network.Block (HasHeader, Point, Serialised,
-                     blockHash)
 import           Network.TypedProtocol.Codec (AnyMessageAndAgency (..),
                      PeerHasAgency (..))
+import           Ouroboros.Network.Block (HasHeader, Point, Serialised,
+                     blockHash)
 import qualified Ouroboros.Network.Diffusion as ND
 import           Ouroboros.Network.Driver.Simple (TraceSendRecv (..))
 import qualified Ouroboros.Network.NodeToClient as NtC
 import qualified Ouroboros.Network.NodeToNode as NtN
+import           Ouroboros.Network.PeerSelection.LedgerPeers
+                     (NumberOfPeers (..), TraceLedgerPeers (..), unPoolStake)
 import           Ouroboros.Network.Protocol.BlockFetch.Type
 import           Ouroboros.Network.Protocol.ChainSync.Type as ChainSync
 import qualified Ouroboros.Network.Protocol.LocalStateQuery.Type as LSQ
@@ -164,7 +167,7 @@ instance (forall result. Show (Query blk result))
 --
 -- NOTE: this list is sorted by the unqualified name of the outermost type.
 
-instance ( ConvertTxId' blk
+instance ( ConvertTxId blk
          , ConvertRawHash blk
          , HasHeader blk
          , GetHeader blk
@@ -215,7 +218,7 @@ instance ( ConvertTxId' blk
 
 
 -- TODO Tracers
-instance ( ConvertTxId' blk
+instance ( ConvertTxId blk
          , HasTxId (GenTx blk)
          , ConvertRawHash blk
          , HasTxs blk
@@ -410,7 +413,7 @@ instance (LogFormatting peer, Show peer) =>
   forHuman (WithMuxBearer b ev) = "With mux bearer " <> showT b
                                       <> ". " <> showT ev
 
-instance LogFormatting NtC.HandshakeTr where
+instance LogFormatting (NtC.HandshakeTr LocalAddress NtC.NodeToClientVersion) where
   forMachine _dtal (WithMuxBearer b ev) =
     mkObject [ "kind" .= String "LocalHandshakeTrace"
              , "bearer" .= show b
@@ -418,7 +421,7 @@ instance LogFormatting NtC.HandshakeTr where
   forHuman (WithMuxBearer b ev) = "With mux bearer " <> showT b
                                       <> ". " <> showT ev
 
-instance LogFormatting NtN.HandshakeTr where
+instance LogFormatting (NtN.HandshakeTr NtN.RemoteAddress NtN.NodeToNodeVersion) where
   forMachine _dtal (WithMuxBearer b ev) =
     mkObject [ "kind" .= String "HandshakeTrace"
              , "bearer" .= show b
@@ -427,7 +430,8 @@ instance LogFormatting NtN.HandshakeTr where
                                       <> ". " <> showT ev
 
 
-instance LogFormatting ND.DiffusionInitializationTracer where
+instance (Show ntnAddr, Show ntcAddr) =>
+  LogFormatting (ND.InitializationTracer ntnAddr ntcAddr)  where
   forMachine _dtal (ND.RunServer sockAddr) = mkObject
     [ "kind" .= String "RunServer"
     , "socketAddress" .= String (pack (show sockAddr))
@@ -437,32 +441,32 @@ instance LogFormatting ND.DiffusionInitializationTracer where
     [ "kind" .= String "RunLocalServer"
     , "localAddress" .= String (pack (show localAddress))
     ]
-  forMachine _dtal (ND.UsingSystemdSocket path) = mkObject
+  forMachine _dtal (ND.UsingSystemdSocket localAddress) = mkObject
     [ "kind" .= String "UsingSystemdSocket"
-    , "path" .= String (pack path)
+    , "path" .= String (pack . show $ localAddress)
     ]
 
-  forMachine _dtal (ND.CreateSystemdSocketForSnocketPath path) = mkObject
+  forMachine _dtal (ND.CreateSystemdSocketForSnocketPath localAddress) = mkObject
     [ "kind" .= String "CreateSystemdSocketForSnocketPath"
-    , "path" .= String (pack path)
+    , "path" .= String (pack . show $ localAddress)
     ]
-  forMachine _dtal (ND.CreatedLocalSocket path) = mkObject
+  forMachine _dtal (ND.CreatedLocalSocket localAddress) = mkObject
     [ "kind" .= String "CreatedLocalSocket"
-    , "path" .= String (pack path)
+    , "path" .= String (pack . show $ localAddress)
     ]
-  forMachine _dtal (ND.ConfiguringLocalSocket path socket) = mkObject
+  forMachine _dtal (ND.ConfiguringLocalSocket localAddress socket) = mkObject
     [ "kind" .= String "ConfiguringLocalSocket"
-    , "path" .= String (pack path)
+    , "path" .= String (pack . show $ localAddress)
     , "socket" .= String (pack (show socket))
     ]
-  forMachine _dtal (ND.ListeningLocalSocket path socket) = mkObject
+  forMachine _dtal (ND.ListeningLocalSocket localAddress socket) = mkObject
     [ "kind" .= String "ListeningLocalSocket"
-    , "path" .= String (pack path)
+    , "path" .=  String (pack . show $ localAddress)
     , "socket" .= String (pack (show socket))
     ]
-  forMachine _dtal (ND.LocalSocketUp path fd) = mkObject
+  forMachine _dtal (ND.LocalSocketUp localAddress fd) = mkObject
     [ "kind" .= String "LocalSocketUp"
-    , "path" .= String (pack path)
+    , "path" .= String (pack . show $ localAddress)
     , "socket" .= String (pack (show fd))
     ]
   forMachine _dtal (ND.CreatingServerSocket socket) = mkObject
@@ -492,3 +496,51 @@ instance LogFormatting ND.DiffusionInitializationTracer where
     [ "kind" .= String "DiffusionErrored"
     , "path" .= String (pack (show exception))
     ]
+
+instance LogFormatting TraceLedgerPeers where
+  forMachine _dtal (PickedPeer addr _ackStake stake) =
+    mkObject
+      [ "kind" .= String "PickedPeer"
+      , "address" .= show addr
+      , "relativeStake" .= (realToFrac (unPoolStake stake) :: Double)
+      ]
+  forMachine _dtal (PickedPeers (NumberOfPeers n) addrs) =
+    mkObject
+      [ "kind" .= String "PickedPeers"
+      , "desiredCount" .= n
+      , "count" .= length addrs
+      , "addresses" .= show addrs
+      ]
+  forMachine _dtal (FetchingNewLedgerState cnt) =
+    mkObject
+      [ "kind" .= String "FetchingNewLedgerState"
+      , "numberOfPools" .= cnt
+      ]
+  forMachine _dtal DisabledLedgerPeers =
+    mkObject
+      [ "kind" .= String "DisabledLedgerPeers"
+      ]
+  forMachine _dtal (TraceUseLedgerAfter ula) =
+    mkObject
+      [ "kind" .= String "UseLedgerAfter"
+      , "useLedgerAfter" .= UseLedger ula
+      ]
+  forMachine _dtal WaitingOnRequest =
+    mkObject
+      [ "kind" .= String "WaitingOnRequest"
+      ]
+  forMachine _dtal (RequestForPeers (NumberOfPeers np)) =
+    mkObject
+      [ "kind" .= String "RequestForPeers"
+      , "numberOfPeers" .= np
+      ]
+  forMachine _dtal (ReusingLedgerState cnt age) =
+    mkObject
+      [ "kind" .= String "ReusingLedgerState"
+      , "numberOfPools" .= cnt
+      , "ledgerStateAge" .= age
+      ]
+  forMachine _dtal FallingBackToBootstrapPeers =
+    mkObject
+      [ "kind" .= String "FallingBackToBootstrapPeers"
+      ]

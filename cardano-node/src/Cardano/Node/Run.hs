@@ -6,7 +6,7 @@
 {-# LANGUAGE NamedFieldPuns      #-}
 {-# LANGUAGE PackageImports      #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE TypeApplications    #-}
 
 #if !defined(mingw32_HOST_OS)
 #define UNIX
@@ -22,18 +22,17 @@ import           Prelude (String, id)
 import           Data.IP (toSockAddr)
 
 import qualified Control.Concurrent.Async as Async
-import           Control.Monad.Trans.Except.Extra (left)
 import           Control.Monad.Class.MonadSTM.Strict
+import           Control.Monad.Trans.Except.Extra (left)
 import           "contra-tracer" Control.Tracer
 import qualified Data.Map.Strict as Map
 import           Data.Text (breakOn, pack, take)
 import qualified Data.Text as Text
 import qualified Data.Text.Encoding as Text
 import           Data.Time.Clock (UTCTime, getCurrentTime)
-import           Data.Time.Clock.POSIX (utcTimeToPOSIXSeconds)
 import           Data.Version (showVersion)
 import           Network.HostName (getHostName)
-import           Network.Socket (AddrInfo, Socket)
+import           Network.Socket (Socket)
 import           System.Directory (canonicalizePath, createDirectoryIfMissing,
                      makeAbsolute)
 import           System.Environment (lookupEnv)
@@ -41,8 +40,8 @@ import qualified System.Remote.Monitoring as EKG
 
 #ifdef UNIX
 import           System.Posix.Files
-import           System.Posix.Types (FileMode)
 import qualified System.Posix.Signals as Signals
+import           System.Posix.Types (FileMode)
 #else
 import           System.Win32.File
 #endif
@@ -57,16 +56,14 @@ import qualified Cardano.Crypto.Libsodium as Crypto
 
 import qualified Cardano.Logging as NL
 import           Cardano.Node.Configuration.Logging (EKGDirect (..),
-                     LoggingLayer (..), Severity (..), createLoggingLayer,
+                     LoggingLayer (..), createLoggingLayer,
                      nodeBasicInfo, shutdownLoggingLayer)
 import           Cardano.Node.Configuration.POM (NodeConfiguration (..),
                      PartialNodeConfiguration (..), SomeNetworkP2PMode (..),
                      defaultPartialNodeConfiguration, makeNodeConfiguration,
                      ncProtocol, parseNodeConfigurationFP)
-import           Cardano.Node.Queries (HasKESInfo (..), HasKESMetricsData (..))
 import           Cardano.Node.Types
 import           Cardano.TraceDispatcher.BasicInfo.Combinators (getBasicInfo)
-import           Cardano.TraceDispatcher.BasicInfo.Types
 import           Cardano.TraceDispatcher.Era.Byron ()
 import           Cardano.TraceDispatcher.Era.Shelley ()
 import           Cardano.TraceDispatcher.Tracers (mkDispatchTracers)
@@ -84,24 +81,24 @@ import           Ouroboros.Consensus.HardFork.Combinator.Degenerate
 import           Ouroboros.Consensus.Node (RunNode, RunNodeArgs (..),
                      StdRunNodeArgs (..), NetworkP2PMode (..))
 import qualified Ouroboros.Consensus.Node as Node (getChainDB, run)
-import           Ouroboros.Consensus.Node.ProtocolInfo
 import           Ouroboros.Consensus.Node.NetworkProtocolVersion
+import           Ouroboros.Consensus.Node.ProtocolInfo
 import           Ouroboros.Consensus.Shelley.Ledger.Ledger
 import           Ouroboros.Consensus.Util.Orphans ()
-import           Ouroboros.Network.Subscription
-                   ( DnsSubscriptionTarget (..)
-                   , IPSubscriptionTarget (..)
-                   )
 import qualified Ouroboros.Network.Diffusion as Diffusion
-import qualified Ouroboros.Network.Diffusion.P2P as P2P
 import qualified Ouroboros.Network.Diffusion.NonP2P as NonP2P
+import qualified Ouroboros.Network.Diffusion.P2P as P2P
 import           Ouroboros.Network.IOManager (withIOManager)
-import           Ouroboros.Network.NodeToClient (LocalAddress (..), LocalSocket (..))
-import           Ouroboros.Network.NodeToNode (RemoteAddress,
-                   AcceptedConnectionsLimit (..), DiffusionMode, PeerSelectionTargets (..))
-import           Ouroboros.Network.PeerSelection.LedgerPeers (UseLedgerAfter (..))
-import           Ouroboros.Network.PeerSelection.RelayAccessPoint (RelayAccessPoint (..))
-import qualified Shelley.Spec.Ledger.API as SL
+import           Ouroboros.Network.NodeToClient (LocalAddress (..),
+                     LocalSocket (..))
+import           Ouroboros.Network.NodeToNode (AcceptedConnectionsLimit (..),
+                     PeerSelectionTargets (..), RemoteAddress)
+import           Ouroboros.Network.PeerSelection.LedgerPeers
+                     (UseLedgerAfter (..))
+import           Ouroboros.Network.PeerSelection.RelayAccessPoint
+                     (RelayAccessPoint (..))
+import           Ouroboros.Network.Subscription (DnsSubscriptionTarget (..),
+                     IPSubscriptionTarget (..))
 
 import           Cardano.Api
 import qualified Cardano.Api.Protocol.Types as Protocol
@@ -110,15 +107,16 @@ import           Cardano.Config.Git.Rev (gitRev)
 
 import           Cardano.Node.Configuration.Socket (SocketOrSocketInfo (..),
                      gatherConfiguredSockets, getSocketOrSocketInfoAddr)
-import qualified Cardano.Node.Configuration.TopologyP2P as TopologyP2P
-import           Cardano.Node.Configuration.TopologyP2P
 import qualified Cardano.Node.Configuration.Topology as TopologyNonP2P
+import           Cardano.Node.Configuration.TopologyP2P
+import qualified Cardano.Node.Configuration.TopologyP2P as TopologyP2P
 import           Cardano.Node.Handlers.Shutdown
 import           Cardano.Node.Protocol (mkConsensusProtocol)
 import           Cardano.Node.Protocol.Types
 import           Cardano.Tracing.Kernel
 import           Cardano.Tracing.Peer
 import           Cardano.Tracing.Tracers
+import qualified Cardano.Ledger.Shelley.Genesis as SL
 
 {- HLINT ignore "Use fewer imports" -}
 
@@ -202,20 +200,10 @@ runNode cmdPc = do
           let ProtocolInfo { pInfoConfig = cfg } = Protocol.protocolInfo runP
           case ncEnableP2P nc of
             SomeNetworkP2PMode p2pMode -> do
-              let fp = case getLast (pncConfigFile cmdPc) of
-                          Just fileName -> unConfigPath fileName
-                          Nothing       -> "No file path found!"
+              let fp = maybe  "No file path found!"
+                              unConfigPath
+                              (getLast (pncConfigFile cmdPc))
               bi <- getBasicInfo nc p fp
-
-              tracers <- mkTracers
-                          (Consensus.configBlock cfg)
-                          (ncTraceConfig nc)
-                          trace
-                          nodeKernelData
-                          (llEKGDirect loggingLayer)
-                          p2pMode
-              -- Couldn't resolve it.
-              {-
               tracers <- mkDispatchTracers
                            (Consensus.configBlock cfg)
                            (ncTraceConfig nc)
@@ -229,7 +217,7 @@ runNode cmdPc = do
                            loggerConfiguration
                            bi
                            nodeInfo
-              -}
+                           p2pMode
               Async.withAsync (handlePeersListSimple trace nodeKernelData)
                   $ \_peerLogingThread ->
                     -- We ignore peer loging thread if it dies, but it will be killed
@@ -285,10 +273,10 @@ isOldLogging TracingOff          = False
 isOldLogging (TracingOn _)       = True
 isOldLogging (TraceDispatcher _) = False
 
-isNewLogging :: TraceOptions -> Bool
-isNewLogging TracingOff          = False
-isNewLogging (TracingOn _)       = False
-isNewLogging (TraceDispatcher _) = True
+_isNewLogging :: TraceOptions -> Bool
+_isNewLogging TracingOff          = False
+_isNewLogging (TracingOn _)       = False
+_isNewLogging (TraceDispatcher _) = True
 
 -- | Sets up a simple node, which will run the chain sync protocol and block
 -- fetch protocol, and, if core, will also look at the mempool when trying to
@@ -346,9 +334,9 @@ handleSimpleNode scp runP p2pMode trace nodeTracers nc onKernel = do
                 Nothing                    -> Nothing
           , Diffusion.daLocalAddress =
               case localSocketOrPath of  -- TODO allow expressing the Nothing case in the config
-                Just (ActualSocket localSocket)  -> Just (Left  localSocket)
-                Just (SocketInfo localAddr)      -> Just (Right localAddr)
-                Nothing                          -> Nothing
+                Just (ActualSocket localSocket) -> Just (Left  localSocket)
+                Just (SocketInfo localAddr)     -> Just (Right localAddr)
+                Nothing                         -> Nothing
           , Diffusion.daAcceptedConnectionsLimit =
               AcceptedConnectionsLimit
                 { acceptedConnectionsHardLimit = 512
@@ -361,29 +349,27 @@ handleSimpleNode scp runP p2pMode trace nodeTracers nc onKernel = do
   ipv4 <- traverse getSocketOrSocketInfoAddr publicIPv4SocketOrAddr
   ipv6 <- traverse getSocketOrSocketInfoAddr publicIPv6SocketOrAddr
 
-  if isOldLogging (ncTraceConfig nc)
-    then do
-      traceWith (startupTracer nodeTracers)
-                (StartupInfo (catMaybes [ipv4, ipv6])
-                             localSocketOrPath
-                             ( limitToLatestReleasedVersion fst
-                             . supportedNodeToNodeVersions
-                             $ Proxy @blk
-                             )
-                             ( limitToLatestReleasedVersion snd
-                             . supportedNodeToClientVersions
-                             $ Proxy @blk
-                             ))
-    else if isNewLogging (ncTraceConfig nc)
-      then do
-        let bin = BasicInfoNetwork {
-                    niAddresses     = catMaybes [ipv4, ipv6]
-                  , niDiffusionMode = ncDiffusionMode $ nc
-                  , niDnsProducers  = dnsProducers
-                  , niIpProducers   = ipProducers
-                  }
-        traceWith (basicInfoTracer nodeTracers) (BINetwork bin)
-      else pure ()
+  traceWith (startupTracer nodeTracers)
+            (StartupInfo (catMaybes [ipv4, ipv6])
+                         localSocketOrPath
+                         ( limitToLatestReleasedVersion fst
+                         . supportedNodeToNodeVersions
+                         $ Proxy @blk
+                         )
+                         ( limitToLatestReleasedVersion snd
+                         . supportedNodeToClientVersions
+                         $ Proxy @blk
+                         ))
+      -- else if isNewLogging (ncTraceConfig nc)
+      --   then do
+      --     let bin = BasicInfoNetwork {
+      --                 niAddresses     = catMaybes [ipv4, ipv6]
+      --               , niDiffusionMode = ncDiffusionMode nc
+      --               , niDnsProducers  = dnsProducers
+      --               , niIpProducers   = ipProducers
+      --               }
+      --     traceWith (basicInfoTracer nodeTracers) (BINetwork bin)
+      --   else pure ()
 
   withShutdownHandling nc trace $ \sfds ->
     let nodeArgs = RunNodeArgs
@@ -726,7 +712,7 @@ prepareNodeInfo nc (SomeConsensusProtocol whichP pForInfo) tc nodeStartTime = do
                    ]
 
   getSystemStartByron = WCT.getSystemStart . getSystemStart . Consensus.configBlock $ cfg
-  getSystemStartShelley cfg' = SL.sgSystemStart . shelleyLedgerGenesis . shelleyLedgerConfig $ cfg'
+  getSystemStartShelley = SL.sgSystemStart . shelleyLedgerGenesis . shelleyLedgerConfig
 
   prepareNodeName =
     case NL.tcNodeName tc of

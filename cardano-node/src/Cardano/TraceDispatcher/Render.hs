@@ -37,7 +37,7 @@ import qualified Data.Text.Encoding as Text
 import           Cardano.Logging
 import           Cardano.Slotting.Slot (EpochNo (..), SlotNo (..),
                      WithOrigin (..))
-import           Cardano.TraceDispatcher.Era.ConvertTxId (ConvertTxId' (..))
+import           Cardano.Node.Queries (ConvertTxId (..))                    
 import           Ouroboros.Consensus.Block (BlockNo (..), ConvertRawHash (..),
                      RealPoint (..))
 import           Ouroboros.Consensus.Block.Abstract (Point (..))
@@ -74,13 +74,13 @@ renderTipHash :: StandardHash blk => ImmDB.Tip blk -> Text
 renderTipHash tInfo = Text.pack . show $ ImmDB.tipHash tInfo
 
 renderTxIdForDetails
-  :: ConvertTxId' blk
+  :: ConvertTxId blk
   => DetailLevel
   -> TxId (GenTx blk)
   -> Text
 renderTxIdForDetails dtal = trimHashTextForDetails dtal . renderTxId
 
-renderTxId :: ConvertTxId' blk => TxId (GenTx blk) -> Text
+renderTxId :: ConvertTxId blk => TxId (GenTx blk) -> Text
 renderTxId = Text.decodeLatin1 . B16.encode . txIdToRawBytes
 
 renderWithOrigin :: (a -> Text) -> WithOrigin a -> Text
