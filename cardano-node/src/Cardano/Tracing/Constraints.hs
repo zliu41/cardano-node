@@ -36,10 +36,6 @@ import           Ouroboros.Consensus.Ledger.SupportsMempool (ApplyTxErr,
 import           Ouroboros.Consensus.Protocol.Abstract (ValidationErr)
 import           Ouroboros.Consensus.Shelley.Ledger.Mempool (GenTx, TxId)
 
-import           Ouroboros.Network.ConnectionId (ConnectionId)
-import           Ouroboros.Network.Snocket (LocalAddress (..))
-import           Ouroboros.Network.NodeToNode (RemoteAddress)
-
 -- | Tracing-related constraints for monitoring purposes.
 type TraceConstraints blk =
     ( ConvertTxId blk

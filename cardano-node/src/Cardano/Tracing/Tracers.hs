@@ -47,7 +47,6 @@ import qualified System.Remote.Monitoring as EKG
 
 import "contra-tracer" Control.Tracer
 import           Control.Tracer.Transformers
-import           Cardano.TraceDispatcher.BasicInfo.Types (BasicInfo)
 
 import           Cardano.Slotting.Slot (EpochNo (..), SlotNo (..), WithOrigin (..))
 
