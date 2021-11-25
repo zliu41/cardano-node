@@ -132,6 +132,7 @@ library
                       , ouroboros-consensus-shelley
                       , ouroboros-network
                       , parsec
+                      , plucky
                       , plutus-ledger-api
                       , prettyprinter
                       , cardano-ledger-shelley

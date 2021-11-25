@@ -72,6 +72,7 @@ library
                       , containers
                       , ouroboros-consensus
                       , ouroboros-network
+                      , plucky
                       , plutus-ledger
                       , plutus-ledger-api
                       , plutus-tx

@@ -28,6 +28,7 @@ import qualified Data.Aeson as Aeson
 import           Data.Bifunctor (first)
 import qualified Data.ByteString.Lazy as LB
 import qualified Data.ByteString.Short as SBS
+import           Data.Either.Plucky
 import qualified Data.Map.Strict as Map
 import           Data.Maybe as M
 import qualified Data.Sequence.Strict as Seq
@@ -53,7 +54,6 @@ import qualified Ledger as Plutus
 import qualified Ledger.Typed.Scripts as Scripts
 import qualified Ouroboros.Consensus.HardFork.Combinator.AcrossEras as Consensus
 import qualified Ouroboros.Consensus.HardFork.History as Consensus
-import           Ouroboros.Network.Protocol.LocalStateQuery.Type (AcquireFailure)
 import qualified Plutus.V1.Ledger.DCert as Plutus
 import qualified PlutusTx
 import qualified PlutusTx.AssocMap as AMap
@@ -243,7 +243,7 @@ data ScriptContextError = NoScriptsInByronEra
                         | QueryError ShelleyQueryCmdError
                         | ConsensusModeMismatch AnyConsensusMode AnyCardanoEra
                         | EraMismatch !Consensus.EraMismatch
-                        | ScriptContextUnsupportedVersion !MinNodeToClientVersion !MinNodeToClientVersion
+                        | ScriptContextUnsupportedVersion !UnsupportedNtcVersionError
                         deriving Show
 
 txToCustomRedeemer
@@ -291,6 +291,11 @@ txToCustomRedeemer sbe pparams utxo eInfo sStart (ShelleyTx ShelleyBasedEraAlonz
 
 txToCustomRedeemer _ _ _ _ _ (ShelleyTx _ _) = Left NoScriptsInEra
 
+wrapExceptT :: (Monad m, ProjectError e2' e2)
+  => (e1 -> e2)
+  -> ExceptT (Either e1 e2') m a2
+  -> ExceptT e2' m a2
+wrapExceptT wrap f = catchOneT f (throwT . wrap)
 
 obtainLedgerEraClassConstraints
   :: ShelleyLedgerEra era ~ ledgerera
@@ -305,9 +310,10 @@ obtainLedgerEraClassConstraints ShelleyBasedEraAlonzo  f = f
 testScriptContextToScriptData :: MyCustomRedeemer -> ScriptData
 testScriptContextToScriptData = fromPlutusData . PlutusTx.builtinDataToData . toBuiltinData
 
-mapQueryError :: QueryError -> ScriptContextError
-mapQueryError (QueryErrorAcquireFailure a) = AcquireFail a
-mapQueryError (QueryErrorUnsupportedVersion minNtcVersion mtcVersion) = ScriptContextUnsupportedVersion minNtcVersion mtcVersion
+pluckyHoistEither :: (Monad m, ProjectError e' e) => Either e a -> ExceptT e' m a
+pluckyHoistEither result = case result of
+  Right a -> return a
+  Left e -> throwT e
 
 readCustomRedeemerFromTx
   :: FilePath
@@ -332,15 +338,15 @@ readCustomRedeemerFromTx fp (AnyConsensusModeParams cModeParams) network = do
                    (ConsensusModeMismatch (AnyConsensusMode CardanoMode) (AnyCardanoEra cEra))
                    $ toEraInMode cEra CardanoMode
 
-      eResult <- liftIO $ executeLocalStateQueryExpr localNodeConnInfo Nothing Prelude.id $ runExceptT $ do
-        (EraHistory _ interpreter) <- ExceptT $ queryExpr $ QueryEraHistory CardanoModeIsMultiEra
-        mSystemStart <- ExceptT $ maybeQueryExpr QuerySystemStart
+      eResult <- liftIO $ runExceptT $ wrapExceptT AcquireFail $ wrapExceptT ScriptContextUnsupportedVersion $ executeLocalStateQueryExpr localNodeConnInfo Nothing $ do
+        (EraHistory _ interpreter) <- queryExpr $ QueryEraHistory CardanoModeIsMultiEra
+        mSystemStart <- maybeQueryExpr QuerySystemStart
         let eInfo = hoistEpochInfo (first TransactionValidityIntervalError . runExcept)
                       $ Consensus.interpreterToEpochInfo interpreter
-        ppResult <- ExceptT $ queryExpr $ QueryInEra eInMode $ QueryInShelleyBasedEra sbe QueryProtocolParameters
+        ppResult <- queryExpr $ QueryInEra eInMode $ QueryInShelleyBasedEra sbe QueryProtocolParameters
         return (eInfo, mSystemStart, ppResult)
 
-      (eInfo, mSystemStart, ePParams) <- firstExceptT mapQueryError $ hoistEither eResult
+      (eInfo, mSystemStart, ePParams) <- hoistEither eResult
       pparams <- firstExceptT EraMismatch $ hoistEither ePParams
       sStart <- hoistMaybe NoSystemStartTimeError mSystemStart
 

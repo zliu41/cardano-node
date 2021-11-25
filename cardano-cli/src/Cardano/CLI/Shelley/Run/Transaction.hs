@@ -19,6 +19,7 @@ import           Prelude (String, error)
 import qualified Data.Aeson as Aeson
 import qualified Data.ByteString.Char8 as BS
 import qualified Data.ByteString.Lazy.Char8 as LBS
+import           Data.Either.Plucky
 import           Data.List (intersect, (\\))
 import qualified Data.Map.Strict as Map
 import qualified Data.Set as Set
@@ -54,7 +55,6 @@ import           Ouroboros.Consensus.Byron.Ledger (ByronBlock)
 import           Ouroboros.Consensus.Cardano.Block (EraMismatch (..))
 import           Ouroboros.Consensus.Ledger.SupportsMempool (ApplyTxErr)
 import           Ouroboros.Consensus.Shelley.Ledger (ShelleyBlock)
-import           Ouroboros.Network.Protocol.LocalStateQuery.Type (AcquireFailure (..))
 import qualified Ouroboros.Network.Protocol.LocalTxSubmission.Client as Net.Tx
 
 import qualified System.IO as IO
@@ -113,10 +113,27 @@ data ShelleyTxCmdError
   | ShelleyTxCmdTxInsDoNotExist ![TxIn]
   | ShelleyTxCmdMinimumUTxOErr !MinimumUTxOError
   | ShelleyTxCmdPParamsErr !ProtocolParametersError
-  | ShelleyTxCmdUnsupportedVersion !MinNodeToClientVersion !NodeToClientVersion
+  | ShelleyTxCmdUnsupportedNtcVersion !UnsupportedNtcVersionError
 
   deriving Show
 
+wrapExceptT :: (Monad m, ProjectError e2' e2)
+  => (e1 -> e2)
+  -> ExceptT (Either e1 e2') m a2
+  -> ExceptT e2' m a2
+wrapExceptT wrap f = catchOneT f (throwT . wrap)
+
+wrapShelleyTxCmdErrorT :: ()
+  => Monad m
+  => ExceptT
+      ( Either UnsupportedNtcVersionError
+        ( Either AcquireFailure ShelleyTxCmdError
+        )
+      ) m a
+  -> ExceptT ShelleyTxCmdError m a
+wrapShelleyTxCmdErrorT =
+    wrapExceptT ShelleyTxCmdAcquireFailure
+  . wrapExceptT ShelleyTxCmdUnsupportedNtcVersion
 
 renderShelleyTxCmdError :: ShelleyTxCmdError -> Text
 renderShelleyTxCmdError err =
@@ -245,7 +262,7 @@ renderShelleyTxCmdError err =
       Text.intercalate (Text.singleton '\n') (map renderTxIn txins)
     ShelleyTxCmdMinimumUTxOErr err' -> Text.pack $ displayError err'
     ShelleyTxCmdPParamsErr err' -> Text.pack $ displayError err'
-    ShelleyTxCmdUnsupportedVersion minNtcVersion ntcVersion ->
+    ShelleyTxCmdUnsupportedNtcVersion (UnsupportedNtcVersionError minNtcVersion ntcVersion) ->
       "Unsupported feature for the node-to-client protocol version.\n\
       \This transaction requires at least " <> show minNtcVersion <> " but the node negotiated " <> show ntcVersion <> ".\n\
       \Later node versions support later protocol versions (but development protocol versions are not enabled in the node by default)."
@@ -378,9 +395,10 @@ runTxBuildRaw (AnyCardanoEra era)
     firstExceptT ShelleyTxCmdWriteFileError . newExceptT $
       writeFileTextEnvelope fpath Nothing txBody
 
-mapQueryError :: QueryError -> ShelleyTxCmdError
-mapQueryError (QueryErrorAcquireFailure a) = ShelleyTxCmdAcquireFailure a
-mapQueryError (QueryErrorUnsupportedVersion minNtcVersion mtcVersion) = ShelleyTxCmdUnsupportedVersion minNtcVersion mtcVersion
+pluckyHoistEither :: (Monad m, ProjectError e' e) => Either e a -> ExceptT e' m a
+pluckyHoistEither result = case result of
+  Right a -> return a
+  Left e -> throwT e
 
 runTxBuild
   :: AnyCardanoEra
@@ -451,37 +469,38 @@ runTxBuild (AnyCardanoEra era) (AnyConsensusModeParams cModeParams) networkId mS
                      left (ShelleyTxCmdEraConsensusModeMismatchTxBalance outBody
                             (AnyConsensusMode CardanoMode) (AnyCardanoEra era))
 
-      (utxo, pparams, eraHistory, systemStart, stakePools) <- ExceptT $
-          executeLocalStateQueryExpr localNodeConnInfo Nothing mapQueryError $ runExceptT $ do
+      (utxo, pparams, eraHistory, systemStart, stakePools) <-
+          wrapShelleyTxCmdErrorT $ executeLocalStateQueryExpr localNodeConnInfo Nothing $ do
             unless (null txinsc) $ do
-              collateralUtxoResult <- firstExceptT mapQueryError . ExceptT $ queryExpr
+              collateralUtxoResult <- queryExpr
                 $ QueryInEra eInMode
                 $ QueryInShelleyBasedEra sbe (QueryUTxO . QueryUTxOByTxIn $ Set.fromList txinsc)
-              collateralUtxo <- hoistEither (first ShelleyTxCmdTxSubmitErrorEraMismatch collateralUtxoResult)
+              collateralUtxo <- case collateralUtxoResult of
+                Right a -> return a
+                Left e -> throwT (ShelleyTxCmdTxSubmitErrorEraMismatch e)
               txinsExist txinsc collateralUtxo
               notScriptLockedTxIns collateralUtxo
 
-            utxoResult <- firstExceptT mapQueryError . ExceptT $ queryExpr
+            utxoResult <- queryExpr
               $ QueryInEra eInMode $ QueryInShelleyBasedEra sbe
               $ QueryUTxO (QueryUTxOByTxIn (Set.fromList onlyInputs))
 
-            utxo <- hoistEither (first ShelleyTxCmdTxSubmitErrorEraMismatch utxoResult)
+            utxo <- pluckyHoistEither (first ShelleyTxCmdTxSubmitErrorEraMismatch utxoResult)
 
             txinsExist onlyInputs utxo
 
-            pparamsResult <- firstExceptT mapQueryError . ExceptT . queryExpr
+            pparamsResult <- queryExpr
               $ QueryInEra eInMode $ QueryInShelleyBasedEra sbe QueryProtocolParameters
 
-            pparams <- hoistEither (first ShelleyTxCmdTxSubmitErrorEraMismatch pparamsResult)
+            pparams <- pluckyHoistEither (first ShelleyTxCmdTxSubmitErrorEraMismatch pparamsResult)
 
-            eraHistory <- firstExceptT mapQueryError . ExceptT $ queryExpr $ QueryEraHistory CardanoModeIsMultiEra
+            eraHistory <- queryExpr $ QueryEraHistory CardanoModeIsMultiEra
 
-            systemStart <- firstExceptT mapQueryError . ExceptT $ queryExpr QuerySystemStart
+            systemStart <- queryExpr QuerySystemStart
 
-            stakePoolsResult <- firstExceptT mapQueryError . ExceptT $
-              queryExpr . QueryInEra eInMode . QueryInShelleyBasedEra sbe $ QueryStakePools
+            stakePoolsResult <- queryExpr . QueryInEra eInMode . QueryInShelleyBasedEra sbe $ QueryStakePools
 
-            stakePools <- hoistEither (first ShelleyTxCmdTxSubmitErrorEraMismatch stakePoolsResult)
+            stakePools <- pluckyHoistEither (first ShelleyTxCmdTxSubmitErrorEraMismatch stakePoolsResult)
 
             return (utxo, pparams, eraHistory, systemStart, stakePools)
 
@@ -505,23 +524,23 @@ runTxBuild (AnyCardanoEra era) (AnyConsensusModeParams cModeParams) networkId mS
 
     (wrongMode, _) -> left (ShelleyTxCmdUnsupportedMode (AnyConsensusMode wrongMode))
   where
-    txinsExist :: Monad m => [TxIn] -> UTxO era -> ExceptT ShelleyTxCmdError m ()
+    txinsExist :: (Monad m, ProjectError e ShelleyTxCmdError) => [TxIn] -> UTxO era -> ExceptT e m ()
     txinsExist ins (UTxO utxo)
-      | null utxo = left $ ShelleyTxCmdTxInsDoNotExist ins
+      | null utxo = throwT $ ShelleyTxCmdTxInsDoNotExist ins
       | otherwise = do
           let utxoIns = Map.keys utxo
               occursInUtxo = [ txin | txin <- ins, txin `elem` utxoIns ]
           if length occursInUtxo == length ins
           then return ()
-          else left . ShelleyTxCmdTxInsDoNotExist $ ins \\ ins `intersect` occursInUtxo
+          else throwT . ShelleyTxCmdTxInsDoNotExist $ ins \\ ins `intersect` occursInUtxo
 
-    notScriptLockedTxIns :: Monad m => UTxO era -> ExceptT ShelleyTxCmdError m ()
+    notScriptLockedTxIns :: (Monad m, ProjectError e ShelleyTxCmdError) => UTxO era -> ExceptT e m ()
     notScriptLockedTxIns (UTxO utxo) = do
       let scriptLockedTxIns =
             filter (\(_, TxOut aInEra _ _) -> not $ isKeyAddress aInEra ) $ Map.assocs utxo
       if null scriptLockedTxIns
       then return ()
-      else left . ShelleyTxCmdExpectedKeyLockedTxIn $ map fst scriptLockedTxIns
+      else throwT . ShelleyTxCmdExpectedKeyLockedTxIn $ map fst scriptLockedTxIns
 
 -- ----------------------------------------------------------------------------
 -- Transaction body validation and conversion

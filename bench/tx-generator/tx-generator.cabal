@@ -95,6 +95,7 @@ library
                      , ouroboros-consensus-shelley
                      , ouroboros-network
                      , ouroboros-network-framework
+                     , plucky
                      , random
                      , serialise
                      , cardano-ledger-shelley

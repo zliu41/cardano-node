@@ -111,14 +111,15 @@ library
                       , cardano-ledger-alonzo
                       , cardano-ledger-byron
                       , cardano-ledger-core
+                      , cardano-ledger-shelley
                       , cardano-ledger-shelley-ma
                       , cardano-prelude
                       , cardano-protocol-tpraos
                       , cardano-slotting
                       , cborg
                       , compact-map
-                      , contra-tracer
                       , containers
+                      , contra-tracer
                       , cryptonite
                       , deepseq
                       , directory
@@ -135,10 +136,10 @@ library
                       , ouroboros-network
                       , ouroboros-network-framework
                       , parsec
+                      , plucky
                       , plutus-ledger-api
                       , prettyprinter
                       , scientific
-                      , cardano-ledger-shelley
                       , small-steps
                       , stm
                       , strict-containers

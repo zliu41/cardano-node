@@ -22,6 +22,7 @@ import           Control.Monad.Trans.Except
 import           Control.Monad.IO.Class
 import           Control.Concurrent (threadDelay)
 import           Control.Tracer (traceWith, nullTracer)
+import           Data.Either.Plucky
 
 import           Ouroboros.Network.Protocol.LocalTxSubmission.Type (SubmitResult (..))
 import           Cardano.Api
@@ -245,26 +246,32 @@ cancelBenchmark n = do
 getLocalConnectInfo :: ActionM  (LocalNodeConnectInfo CardanoMode)
 getLocalConnectInfo = makeLocalConnectInfo <$> get NetworkId <*> getUser TLocalSocket
 
+wrapExceptT :: (Monad m, ProjectError e2' e2)
+  => (e1 -> e2)
+  -> ExceptT (Either e1 e2') m a2
+  -> ExceptT e2' m a2
+wrapExceptT wrap f = catchOneT f (throwT . wrap)
+
 queryEra :: ActionM AnyCardanoEra
 queryEra = do
   localNodeConnectInfo <- getLocalConnectInfo
   chainTip  <- liftIO $ getLocalChainTip localNodeConnectInfo
-  ret <- liftIO $ executeLocalStateQueryExpr localNodeConnectInfo (Just $ chainTipToChainPoint chainTip) id
+  ret <- liftIO $ runExceptT $ wrapExceptT (show @AcquireFailure) $ wrapExceptT (show @UnsupportedNtcVersionError) $ executeLocalStateQueryExpr localNodeConnectInfo (Just $ chainTipToChainPoint chainTip)
     $ queryExpr $ QueryCurrentEra CardanoModeIsMultiEra
   case ret of
     Right era -> return era
-    Left err -> throwE $ ApiError $ show err
+    Left errorMsg -> throwE $ ApiError errorMsg
 
 queryProtocolParameters :: ActionM ProtocolParameters
 queryProtocolParameters = do
   localNodeConnectInfo <- getLocalConnectInfo
   chainTip  <- liftIO $ getLocalChainTip localNodeConnectInfo
-  ret <- liftIO $ executeLocalStateQueryExpr  localNodeConnectInfo (Just $ chainTipToChainPoint chainTip) id
+  ret <- liftIO $ runExceptT $ wrapExceptT (show @AcquireFailure) $ wrapExceptT (show @UnsupportedNtcVersionError) $ executeLocalStateQueryExpr  localNodeConnectInfo (Just $ chainTipToChainPoint chainTip)
     $ queryExpr $ QueryInEra AlonzoEraInCardanoMode $ QueryInShelleyBasedEra ShelleyBasedEraAlonzo QueryProtocolParameters
   case ret of
     Right (Right pp) -> return pp
     Right (Left err) -> throwE $ ApiError $ show err
-    Left err -> throwE $ ApiError $ show err
+    Left errorMsg -> throwE $ ApiError errorMsg
 
 waitForEra :: AnyCardanoEra -> ActionM ()
 waitForEra era = do

@@ -50,7 +50,6 @@ module Cardano.Api.IPC (
 
     -- *** Local state query
     LocalStateQueryClient(..),
-    AcquireFailure(..),
     QueryInMode(..),
     QueryInEra(..),
     QueryInShelleyBasedEra(..),
@@ -69,13 +68,15 @@ module Cardano.Api.IPC (
 
     NodeToClientVersion(..),
 
-    QueryError(..),
-    MinNodeToClientVersion
+    MinNodeToClientVersion,
+
+    -- ** Error types
+    AcquireFailure(..),
+    UnsupportedNtcVersionError(..),
   ) where
 
 import           Prelude
 
-import           Data.Bifunctor (first)
 import           Data.Void (Void)
 
 import qualified Data.ByteString.Lazy as LBS
@@ -83,7 +84,10 @@ import qualified Data.Map.Strict as Map
 
 import           Control.Concurrent.STM
 import           Control.Monad (void)
+import           Control.Monad.IO.Class
+import           Control.Monad.Trans.Except
 import           Control.Tracer (nullTracer)
+import           Data.Either.Plucky
 
 import qualified Ouroboros.Network.Block as Net
 import qualified Ouroboros.Network.Mux as Net
@@ -96,7 +100,6 @@ import           Ouroboros.Network.Protocol.ChainSync.ClientPipelined as Net.Syn
 import           Ouroboros.Network.Protocol.LocalStateQuery.Client (LocalStateQueryClient (..))
 import qualified Ouroboros.Network.Protocol.LocalStateQuery.Client as Net.Query
 import           Ouroboros.Network.Protocol.LocalStateQuery.Type (AcquireFailure (..))
-import qualified Ouroboros.Network.Protocol.LocalStateQuery.Type as Net.Query
 import           Ouroboros.Network.Protocol.LocalTxSubmission.Client (LocalTxSubmissionClient (..),
                    SubmitResult (..))
 import qualified Ouroboros.Network.Protocol.LocalTxSubmission.Client as Net.Tx
@@ -112,6 +115,7 @@ import qualified Ouroboros.Consensus.Node.Run as Consensus
 
 import           Cardano.Api.Block
 import           Cardano.Api.HasTypeProxy
+import           Cardano.Api.IPC.NtcVersionOf
 import           Cardano.Api.Modes
 import           Cardano.Api.NetworkId
 import           Cardano.Api.Protocol.Types
@@ -163,13 +167,6 @@ data LocalNodeConnectInfo mode =
        localNodeNetworkId       :: NetworkId,
        localNodeSocketPath      :: FilePath
      }
-
-type MinNodeToClientVersion = NodeToClientVersion
-
-data QueryError
-  = QueryErrorAcquireFailure !Net.Query.AcquireFailure
-  | QueryErrorUnsupportedVersion !MinNodeToClientVersion !NodeToClientVersion
-  deriving (Eq, Show)
 
 localConsensusMode :: LocalNodeConnectInfo mode -> ConsensusMode mode
 localConsensusMode LocalNodeConnectInfo {localConsensusModeParams} =
@@ -486,26 +483,29 @@ convLocalStateQueryClient mode =
 -- | Establish a connection to a node and execute a single query using the
 -- local state query protocol.
 --
-queryNodeLocalState :: forall e mode result.
-                       LocalNodeConnectInfo mode
+queryNodeLocalState :: forall e mode result. ()
+                    => ProjectError e AcquireFailure
+                    => LocalNodeConnectInfo mode
                     -> Maybe ChainPoint
-                    -> (QueryError -> e)
                     -> QueryInMode mode result
-                    -> IO (Either e result)
-queryNodeLocalState connctInfo mpoint mapQueryError query = do
-    resultVar <- newEmptyTMVarIO
-    connectToLocalNode
+                    -> ExceptT e IO result
+queryNodeLocalState connctInfo mpoint query = do
+    resultVar <- liftIO $ newEmptyTMVarIO
+    liftIO $ connectToLocalNode
       connctInfo
       LocalNodeClientProtocols
       { localChainSyncClient    = NoLocalChainSyncClient
       , localStateQueryClient   = Just (singleQuery mpoint resultVar)
       , localTxSubmissionClient = Nothing
       }
-    atomically (first mapQueryError <$> takeTMVar resultVar)
+    result <- liftIO . atomically $ takeTMVar resultVar
+    case result of
+      Right a -> return a
+      Left e -> throwT e
   where
     singleQuery
       :: Maybe ChainPoint
-      -> TMVar (Either QueryError result)
+      -> TMVar (Either AcquireFailure result)
       -> Net.Query.LocalStateQueryClient (BlockInMode mode) ChainPoint
                                          (QueryInMode mode) IO ()
     singleQuery mPointVar' resultVar' =
@@ -514,13 +514,13 @@ queryNodeLocalState connctInfo mpoint mapQueryError query = do
           { Net.Query.recvMsgAcquired = do
               pure $ Net.Query.SendMsgQuery query $ Net.Query.ClientStQuerying
                   { Net.Query.recvMsgResult = \result -> do
-                    atomically $ putTMVar resultVar' (Right result)
+                    atomically $ putTMVar resultVar' $ Right result
 
                     pure $ Net.Query.SendMsgRelease $
                       pure $ Net.Query.SendMsgDone ()
                   }
-          , Net.Query.recvMsgFailure = \failure -> do
-              atomically $ putTMVar resultVar' (Left (QueryErrorAcquireFailure failure))
+          , Net.Query.recvMsgFailure = \acquireFailure -> do
+              atomically $ putTMVar resultVar' $ Left acquireFailure
               pure $ Net.Query.SendMsgDone ()
           }
 
