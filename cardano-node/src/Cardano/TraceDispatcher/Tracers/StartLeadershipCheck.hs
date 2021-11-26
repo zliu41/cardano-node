@@ -5,7 +5,7 @@
 {-# LANGUAGE NamedFieldPuns    #-}
 {-# LANGUAGE PackageImports    #-}
 
-module Cardano.TraceDispatcher.Consensus.StartLeadershipCheck
+module Cardano.TraceDispatcher.Tracers.StartLeadershipCheck
   (
     TraceStartLeadershipCheckPlus (..)
   , ForgeTracerType

@@ -1,6 +1,6 @@
 {-# LANGUAGE RecordWildCards #-}
 
-module Cardano.TraceDispatcher.ChainDB.BlockReplayProgress
+module Cardano.TraceDispatcher.Tracers.BlockReplayProgress
   ( severityReplayBlockStats
   , namesForReplayBlockStats
   , withReplayedBlock
@@ -29,6 +29,13 @@ data ReplayBlockStats = ReplayBlockStats
 
 emptyReplayBlockStats :: ReplayBlockStats
 emptyReplayBlockStats = ReplayBlockStats False 0.0 0.0
+
+namesForReplayBlockStats :: ReplayBlockStats -> Namespace
+namesForReplayBlockStats _ = ["LedgerReplay"]
+
+severityReplayBlockStats :: ReplayBlockStats -> SeverityS
+severityReplayBlockStats _ = Info
+
 instance LogFormatting ReplayBlockStats where
   forMachine _dtal ReplayBlockStats {..} =
     mkObject
@@ -38,12 +45,6 @@ instance LogFormatting ReplayBlockStats where
   forHuman ReplayBlockStats {..} = "Block replay progress " <> show rpsProgress <> "%"
   asMetrics ReplayBlockStats {..} =
      [DoubleM "Block replay progress (%)" rpsProgress]
-
-severityReplayBlockStats :: ReplayBlockStats -> SeverityS
-severityReplayBlockStats _ = Info
-
-namesForReplayBlockStats :: ReplayBlockStats -> Namespace
-namesForReplayBlockStats _ = ["LedgerReplay"]
 
 docReplayedBlock :: Documented ReplayBlockStats
 docReplayedBlock = Documented [

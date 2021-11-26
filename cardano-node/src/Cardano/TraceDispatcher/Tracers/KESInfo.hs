@@ -7,11 +7,12 @@
 {-# OPTIONS_GHC -Wno-orphans  #-}
 {-# OPTIONS_GHC -Wno-deprecations  #-}
 
-module Cardano.TraceDispatcher.Consensus.StateInfo
+module Cardano.TraceDispatcher.Tracers.KESInfo
   (
-    severityStateInfo
-  , namesForStateInfo
+    severityKESInfo
+  , namesForKESInfo
   , traceAsKESInfo
+  , docForgeKESInfo
   ) where
 
 import           Data.SOP.Strict
@@ -47,11 +48,11 @@ traceAsMaybeKESInfo pr (Trace tr) = Trace $
               Nothing   -> (lc, mbC, Nothing))
         tr
 
-severityStateInfo :: TraceLabelCreds HotKey.KESInfo -> SeverityS
-severityStateInfo (TraceLabelCreds _creds a) = severityStateInfo'  a
+severityKESInfo :: TraceLabelCreds HotKey.KESInfo -> SeverityS
+severityKESInfo (TraceLabelCreds _creds a) = severityKESInfo'  a
 
-severityStateInfo' :: HotKey.KESInfo -> SeverityS
-severityStateInfo' forgeStateInfo =
+severityKESInfo' :: HotKey.KESInfo -> SeverityS
+severityKESInfo' forgeStateInfo =
     let maxKesEvos = endKesPeriod - startKesPeriod
         oCertExpiryKesPeriod = startKesPeriod + maxKesEvos
         kesPeriodsUntilExpiry = max 0 (oCertExpiryKesPeriod - currKesPeriod)
@@ -67,8 +68,18 @@ severityStateInfo' forgeStateInfo =
       , HotKey.kesEndPeriod = KESPeriod endKesPeriod
       } = forgeStateInfo
 
-namesForStateInfo :: TraceLabelCreds HotKey.KESInfo -> [Text]
-namesForStateInfo (TraceLabelCreds _creds a) = namesForStateInfo' a
+namesForKESInfo :: TraceLabelCreds HotKey.KESInfo -> [Text]
+namesForKESInfo (TraceLabelCreds _creds a) = namesForKESInfo' a
 
-namesForStateInfo' :: HotKey.KESInfo -> [Text]
-namesForStateInfo' _fsi = []
+namesForKESInfo' :: HotKey.KESInfo -> [Text]
+namesForKESInfo' _fsi = []
+
+docForgeKESInfo :: Documented (TraceLabelCreds HotKey.KESInfo)
+docForgeKESInfo = Documented [
+    DocMsg
+      (TraceLabelCreds anyProto (HotKey.KESInfo (KESPeriod 0) (KESPeriod 1) 2))
+      []
+      "kesStartPeriod \
+      \\nkesEndPeriod is kesStartPeriod + tpraosMaxKESEvo\
+      \\nkesEvolution is the current evolution or /relative period/."
+    ]

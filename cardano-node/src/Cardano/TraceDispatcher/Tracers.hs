@@ -28,24 +28,20 @@ import           Cardano.Logging.Resources
 import           Cardano.Logging.Resources.Types
 import           Cardano.Prelude hiding (trace)
 
-import           Cardano.TraceDispatcher.BasicInfo.Combinators
-import           Cardano.TraceDispatcher.BasicInfo.Types (BasicInfo)
-import           Cardano.TraceDispatcher.ChainDB.BlockReplayProgress
-import           Cardano.TraceDispatcher.ChainDB.Combinators
-import           Cardano.TraceDispatcher.ChainDB.Docu
-import           Cardano.TraceDispatcher.Consensus.Combinators
-import           Cardano.TraceDispatcher.Consensus.Docu
-import           Cardano.TraceDispatcher.Consensus.ForgingThreadStats
+import           Cardano.TraceDispatcher.Tracers.BlockReplayProgress
+import           Cardano.TraceDispatcher.Tracers.ChainDB
+import           Cardano.TraceDispatcher.Tracers.Consensus
+import           Cardano.TraceDispatcher.Tracers.ForgingThreadStats
                      (ForgeThreadStats, docForgeStats, forgeThreadStats)
-import           Cardano.TraceDispatcher.Consensus.Formatting
-import           Cardano.TraceDispatcher.Consensus.StateInfo
+import           Cardano.TraceDispatcher.Tracers.KESInfo
 import           Cardano.TraceDispatcher.Formatting ()
 import           Cardano.TraceDispatcher.Network.Combinators
 import           Cardano.TraceDispatcher.Network.Docu
 import           Cardano.TraceDispatcher.Network.Formatting ()
-import           Cardano.TraceDispatcher.Network.P2P
-import           Cardano.TraceDispatcher.Peer
-import           Cardano.TraceDispatcher.Resources (namesForResources,
+import           Cardano.TraceDispatcher.Tracers.P2P
+import           Cardano.TraceDispatcher.Tracers.BasicInfo
+import           Cardano.TraceDispatcher.Tracers.Peer
+import           Cardano.TraceDispatcher.Tracers.Resources (namesForResources,
                      severityResources, startResourceTracer)
 import qualified "trace-dispatcher" Control.Tracer as NT
 import           Trace.Forward.Utils.DataPoint (DataPoint)
@@ -322,13 +318,13 @@ mkConsensusTracers trBase trForward mbTrEKG _trDataPoint trConfig nodeKernel = d
                 severityBlockFetchServer
                 allPublic
     configureTracers trConfig docBlockFetchServer [blockFetchServerTr]
-    forgeStateInfoTr  <- mkCardanoTracer
+    forgeKESInfoTr  <- mkCardanoTracer
                 trBase trForward mbTrEKG
                 "ForgeStateInfo"
-                namesForStateInfo
-                severityStateInfo
+                namesForKESInfo
+                severityKESInfo
                 allPublic
-    configureTracers trConfig docForgeStateInfo [forgeStateInfoTr]
+    configureTracers trConfig docForgeKESInfo [forgeKESInfoTr]
     txInboundTr  <- mkCardanoTracer
                 trBase trForward mbTrEKG
                 "TxInbound"
@@ -400,7 +396,7 @@ mkConsensusTracers trBase trForward mbTrEKG _trDataPoint trConfig nodeKernel = d
       , Consensus.blockFetchServerTracer = Tracer $
           traceWith blockFetchServerTr
       , Consensus.forgeStateInfoTracer = Tracer $
-          traceWith (traceAsKESInfo (Proxy @blk) forgeStateInfoTr)
+          traceWith (traceAsKESInfo (Proxy @blk) forgeKESInfoTr)
       , Consensus.txInboundTracer = Tracer $
           traceWith txInboundTr
       , Consensus.txOutboundTracer = Tracer $

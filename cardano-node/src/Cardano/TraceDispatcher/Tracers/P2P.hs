@@ -8,7 +8,7 @@
 
 {-# OPTIONS_GHC -Wno-orphans  #-}
 
-module Cardano.TraceDispatcher.Network.P2P
+module Cardano.TraceDispatcher.Tracers.P2P
   (
     namesForLocalRootPeers
   , severityLocalRootPeers

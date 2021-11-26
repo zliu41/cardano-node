@@ -63,7 +63,7 @@ import           Cardano.Node.Configuration.POM (NodeConfiguration (..),
                      defaultPartialNodeConfiguration, makeNodeConfiguration,
                      ncProtocol, parseNodeConfigurationFP)
 import           Cardano.Node.Types
-import           Cardano.TraceDispatcher.BasicInfo.Combinators (getBasicInfo)
+import           Cardano.TraceDispatcher.Tracers.BasicInfo (getBasicInfo)
 import           Cardano.TraceDispatcher.Era.Byron ()
 import           Cardano.TraceDispatcher.Era.Shelley ()
 import           Cardano.TraceDispatcher.Tracers (mkDispatchTracers)

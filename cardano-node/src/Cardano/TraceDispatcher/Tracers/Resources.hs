@@ -1,4 +1,4 @@
-module Cardano.TraceDispatcher.Resources
+module Cardano.TraceDispatcher.Tracers.Resources
   (
     startResourceTracer
   , namesForResources

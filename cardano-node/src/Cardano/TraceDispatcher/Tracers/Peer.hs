@@ -1,9 +1,8 @@
-{-# LANGUAGE DeriveGeneric     #-}
 {-# LANGUAGE DerivingVia       #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Cardano.TraceDispatcher.Peer
+module Cardano.TraceDispatcher.Tracers.Peer
   ( PeerT (..)
   , startPeerTracer
   , namesForPeers
@@ -121,14 +120,6 @@ namesForPeers _ = []
 severityPeers :: [PeerT blk] -> SeverityS
 severityPeers _ = Notice
 
-docPeers :: Documented [PeerT blk]
-docPeers = Documented [
-      DocMsg
-        []
-        [("peersFromNodeKernel","TODO Doc")]
-        "TODO Doc"
-    ]
-
 instance LogFormatting [PeerT blk] where
   forMachine DMinimal _ = mkObject [ "kind"  .= String "NodeKernelPeers"]
   forMachine _ []       = mkObject [ "kind"  .= String "NodeKernelPeers"]
@@ -148,3 +139,11 @@ instance LogFormatting (PeerT blk) where
              , "peerBlocksInF" .= String (show . Set.size . peerFetchBlocksInFlight $ inflight)
              , "peerBytesInF"  .= String (show . peerFetchBytesInFlight $ inflight)
              ]
+
+docPeers :: Documented [PeerT blk]
+docPeers = Documented [
+      DocMsg
+        []
+        [("peersFromNodeKernel","TODO Doc")]
+        "TODO Doc"
+    ]
