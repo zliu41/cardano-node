@@ -33,11 +33,9 @@ import           Ouroboros.Consensus.Node.Tracers
 import qualified Ouroboros.Consensus.Storage.ChainDB as ChainDB
 
 import           Cardano.Slotting.Slot (fromWithOrigin)
-import           Cardano.Node.Queries (LedgerQueries(..))
+import           Cardano.Node.Queries (LedgerQueries(..), NodeKernelData (..))
 
 import           Cardano.Ledger.BaseTypes (StrictMaybe (..), fromSMaybe)
-
-import           Cardano.Tracing.Kernel (NodeKernelData (..))
 
 
 type ForgeTracerType blk = Either (TraceLabelCreds (TraceForgeEvent blk))

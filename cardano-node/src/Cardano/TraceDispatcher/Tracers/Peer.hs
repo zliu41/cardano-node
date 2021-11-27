@@ -1,6 +1,7 @@
 {-# LANGUAGE DerivingVia       #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE PackageImports #-}
 
 module Cardano.TraceDispatcher.Tracers.Peer
   ( PeerT (..)
@@ -11,11 +12,11 @@ module Cardano.TraceDispatcher.Tracers.Peer
   , ppPeer
   ) where
 
-import           Cardano.Logging
 import           Cardano.Prelude hiding (atomically)
 import           Prelude (String)
 
 import qualified Control.Monad.Class.MonadSTM.Strict as STM
+import "contra-tracer" Control.Tracer
 
 import           Data.Aeson (ToJSON (..), Value (..), toJSON, (.=))
 import qualified Data.Map.Strict as Map
@@ -35,10 +36,12 @@ import           Ouroboros.Network.BlockFetch.ClientState
                      (PeerFetchInFlight (..), PeerFetchStatus (..),
                      readFetchClientState)
 
-import           Cardano.Tracing.Kernel
+import           Cardano.Logging hiding (traceWith) -- TODO: re-export 'Tracer'
+                                                    -- TODO: why a diff traceWith?
+import           Cardano.Node.Queries
 
 startPeerTracer ::
-     Trace IO [PeerT blk]
+     Tracer IO [PeerT blk]
   -> NodeKernelData blk
   -> Int
   -> IO ()

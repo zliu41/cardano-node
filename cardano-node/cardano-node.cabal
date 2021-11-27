@@ -65,6 +65,7 @@ library
                        Cardano.Node.Configuration.TopologyP2P
                        Cardano.Node.Handlers.Shutdown
                        Cardano.Node.Handlers.TopLevel
+                       Cardano.Node.NodeAddress
                        Cardano.Node.Orphans
                        Cardano.Node.Protocol
                        Cardano.Node.Protocol.Alonzo
@@ -76,10 +77,16 @@ library
                        Cardano.Node.Queries
                        Cardano.Node.Run
                        Cardano.Node.STM
+                       Cardano.Node.Startup
+                       Cardano.Node.TraceConstraints
+                       Cardano.Node.Tracing
                        Cardano.Node.Types
+                       Cardano.TraceDispatcher.API
+                       Cardano.TraceDispatcher.Compat
                        Cardano.TraceDispatcher.Era.Byron
                        Cardano.TraceDispatcher.Era.HardFork
                        Cardano.TraceDispatcher.Era.Shelley
+                       Cardano.TraceDispatcher.Tracers
                        Cardano.TraceDispatcher.Tracers.BlockReplayProgress
                        Cardano.TraceDispatcher.Tracers.ChainDB
                        Cardano.TraceDispatcher.Tracers.Consensus
@@ -87,22 +94,21 @@ library
                        Cardano.TraceDispatcher.Tracers.StartLeadershipCheck
                        Cardano.TraceDispatcher.Tracers.ForgingThreadStats
                        Cardano.TraceDispatcher.Tracers.Resources
-                       Cardano.TraceDispatcher.Tracers.BasicInfo
                        Cardano.TraceDispatcher.Tracers.Peer
+                       Cardano.TraceDispatcher.Tracers.Startup
+                       Cardano.TraceDispatcher.Tracers.Shutdown
                        Cardano.TraceDispatcher.Network.Docu
                        Cardano.TraceDispatcher.Network.Formatting
                        Cardano.TraceDispatcher.Network.Combinators
                        Cardano.TraceDispatcher.Tracers.P2P
                        Cardano.TraceDispatcher.Formatting
                        Cardano.TraceDispatcher.Render
-                       Cardano.TraceDispatcher.Tracers
                        Cardano.Tracing.Config
-                       Cardano.Tracing.Constraints
-                       Cardano.Tracing.Kernel
                        Cardano.Tracing.Metrics
                        Cardano.Tracing.Peer
                        Cardano.Tracing.Render
                        Cardano.Tracing.Startup
+                       Cardano.Tracing.Shutdown
                        Cardano.Tracing.Tracers
                        Cardano.Tracing.OrphanInstances.Byron
                        Cardano.Tracing.OrphanInstances.Common

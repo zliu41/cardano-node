@@ -1,3 +1,4 @@
+{-# LANGUAGE PackageImports #-}
 module Cardano.TraceDispatcher.Tracers.Resources
   (
     startResourceTracer
@@ -6,12 +7,14 @@ module Cardano.TraceDispatcher.Tracers.Resources
   ) where
 
 
-import           Cardano.Logging
-import           Cardano.Logging.Resources
-import           Cardano.Prelude hiding (trace)
+import "contra-tracer" Control.Tracer
+
+import Cardano.Logging (SeverityS (..)) -- TODO: re-export 'Tracer'
+import Cardano.Logging.Resources
+import Cardano.Prelude hiding (trace)
 
 startResourceTracer ::
-     Trace IO ResourceStats
+     Tracer IO ResourceStats
   -> Int
   -> IO ()
 startResourceTracer tr delayMilliseconds = do

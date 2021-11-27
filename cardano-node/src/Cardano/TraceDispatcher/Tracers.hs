@@ -39,20 +39,22 @@ import           Cardano.TraceDispatcher.Network.Combinators
 import           Cardano.TraceDispatcher.Network.Docu
 import           Cardano.TraceDispatcher.Network.Formatting ()
 import           Cardano.TraceDispatcher.Tracers.P2P
-import           Cardano.TraceDispatcher.Tracers.BasicInfo
 import           Cardano.TraceDispatcher.Tracers.Peer
 import           Cardano.TraceDispatcher.Tracers.Resources (namesForResources,
                      severityResources, startResourceTracer)
+import           Cardano.TraceDispatcher.Tracers.Startup
+import           Cardano.TraceDispatcher.Tracers.Shutdown
 import qualified "trace-dispatcher" Control.Tracer as NT
 import           Trace.Forward.Utils.DataPoint (DataPoint)
 
 import           Cardano.Node.Configuration.Logging (EKGDirect)
-import           Cardano.Node.Types (NodeInfo, docNodeInfoTraceEvent)
+import           Cardano.Node.Queries (NodeKernelData)
+import           Cardano.Node.Startup
+import           Cardano.Node.TraceConstraints
+import           Cardano.Node.Tracing
 
 import qualified Cardano.BM.Data.Trace as Old
 import           Cardano.Tracing.Config (TraceOptions (..))
-import           Cardano.Tracing.Constraints (TraceConstraints)
-import           Cardano.Tracing.Kernel (NodeKernelData)
 import           Cardano.Tracing.OrphanInstances.Common (ToObject)
 import           Cardano.Tracing.Tracers
 import           "contra-tracer" Control.Tracer (Tracer (..))
@@ -122,8 +124,6 @@ import           Ouroboros.Network.TxSubmission.Inbound
 import           Ouroboros.Network.TxSubmission.Outbound
                      (TraceTxSubmissionOutbound)
 
-import           Debug.Trace
-
 -- | Construct tracers for all system components.
 --
 mkDispatchTracers
@@ -136,52 +136,47 @@ mkDispatchTracers
     (BlockFetch.TraceLabelPeer
       (ConnectionId RemoteAddress) (TraceChainSyncClientEvent blk))
   )
-  => BlockConfig blk
-  -> TraceOptions
-  -> Old.Trace IO Text
-  -> NodeKernelData blk
-  -> Maybe EKGDirect
+  => NodeKernelData blk
   -> Trace IO FormattedMessage
   -> Trace IO FormattedMessage
   -> Maybe (Trace IO FormattedMessage)
   -> Trace IO DataPoint
   -> TraceConfig
-  -> [BasicInfo]
-  -> NodeInfo
   -> NetworkP2PMode p2p
   -> IO (Tracers (ConnectionId RemoteAddress) (ConnectionId LocalAddress) blk p2p)
-mkDispatchTracers _blockConfig (TraceDispatcher _trSel) _tr nodeKernel _ekgDirect
-  trBase trForward mbTrEKG trDataPoint trConfig basicInfos nodeInfo enableP2P = do
-    trace ("TraceConfig " <> show trConfig) $ pure ()
-
+mkDispatchTracers nodeKernel trBase trForward mbTrEKG trDataPoint trConfig enableP2P = do
     -- Some special tracers
     -- NodeInfo tracer
     nodeInfoTr <- mkDataPointTracer
                 trDataPoint
                 (const ["NodeInfo"])
-    traceWith nodeInfoTr nodeInfo
+    configureTracers trConfig docNodeInfoTraceEvent [nodeInfoTr]
 
     -- Resource tracer
-    resourcesTr   <- mkCardanoTracer
+    resourcesTr <- mkCardanoTracer
                 trBase trForward mbTrEKG
                 "Resources"
                 (const [])
                 (const Info)
                 allPublic
-    configureTracers trConfig docResourceStats        [resourcesTr]
-    startResourceTracer
-      resourcesTr
-      (fromMaybe 1000 (tcResourceFreqency trConfig))
+    configureTracers trConfig docResourceStats [resourcesTr]
 
     -- BasicInfo tracer
-    basicInfoTr   <- mkCardanoTracer
+    startupTr <- mkCardanoTracer
                 trBase trForward mbTrEKG
-                "BasicInfo"
-                namesForBasicInfo
-                severityBasicInfo
+                "Startup"
+                namesStartupInfo
+                (const Notice)
                 allPublic
-    configureTracers trConfig docBasicInfo [basicInfoTr]
-    mapM_ (traceWith basicInfoTr) basicInfos
+    configureTracers trConfig docStartupInfo [startupTr]
+
+    shutdownTr <- mkCardanoTracer
+                trBase trForward mbTrEKG
+                "Shutdown"
+                namesShutdown
+                (const Warning)
+                allPublic
+    configureTracers trConfig docShutdown [shutdownTr]
 
     -- Peers tracer
     peersTr   <- mkCardanoTracer
@@ -191,11 +186,6 @@ mkDispatchTracers _blockConfig (TraceDispatcher _trSel) _tr nodeKernel _ekgDirec
                 severityPeers
                 allPublic
     configureTracers trConfig docPeers [peersTr]
-    startPeerTracer
-      peersTr
-      nodeKernel
-      (fromMaybe 2000 (tcPeerFreqency trConfig))
-
 
     chainDBTr <- mkCardanoTracer'
                 trBase trForward mbTrEKG
@@ -205,6 +195,7 @@ mkDispatchTracers _blockConfig (TraceDispatcher _trSel) _tr nodeKernel _ekgDirec
                 allPublic
                 withAddedToCurrentChainEmptyLimited
     configureTracers trConfig docChainDBTraceEvent [chainDBTr]
+
     replayBlockTr <- mkCardanoTracer
                 trBase trForward mbTrEKG
                 "ReplayBlock"
@@ -212,6 +203,8 @@ mkDispatchTracers _blockConfig (TraceDispatcher _trSel) _tr nodeKernel _ekgDirec
                 severityReplayBlockStats
                 allPublic
     configureTracers trConfig docReplayedBlock [replayBlockTr]
+
+    -- TODO: understand how to express this better
     replayBlockTr2 <- withReplayedBlock replayBlockTr
     let chainDBTr2 = filterTrace
                       (\case (_, Just _, _) -> True
@@ -226,18 +219,21 @@ mkDispatchTracers _blockConfig (TraceDispatcher _trSel) _tr nodeKernel _ekgDirec
                     (ConnectionId LocalAddress)
                     blk <-
       mkConsensusTracers trBase trForward mbTrEKG trDataPoint trConfig nodeKernel
+
     nodeToClientTr :: NodeToClient.Tracers
                     IO
                     (ConnectionId LocalAddress)
                     blk
                     DeserialiseFailure <-
       mkNodeToClientTracers trBase trForward mbTrEKG trDataPoint trConfig
+
     nodeToNodeTr :: NodeToNode.Tracers
                     IO
                     (ConnectionId RemoteAddress)
                     blk
                     DeserialiseFailure <-
       mkNodeToNodeTracers trBase trForward mbTrEKG trDataPoint trConfig
+
     diffusionTr :: Diffusion.Tracers
                     RemoteAddress
                     NodeToNodeVersion
@@ -245,6 +241,7 @@ mkDispatchTracers _blockConfig (TraceDispatcher _trSel) _tr nodeKernel _ekgDirec
                     NodeToClientVersion
                     IO <-
       mkDiffusionTracers trBase trForward mbTrEKG trDataPoint trConfig
+
     diffusionTrExtra :: Diffusion.ExtraTracers p2p <-
       mkDiffusionTracersExtra trBase trForward mbTrEKG trDataPoint trConfig enableP2P
     pure Tracers
@@ -255,11 +252,12 @@ mkDispatchTracers _blockConfig (TraceDispatcher _trSel) _tr nodeKernel _ekgDirec
       , nodeToNodeTracers = nodeToNodeTr
       , diffusionTracers = diffusionTr
       , diffusionTracersExtra = diffusionTrExtra
-      , startupTracer = mempty
+      , startupTracer = Tracer (traceWith startupTr)
+      , shutdownTracer = Tracer (traceWith shutdownTr)
+      , nodeInfoTracer = Tracer (traceWith nodeInfoTr)
+      , resourcesTracer = Tracer (traceWith resourcesTr)
+      , peersTracer = Tracer (traceWith peersTr)
     }
-
-mkDispatchTracers blockConfig tOpts tr nodeKern ekgDirect _ _ _ _ _ _ _ enableP2P =
-  mkTracers blockConfig tOpts tr nodeKern ekgDirect enableP2P
 
 mkConsensusTracers :: forall blk.
   ( Consensus.RunNode blk

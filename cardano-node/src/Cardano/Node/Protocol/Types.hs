@@ -10,8 +10,10 @@
 module Cardano.Node.Protocol.Types
   ( Protocol(..)
   , SomeConsensusProtocol(..)
+  , protocolName
   ) where
 
+import           Prelude (String)
 import           Cardano.Prelude
 
 import           Control.Monad.Fail (fail)
@@ -22,7 +24,7 @@ import qualified Cardano.Api.Protocol.Types as Cardano
 
 import           Cardano.Node.Orphans ()
 import           Cardano.Node.Queries (HasKESInfo, HasKESMetricsData)
-import           Cardano.Tracing.Constraints (TraceConstraints)
+import           Cardano.Node.TraceConstraints (TraceConstraints)
 
 
 data Protocol = ByronProtocol
@@ -59,3 +61,10 @@ data SomeConsensusProtocol where
                            => Cardano.BlockType blk
                            -> Cardano.ProtocolInfoArgs IO blk
                            -> SomeConsensusProtocol
+
+-- | A human readable name for the protocol
+--
+protocolName :: Protocol -> String
+protocolName ByronProtocol   = "Byron"
+protocolName ShelleyProtocol = "Shelley"
+protocolName CardanoProtocol = "Byron; Shelley"

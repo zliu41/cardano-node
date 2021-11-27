@@ -1,12 +1,7 @@
 {-# LANGUAGE ConstraintKinds  #-}
 {-# LANGUAGE DataKinds        #-}
 {-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE MonoLocalBinds   #-}
-
-
-module Cardano.Tracing.Constraints
-  ( TraceConstraints
-  ) where
+module Cardano.Node.TraceConstraints (TraceConstraints) where
 
 import           Prelude (Show)
 
@@ -35,6 +30,7 @@ import           Ouroboros.Consensus.Ledger.SupportsMempool (ApplyTxErr,
                      HasTxId, HasTxs (..))
 import           Ouroboros.Consensus.Protocol.Abstract (ValidationErr)
 import           Ouroboros.Consensus.Shelley.Ledger.Mempool (GenTx, TxId)
+
 
 -- | Tracing-related constraints for monitoring purposes.
 type TraceConstraints blk =

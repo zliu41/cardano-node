@@ -10,7 +10,6 @@ module Cardano.Node.Configuration.Logging
   ( LoggingLayer (..)
   , EKGDirect(..)
   , createLoggingLayer
-  , nodeBasicInfo
   , shutdownLoggingLayer
   , traceCounter
   -- re-exports
@@ -82,7 +81,7 @@ import           Cardano.Api.Protocol.Types (BlockType (..), protocolInfo)
 import           Cardano.Config.Git.Rev (gitRev)
 import           Cardano.Node.Configuration.POM (NodeConfiguration (..),
                      ncProtocol)
-import           Cardano.Node.Protocol.Types (SomeConsensusProtocol (..))
+import           Cardano.Node.Protocol.Types (SomeConsensusProtocol (..), protocolName)
 import           Cardano.Node.Types
 import           Cardano.Slotting.Slot (EpochSize (..))
 import           Cardano.Tracing.Config (TraceOptions (..))
