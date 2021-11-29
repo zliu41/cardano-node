@@ -235,9 +235,9 @@ ppStartupInfoTrace P2PWarningDevelopementNetworkProtocols =
 
 ppStartupInfoTrace (WarningDevelopmentNetworkProtocols ntnVersions ntcVersions) =
      "enabled development network protocols: "
-  <> (showT ntnVersions)
+  <> showT ntnVersions
   <> " "
-  <> (showT ntcVersions)
+  <> showT ntcVersions
 
 ppStartupInfoTrace (BINetwork (BasicInfoNetwork {..})) =
   "Addresses " <> showT niAddresses

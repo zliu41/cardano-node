@@ -61,8 +61,10 @@ import           Prelude (id, show)
 
 import           Cardano.Node.Configuration.Topology ()
 import           Cardano.Node.Configuration.TopologyP2P ()
-import           Cardano.TraceDispatcher.Network.Formatting ()
 import           Cardano.Tracing.OrphanInstances.Network ()
+
+import           Cardano.TraceDispatcher.Tracers.NodeToNode ()
+import           Cardano.TraceDispatcher.Tracers.NonP2P ()
 
 import           Ouroboros.Network.ConnectionHandler
                      (ConnectionHandlerTrace (..))
@@ -71,10 +73,10 @@ import           Ouroboros.Network.ConnectionManager.Types
                      (ConnectionManagerCounters (..),
                      ConnectionManagerTrace (..))
 import qualified Ouroboros.Network.ConnectionManager.Types as ConnectionManager
-import           Ouroboros.Network.InboundGovernor
-                     (InboundGovernorTrace (..))
-import           Ouroboros.Network.InboundGovernor.State (InboundGovernorCounters (..))
+import           Ouroboros.Network.InboundGovernor (InboundGovernorTrace (..))
 import qualified Ouroboros.Network.InboundGovernor as InboundGovernor
+import           Ouroboros.Network.InboundGovernor.State
+                     (InboundGovernorCounters (..))
 import qualified Ouroboros.Network.PeerSelection.EstablishedPeers as EstablishedPeers
 import           Ouroboros.Network.PeerSelection.Governor
                      (DebugPeerSelection (..), PeerSelectionCounters (..),
@@ -90,7 +92,6 @@ import           Ouroboros.Network.PeerSelection.RootPeersDNS
 import           Ouroboros.Network.PeerSelection.Types ()
 import           Ouroboros.Network.RethrowPolicy (ErrorCommand (..))
 import           Ouroboros.Network.Server2 (ServerTrace (..))
-
 
 namesForLocalRootPeers :: TraceLocalRootPeers ntnAddr resolverError -> [Text]
 namesForLocalRootPeers TraceLocalRootDomains {} = ["LocalRootDomains"]

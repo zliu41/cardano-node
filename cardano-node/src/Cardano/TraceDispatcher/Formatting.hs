@@ -19,8 +19,6 @@ import           Ouroboros.Consensus.Block (ConvertRawHash (..), RealPoint,
                      realPointHash, realPointSlot)
 import           Ouroboros.Network.Block
 
-
-
 -- | A bit of a weird one, but needed because some of the very general
 -- consensus interfaces are sometimes instantiated to 'Void', when there are
 -- no cases needed.
@@ -31,11 +29,10 @@ instance LogFormatting Void where
 instance LogFormatting () where
   forMachine _dtal _x = mempty
 
-
 instance LogFormatting SlotNo where
   forMachine _dtal slot =
     mkObject [ "kind" .= String "SlotNo"
-               , "slot" .= toJSON (unSlotNo slot) ]
+             , "slot" .= toJSON (unSlotNo slot) ]
 
 instance forall blk. ConvertRawHash blk
       => LogFormatting (Point blk) where

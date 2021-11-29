@@ -28,22 +28,23 @@ import           Cardano.Logging.Resources
 import           Cardano.Logging.Resources.Types
 import           Cardano.Prelude hiding (trace)
 
+import           Cardano.TraceDispatcher.Formatting ()
 import           Cardano.TraceDispatcher.Tracers.BlockReplayProgress
 import           Cardano.TraceDispatcher.Tracers.ChainDB
 import           Cardano.TraceDispatcher.Tracers.Consensus
+import           Cardano.TraceDispatcher.Tracers.Diffusion
 import           Cardano.TraceDispatcher.Tracers.ForgingThreadStats
                      (ForgeThreadStats, docForgeStats, forgeThreadStats)
 import           Cardano.TraceDispatcher.Tracers.KESInfo
-import           Cardano.TraceDispatcher.Formatting ()
-import           Cardano.TraceDispatcher.Network.Combinators
-import           Cardano.TraceDispatcher.Network.Docu
-import           Cardano.TraceDispatcher.Network.Formatting ()
 import           Cardano.TraceDispatcher.Tracers.P2P
+import           Cardano.TraceDispatcher.Tracers.NonP2P
+import           Cardano.TraceDispatcher.Tracers.NodeToClient
+import           Cardano.TraceDispatcher.Tracers.NodeToNode
 import           Cardano.TraceDispatcher.Tracers.Peer
 import           Cardano.TraceDispatcher.Tracers.Resources (namesForResources,
                      severityResources, startResourceTracer)
-import           Cardano.TraceDispatcher.Tracers.Startup
 import           Cardano.TraceDispatcher.Tracers.Shutdown
+import           Cardano.TraceDispatcher.Tracers.Startup
 import qualified "trace-dispatcher" Control.Tracer as NT
 import           Trace.Forward.Utils.DataPoint (DataPoint)
 

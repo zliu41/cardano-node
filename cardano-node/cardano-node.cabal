@@ -90,6 +90,7 @@ library
                        Cardano.TraceDispatcher.Tracers.BlockReplayProgress
                        Cardano.TraceDispatcher.Tracers.ChainDB
                        Cardano.TraceDispatcher.Tracers.Consensus
+                       Cardano.TraceDispatcher.Tracers.Diffusion
                        Cardano.TraceDispatcher.Tracers.KESInfo
                        Cardano.TraceDispatcher.Tracers.StartLeadershipCheck
                        Cardano.TraceDispatcher.Tracers.ForgingThreadStats
@@ -97,10 +98,10 @@ library
                        Cardano.TraceDispatcher.Tracers.Peer
                        Cardano.TraceDispatcher.Tracers.Startup
                        Cardano.TraceDispatcher.Tracers.Shutdown
-                       Cardano.TraceDispatcher.Network.Docu
-                       Cardano.TraceDispatcher.Network.Formatting
-                       Cardano.TraceDispatcher.Network.Combinators
                        Cardano.TraceDispatcher.Tracers.P2P
+                       Cardano.TraceDispatcher.Tracers.NonP2P
+                       Cardano.TraceDispatcher.Tracers.NodeToClient
+                       Cardano.TraceDispatcher.Tracers.NodeToNode               
                        Cardano.TraceDispatcher.Formatting
                        Cardano.TraceDispatcher.Render
                        Cardano.Tracing.Config
