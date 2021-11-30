@@ -391,6 +391,7 @@ data PaymentVerifier
 data StakeVerifier
   = StakeVerifierKey (VerificationKeyOrFile StakeKey)
   | StakeVerifierScriptFile ScriptFile
+  | StakeVerifierAddress StakeAddress
   deriving (Eq, Show)
 
 -- | Either an unvalidated text representation of a verification key or a path

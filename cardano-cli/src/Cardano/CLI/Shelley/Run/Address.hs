@@ -165,6 +165,9 @@ makeStakeAddressRef mbStakeVerifier = do
         let stakeCred = StakeCredentialByScript (hashScript script)
         return (StakeAddressByValue stakeCred)
 
+      StakeVerifierAddress stakeAddr ->
+        pure $ StakeAddressByValue $ stakeAddressCredential stakeAddr
+
 buildShelleyAddress
   :: VerificationKey PaymentKey
   -> Maybe StakeVerifier
