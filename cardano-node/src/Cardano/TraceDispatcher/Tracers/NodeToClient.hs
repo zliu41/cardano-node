@@ -55,6 +55,10 @@ instance LogFormatting (AnyMessageAndAgency ps)
   asMetrics (TraceRecvMsg m) = asMetrics m
 
 
+--------------------------------------------------------------------------------
+-- TChainSync Tracer
+--------------------------------------------------------------------------------
+
 severityTChainSync :: BlockFetch.TraceLabelPeer peer (TraceSendRecv
     (ChainSync (Serialised blk) (Point blk) (Tip blk))) -> SeverityS
 severityTChainSync (BlockFetch.TraceLabelPeer _ v) = severityTChainSync' v
@@ -211,6 +215,9 @@ docTChainSync = Documented [
         \busy states are where the server is expected to send a reply."
   ]
 
+--------------------------------------------------------------------------------
+-- LocalTxSubmission Tracer
+--------------------------------------------------------------------------------
 
 severityTTxSubmission :: BlockFetch.TraceLabelPeer peer
   (TraceSendRecv (LTS.LocalTxSubmission (GenTx blk) (ApplyTxErr blk)))
@@ -268,7 +275,6 @@ instance LogFormatting (AnyMessageAndAgency (LTS.LocalTxSubmission tx err)) wher
              , "agency" .= String (pack $ show stok)
              ]
 
-
 docTTxSubmission :: Documented
    (BlockFetch.TraceLabelPeer
       localPeer
@@ -300,6 +306,9 @@ docTTxSubmission = Documented [
         "The client can terminate the protocol."
   ]
 
+--------------------------------------------------------------------------------
+-- TStateQuery Tracer
+--------------------------------------------------------------------------------
 
 severityTStateQuery :: BlockFetch.TraceLabelPeer peer
   (TraceSendRecv (LSQ.LocalStateQuery blk (Point blk) query))
@@ -380,7 +389,6 @@ instance (forall result. Show (Query blk result))
     mkObject [ "kind" .= String "MsgDone"
              , "agency" .= String (pack $ show stok)
              ]
-
 
 docTStateQuery :: Documented
       (BlockFetch.TraceLabelPeer peer

@@ -109,6 +109,9 @@ instance LogFormatting NtC.LocalConnectionId where
                  , "remote" .= forMachine dtal r
                  ]
 
+--------------------------------------------------------------------------------
+-- IPSubscription Tracer
+--------------------------------------------------------------------------------
 
 severityIPSubscription ::
      WithIPList (SubscriptionTrace Socket.SockAddr)
@@ -189,7 +192,9 @@ docIPSubscription = Documented $ map withIPList (undoc docSubscription)
     withIPList (DocMsg v nl comment) =
       DocMsg (WithIPList protoLocalAdresses [] v) nl ("IP Subscription: " <> comment)
 
-
+--------------------------------------------------------------------------------
+-- DNSSubscription Tracer
+--------------------------------------------------------------------------------
 
 namesForDNSSubscription ::
      NtN.WithDomainName (SubscriptionTrace Socket.SockAddr)
@@ -321,6 +326,9 @@ docSubscription = Documented [
         "Closed socket to address."
   ]
 
+--------------------------------------------------------------------------------
+-- DNSResolver Tracer
+--------------------------------------------------------------------------------
 
 severityDNSResolver :: NtN.WithDomainName DnsTrace -> SeverityS
 severityDNSResolver (NtN.WithDomainName _ ev) = case ev of
@@ -352,7 +360,6 @@ instance LogFormatting (WithDomainName DnsTrace) where
                   <> ". Domain is "
                   <> pack (show dom)
                   <> "."
-
 
 docDNSResolver :: Documented (WithDomainName DnsTrace)
 docDNSResolver = Documented [
@@ -398,7 +405,9 @@ docDNSResolver = Documented [
         "Lookup AAAA result."
     ]
 
-
+--------------------------------------------------------------------------------
+-- ErrorPolicy Tracer
+--------------------------------------------------------------------------------
 
 severityErrorPolicy :: WithAddr Socket.SockAddr ErrorPolicyTrace -> SeverityS
 severityErrorPolicy (WithAddr _ ev) = case ev of
@@ -426,9 +435,20 @@ namesForErrorPolicy (WithAddr _ ev) = case ev of
     ErrorPolicyUnhandledConnectionException {}  -> ["UnhandledConnectionException"]
     ErrorPolicyAcceptException {}               -> ["AcceptException"]
 
+instance Show addr => LogFormatting (NtN.WithAddr addr NtN.ErrorPolicyTrace) where
+    forMachine _dtal (NtN.WithAddr addr ev) =
+      mkObject [ "kind" .= String "ErrorPolicyTrace"
+               , "address" .= show addr
+               , "event" .= show ev ]
+    forHuman (NtN.WithAddr addr ev) = "With address " <> showT addr <> ". " <> showT ev
+
 -- WithDomainName has strict constructors
 docErrorPolicy :: Documented (WithAddr Socket.SockAddr ErrorPolicyTrace)
 docErrorPolicy = docErrorPolicy' anyProto
+
+--------------------------------------------------------------------------------
+-- LocalErrorPolicy Tracer
+--------------------------------------------------------------------------------
 
 severityLocalErrorPolicy :: WithAddr NtC.LocalAddress ErrorPolicyTrace -> SeverityS
 severityLocalErrorPolicy (WithAddr _ ev) = case ev of
@@ -456,12 +476,6 @@ namesForLocalErrorPolicy (WithAddr _ ev) = case ev of
     ErrorPolicyUnhandledConnectionException {}  -> ["UnhandledConnectionException"]
     ErrorPolicyAcceptException {}               -> ["AcceptException"]
 
-instance Show addr => LogFormatting (NtN.WithAddr addr NtN.ErrorPolicyTrace) where
-    forMachine _dtal (NtN.WithAddr addr ev) =
-      mkObject [ "kind" .= String "ErrorPolicyTrace"
-               , "address" .= show addr
-               , "event" .= show ev ]
-    forHuman (NtN.WithAddr addr ev) = "With address " <> showT addr <> ". " <> showT ev
 
 docLocalErrorPolicy :: Documented (WithAddr LocalAddress ErrorPolicyTrace)
 docLocalErrorPolicy = docErrorPolicy' protoLocalAdress
@@ -523,6 +537,9 @@ docErrorPolicy' adr = Documented [
         "'accept' throwed an exception."
     ]
 
+--------------------------------------------------------------------------------
+-- AcceptPolicy Tracer
+--------------------------------------------------------------------------------
 
 severityAcceptPolicy :: NtN.AcceptConnectionsPolicyTrace -> SeverityS
 severityAcceptPolicy NtN.ServerTraceAcceptConnectionRateLimiting {} = Info

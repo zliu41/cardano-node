@@ -30,6 +30,10 @@ data ReplayBlockStats = ReplayBlockStats
 emptyReplayBlockStats :: ReplayBlockStats
 emptyReplayBlockStats = ReplayBlockStats False 0.0 0.0
 
+--------------------------------------------------------------------------------
+-- ReplayBlockStats Tracer
+--------------------------------------------------------------------------------
+
 namesForReplayBlockStats :: ReplayBlockStats -> Namespace
 namesForReplayBlockStats _ = ["LedgerReplay"]
 

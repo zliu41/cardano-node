@@ -93,6 +93,10 @@ import           Ouroboros.Network.PeerSelection.Types ()
 import           Ouroboros.Network.RethrowPolicy (ErrorCommand (..))
 import           Ouroboros.Network.Server2 (ServerTrace (..))
 
+--------------------------------------------------------------------------------
+-- LocalRootPeers Tracer
+--------------------------------------------------------------------------------
+
 namesForLocalRootPeers :: TraceLocalRootPeers ntnAddr resolverError -> [Text]
 namesForLocalRootPeers TraceLocalRootDomains {} = ["LocalRootDomains"]
 namesForLocalRootPeers TraceLocalRootWaiting {} = ["LocalRootWaiting"]
@@ -164,6 +168,9 @@ docLocalRootPeers = Documented [
       ""
   ]
 
+--------------------------------------------------------------------------------
+-- PublicRootPeers Tracer
+--------------------------------------------------------------------------------
 
 namesForPublicRootPeers :: TracePublicRootPeers -> [Text]
 namesForPublicRootPeers TracePublicRootRelayAccessPoint {} = ["PublicRootRelayAccessPoint"]
@@ -215,7 +222,9 @@ docPublicRootPeers = Documented [
       ""
   ]
 
-
+--------------------------------------------------------------------------------
+-- PeerSelection Tracer
+--------------------------------------------------------------------------------
 
 namesForPeerSelection :: TracePeerSelection peeraddr -> [Text]
 namesForPeerSelection TraceLocalRootPeersChanged {} = ["LocalRootPeersChanged"]
@@ -561,6 +570,10 @@ peerSelectionTargetsToObject
                , "active" .= targetNumberOfActivePeers
                ]
 
+--------------------------------------------------------------------------------
+-- DebugPeerSelection Tracer
+--------------------------------------------------------------------------------
+
 namesForDebugPeerSelection :: DebugPeerSelection SockAddr peerConn -> [Text]
 namesForDebugPeerSelection _ = ["GovernorState"]
 
@@ -632,6 +645,10 @@ docPeerSelectionCounters = Documented
       "Counters for cold, warm and hot peers"
   ]
 
+--------------------------------------------------------------------------------
+-- PeerSelectionActions Tracer
+--------------------------------------------------------------------------------
+
 namesForPeerSelectionActions :: PeerSelectionActionsTrace ntnAddr -> [Text]
 namesForPeerSelectionActions PeerStatusChanged   {}     = ["StatusChanged"]
 namesForPeerSelectionActions PeerStatusChangeFailure {} = ["StatusChangeFailure"]
@@ -687,6 +704,10 @@ docPeerSelectionActions = Documented
       []
       ""
   ]
+
+--------------------------------------------------------------------------------
+-- Connection Manager Tracer
+--------------------------------------------------------------------------------
 
 namesForConnectionManager :: ConnectionManagerTrace ntnAddr cht -> [Text]
 namesForConnectionManager TrIncludeConnection {}  = ["IncludeConnection"]
@@ -1024,6 +1045,10 @@ docConnectionManager = Documented
       ""
   ]
 
+--------------------------------------------------------------------------------
+-- Server Tracer
+--------------------------------------------------------------------------------
+
 namesForServer :: ServerTrace ntnAddr -> [Text]
 namesForServer TrAcceptConnection {}  = ["AcceptConnection"]
 namesForServer TrAcceptError {}       = ["AcceptError"]
@@ -1094,6 +1119,10 @@ docServer = Documented
       []
       ""
   ]
+
+--------------------------------------------------------------------------------
+-- InboundGovernor Tracer
+--------------------------------------------------------------------------------
 
 namesForInboundGovernor :: InboundGovernorTrace peerAddr -> [Text]
 namesForInboundGovernor TrNewConnection {}         = ["NewConnection"]

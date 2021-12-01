@@ -117,6 +117,10 @@ getCurrentPeers nkd = mapNodeKernelDataIO extractPeers nkd
                         $ Map.lookup cid peerStates
     pure . Map.elems $ peers
 
+--------------------------------------------------------------------------------
+-- Peers Tracer
+--------------------------------------------------------------------------------
+
 namesForPeers :: [PeerT blk] -> [Text]
 namesForPeers _ = []
 

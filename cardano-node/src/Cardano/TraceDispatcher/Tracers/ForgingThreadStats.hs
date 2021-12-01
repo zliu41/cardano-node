@@ -21,6 +21,9 @@ import           Cardano.TraceDispatcher.Render (showT)
 import           Ouroboros.Consensus.Node.Tracers
 import           Ouroboros.Consensus.Shelley.Node ()
 
+--------------------------------------------------------------------------------
+-- ForgeThreadStats Tracer
+--------------------------------------------------------------------------------
 
 -- | Per-forging-thread statistics.
 data ForgeThreadStats = ForgeThreadStats
@@ -64,6 +67,29 @@ instance LogFormatting ForgeThreadStats where
 
 emptyForgeThreadStats :: ForgeThreadStats
 emptyForgeThreadStats = ForgeThreadStats 0 0 0 0 0
+
+docForgeStats :: Documented ForgeThreadStats
+docForgeStats = Documented [
+    DocMsg
+      emptyForgeThreadStats
+      [("nodeCannotForgeNum",
+        "How many times this node could not forge?")
+      ,("nodeIsLeaderNum",
+        "How many times this node was leader?")
+      ,("blocksForgedNum",
+        "How many blocks did forge in this node?")
+      ,("slotsMissed",
+        "How many slots were missed in this node?")
+      ]
+      "nodeCannotForgeNum shows how many times this node could not forge.\
+      \\nnodeIsLeaderNum shows how many times this node was leader.\
+      \\nblocksForgedNum shows how many blocks did forge in this node.\
+      \\nslotsMissed shows how many slots were missed in this node."
+  ]
+
+--------------------------------------------------------------------------------
+-- ForgingStats Tracer
+--------------------------------------------------------------------------------
 
 -- | This structure stores counters of blockchain-related events,
 --   per individual thread in fsStats.
@@ -161,22 +187,3 @@ mapThreadStats fs@ForgingStats { fsStats } f1 f2 = do
   let threadStats   =  fromMaybe emptyForgeThreadStats (Map.lookup tid fsStats)
       (newStats, w) = f1 threadStats
   pure $ f2 (fs {fsStats = Map.insert tid newStats fsStats}) w
-
-docForgeStats :: Documented ForgeThreadStats
-docForgeStats = Documented [
-    DocMsg
-      emptyForgeThreadStats
-      [("nodeCannotForgeNum",
-        "How many times this node could not forge?")
-      ,("nodeIsLeaderNum",
-        "How many times this node was leader?")
-      ,("blocksForgedNum",
-        "How many blocks did forge in this node?")
-      ,("slotsMissed",
-        "How many slots were missed in this node?")
-      ]
-      "nodeCannotForgeNum shows how many times this node could not forge.\
-      \\nnodeIsLeaderNum shows how many times this node was leader.\
-      \\nblocksForgedNum shows how many blocks did forge in this node.\
-      \\nslotsMissed shows how many slots were missed in this node."
-  ]

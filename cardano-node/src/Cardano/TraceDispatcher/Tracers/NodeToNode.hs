@@ -63,6 +63,10 @@ import           Ouroboros.Network.Protocol.Trans.Hello.Type
 import qualified Ouroboros.Network.Protocol.TxSubmission.Type as STX
 import qualified Ouroboros.Network.Protocol.TxSubmission2.Type as TXS
 
+--------------------------------------------------------------------------------
+-- ChainSync Tracer
+--------------------------------------------------------------------------------
+
 severityTChainSyncNode :: BlockFetch.TraceLabelPeer peer (TraceSendRecv
     (ChainSync (Header blk) (Point blk) (Tip blk))) -> SeverityS
 severityTChainSyncNode (BlockFetch.TraceLabelPeer _ v) = severityTChainSync' v
@@ -104,6 +108,10 @@ namesForTChainSyncNode (BlockFetch.TraceLabelPeer _ v) = "NodeToNode" : namesTCh
     namesTChainSync'' MsgIntersectFound {}    = ["IntersectFound"]
     namesTChainSync'' MsgIntersectNotFound {} = ["IntersectNotFound"]
     namesTChainSync'' MsgDone {}              = ["Done"]
+
+--------------------------------------------------------------------------------
+-- ChainSyncSerialised Tracer
+--------------------------------------------------------------------------------
 
 severityTChainSyncSerialised :: BlockFetch.TraceLabelPeer peer (TraceSendRecv
     (ChainSync (SerialisedHeader blk) (Point blk) (Tip blk))) -> SeverityS
@@ -147,6 +155,10 @@ namesForTChainSyncSerialised (BlockFetch.TraceLabelPeer _ v) =
     namesTChainSync'' MsgIntersectNotFound {} = ["IntersectNotFound"]
     namesTChainSync'' MsgDone {}              = ["Done"]
 
+--------------------------------------------------------------------------------
+-- BlockFetch Tracer
+--------------------------------------------------------------------------------
+
 severityTBlockFetch :: BlockFetch.TraceLabelPeer peer
   (TraceSendRecv (BlockFetch blk (Point blk))) -> SeverityS
 severityTBlockFetch (BlockFetch.TraceLabelPeer _ v) = severityTBlockFetch' v
@@ -183,7 +195,6 @@ namesForTBlockFetch (BlockFetch.TraceLabelPeer _ v) =
     namesTBlockFetch'' MsgBlock {}        = ["Block"]
     namesTBlockFetch'' MsgBatchDone {}    = ["BatchDone"]
     namesTBlockFetch'' MsgClientDone {}   = ["ClientDone"]
-
 
 instance ( ConvertTxId blk
          , ConvertRawHash blk
@@ -234,7 +245,6 @@ instance ( ConvertTxId blk
              , "agency" .= String (pack $ show stok)
              ]
 
-
 docTBlockFetch :: Documented
       (BlockFetch.TraceLabelPeer peer
        (TraceSendRecv
@@ -284,6 +294,9 @@ docTBlockFetch = Documented [
         "Client termination message."
   ]
 
+--------------------------------------------------------------------------------
+-- BlockFetchSerialised Tracer
+--------------------------------------------------------------------------------
 
 severityTBlockFetchSerialised :: BlockFetch.TraceLabelPeer peer
   (TraceSendRecv (BlockFetch (Serialised blk) (Point blk))) -> SeverityS
@@ -321,28 +334,6 @@ namesForTBlockFetchSerialised (BlockFetch.TraceLabelPeer _ v) =
     namesTBlockFetch'' MsgBlock {}        = ["Block"]
     namesTBlockFetch'' MsgBatchDone {}    = ["BatchDone"]
     namesTBlockFetch'' MsgClientDone {}   = ["ClientDone"]
-
-severityTxSubmissionNode :: BlockFetch.TraceLabelPeer peer
-  (TraceSendRecv (TXS.TxSubmission (GenTxId blk) (GenTx blk))) -> SeverityS
-severityTxSubmissionNode (BlockFetch.TraceLabelPeer _ v) = severityTxSubNode v
-  where
-    severityTxSubNode (TraceSendMsg msg) = severityTxSubNode' msg
-    severityTxSubNode (TraceRecvMsg msg) = severityTxSubNode' msg
-
-    severityTxSubNode' (AnyMessageAndAgency _agency msg) = severityTxSubNode'' msg
-
-    severityTxSubNode'' ::
-        Message
-          (TXS.TxSubmission (GenTxId blk) (GenTx blk))
-          from
-          to
-     -> SeverityS
-    severityTxSubNode'' TXS.MsgRequestTxIds {} = Info
-    severityTxSubNode'' TXS.MsgReplyTxIds {}   = Info
-    severityTxSubNode'' TXS.MsgRequestTxs {}   = Info
-    severityTxSubNode'' TXS.MsgReplyTxs {}     = Info
-    severityTxSubNode'' TXS.MsgDone {}         = Info
-
 
 -- TODO Tracers
 instance ( ConvertTxId blk
@@ -390,6 +381,32 @@ instance ( ConvertTxId blk
     mkObject [ "kind" .= String "MsgClientDone"
              , "agency" .= String (pack $ show stok)
              ]
+
+
+--------------------------------------------------------------------------------
+-- TxSubmissionNode Tracer
+--------------------------------------------------------------------------------
+
+severityTxSubmissionNode :: BlockFetch.TraceLabelPeer peer
+  (TraceSendRecv (TXS.TxSubmission (GenTxId blk) (GenTx blk))) -> SeverityS
+severityTxSubmissionNode (BlockFetch.TraceLabelPeer _ v) = severityTxSubNode v
+  where
+    severityTxSubNode (TraceSendMsg msg) = severityTxSubNode' msg
+    severityTxSubNode (TraceRecvMsg msg) = severityTxSubNode' msg
+
+    severityTxSubNode' (AnyMessageAndAgency _agency msg) = severityTxSubNode'' msg
+
+    severityTxSubNode'' ::
+        Message
+          (TXS.TxSubmission (GenTxId blk) (GenTx blk))
+          from
+          to
+     -> SeverityS
+    severityTxSubNode'' TXS.MsgRequestTxIds {} = Info
+    severityTxSubNode'' TXS.MsgReplyTxIds {}   = Info
+    severityTxSubNode'' TXS.MsgRequestTxs {}   = Info
+    severityTxSubNode'' TXS.MsgReplyTxs {}     = Info
+    severityTxSubNode'' TXS.MsgDone {}         = Info
 
 
 namesForTxSubmissionNode :: BlockFetch.TraceLabelPeer peer
@@ -558,7 +575,9 @@ docTTxSubmissionNode = Documented [
   --TODO: Can't use 'MsgKThxBye' because NodeToNodeV_2 is not introduced yet.
   ]
 
-
+--------------------------------------------------------------------------------
+-- TxSubmissionNode2 Tracer
+--------------------------------------------------------------------------------
 
 severityTxSubmission2Node :: forall blk peer. BlockFetch.TraceLabelPeer peer
   (TraceSendRecv (TXS.TxSubmission2 (GenTxId blk) (GenTx blk))) -> SeverityS

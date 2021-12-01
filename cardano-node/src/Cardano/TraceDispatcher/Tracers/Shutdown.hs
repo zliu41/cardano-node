@@ -1,7 +1,6 @@
 {-# LANGUAGE FlexibleContexts     #-}
 {-# LANGUAGE GADTs                #-}
 {-# LANGUAGE LambdaCase           #-}
-{-# LANGUAGE RecordWildCards      #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# OPTIONS_GHC -Wno-name-shadowing -Wno-orphans #-}
 module Cardano.TraceDispatcher.Tracers.Shutdown
@@ -16,6 +15,17 @@ import Data.Aeson (ToJSON (..), Value (..), (.=))
 import Data.Text (Text, pack)
 import Cardano.Logging
 import Cardano.Node.Handlers.Shutdown
+
+--------------------------------------------------------------------------------
+-- ShutdownTrace Tracer
+--------------------------------------------------------------------------------
+
+
+namesShutdown :: ShutdownTrace -> [Text]
+namesShutdown = \case
+  ShutdownRequested{}         -> ["ShutdownRequested"]
+  RequestingShutdown{}        -> ["RequestingShutdown"]
+  ShutdownArmedAtSlot{}       -> ["ShutdownArmedAtSlot"]
 
 ppShutdownTrace :: ShutdownTrace -> Text
 ppShutdownTrace =
@@ -36,12 +46,6 @@ instance LogFormatting ShutdownTrace where
     ShutdownArmedAtSlot slot  ->
           mkObject [ "kind"   .= String "ShutdownArmedAtSlot"
                    , "slot"   .= toJSON slot ]
-
-namesShutdown :: ShutdownTrace -> [Text]
-namesShutdown = \case
-  ShutdownRequested{}         -> ["ShutdownRequested"]
-  RequestingShutdown{}        -> ["RequestingShutdown"]
-  ShutdownArmedAtSlot{}       -> ["ShutdownArmedAtSlot"]
 
 docShutdown :: Documented ShutdownTrace
 docShutdown = Documented

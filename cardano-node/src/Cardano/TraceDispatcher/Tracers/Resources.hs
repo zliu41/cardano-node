@@ -29,6 +29,10 @@ startResourceTracer tr delayMilliseconds = do
         Nothing -> pure ()
       threadDelay (delayMilliseconds * 1000)
 
+--------------------------------------------------------------------------------
+-- ResourceStats Tracer
+--------------------------------------------------------------------------------
+
 namesForResources :: ResourceStats -> [Text]
 namesForResources _ = []
 

@@ -65,6 +65,10 @@ withAddedToCurrentChainEmptyLimited tr = do
           else pure tr
     selecting _ _ = pure tr
 
+--------------------------------------------------------------------------------
+-- ChainDB Tracer
+--------------------------------------------------------------------------------
+
 severityChainDB :: ChainDB.TraceEvent blk -> SeverityS
 severityChainDB (ChainDB.TraceAddBlockEvent v)          = gsTraceAddBlockEvent v
 severityChainDB (ChainDB.TraceFollowerEvent v)          = gsTraceFollowerEvent v

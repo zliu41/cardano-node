@@ -110,6 +110,9 @@ protoFileDescriptor =
     sock <- Socket.mkSocket 111
     socketFileDescriptor sock
 
+--------------------------------------------------------------------------------
+-- Mux Tracer
+--------------------------------------------------------------------------------
 
 severityMux :: WithMuxBearer peer MuxTrace -> SeverityS
 severityMux (WithMuxBearer _ mt) = severityMux' mt
@@ -321,6 +324,9 @@ docMux = Documented [
         "Mux shutdown."
   ]
 
+--------------------------------------------------------------------------------
+-- Handshake Tracer
+--------------------------------------------------------------------------------
 
 severityHandshake :: NtN.HandshakeTr adr ver -> SeverityS
 severityHandshake (WithMuxBearer _ e) = severityHandshake' e
@@ -393,6 +399,9 @@ docHandshake = Documented [
         "It refuses to run any version."
     ]
 
+--------------------------------------------------------------------------------
+-- LocalHandshake Tracer
+--------------------------------------------------------------------------------
 
 severityLocalHandshake :: NtC.HandshakeTr adr ver -> SeverityS
 severityLocalHandshake (WithMuxBearer _ e) = severityLocalHandshake' e
@@ -430,7 +439,6 @@ namesForLocalHandshake''' HS.MsgReplyVersions {}   = ["ReplyVersions"]
 namesForLocalHandshake''' HS.MsgAcceptVersion {}   = ["AcceptVersion"]
 namesForLocalHandshake''' HS.MsgRefuse {}          = ["Refuse"]
 
-
 instance LogFormatting (NtC.HandshakeTr LocalAddress NtC.NodeToClientVersion) where
   forMachine _dtal (WithMuxBearer b ev) =
     mkObject [ "kind" .= String "LocalHandshakeTrace"
@@ -466,6 +474,9 @@ docLocalHandshake = Documented [
         "It refuses to run any version."
     ]
 
+--------------------------------------------------------------------------------
+-- DiffusionInit Tracer
+--------------------------------------------------------------------------------
 
 severityDiffusionInit :: ND.InitializationTracer rard ladr -> SeverityS
 severityDiffusionInit ND.RunServer {}                         = Info
@@ -515,72 +526,6 @@ namesForDiffusionInit  ND.UnsupportedReadySocketCase {}        =
   ["UnsupportedReadySocketCase"]
 namesForDiffusionInit  ND.DiffusionErrored {}                  =
   ["DiffusionErrored"]
-
-
--- Everything strict in DiffusionInitializationTracer
-docDiffusionInit :: Documented (ND.InitializationTracer Socket.SockAddr LocalAddress)
-docDiffusionInit = Documented [
-    DocMsg
-      (ND.RunServer (pure protoSockAddr))
-      []
-      "RunServer TODO"
-  , DocMsg
-      (ND.RunLocalServer protoLocalAddress)
-      []
-      "RunLocalServer TODO"
-  , DocMsg
-      (ND.UsingSystemdSocket protoLocalAddress)
-      []
-      "UsingSystemdSocket TODO"
-  , DocMsg
-      (ND.CreateSystemdSocketForSnocketPath protoLocalAddress)
-      []
-      "CreateSystemdSocketForSnocketPath TODO"
-  , DocMsg
-      (ND.CreatedLocalSocket protoLocalAddress)
-      []
-      "CreatedLocalSocket TODO"
-  , DocMsg
-      (ND.ConfiguringLocalSocket protoLocalAddress protoFileDescriptor)
-      []
-      "ConfiguringLocalSocket TODO"
-  , DocMsg
-      (ND.ListeningLocalSocket protoLocalAddress protoFileDescriptor)
-      []
-      "ListeningLocalSocket TODO"
-  , DocMsg
-      (ND.LocalSocketUp protoLocalAddress protoFileDescriptor)
-      []
-      "LocalSocketUp TODO"
-  , DocMsg
-      (ND.CreatingServerSocket protoSockAddr)
-      []
-      "CreatingServerSocket TODO"
-  , DocMsg
-      (ND.ConfiguringServerSocket protoSockAddr)
-      []
-      "ConfiguringServerSocket TODO"
-  , DocMsg
-      (ND.ListeningServerSocket protoSockAddr)
-      []
-      "ListeningServerSocket TODO"
-  , DocMsg
-      (ND.ServerSocketUp protoSockAddr)
-      []
-      "ServerSocketUp TODO"
-  , DocMsg
-      (ND.UnsupportedLocalSystemdSocket protoSockAddr)
-      []
-      "UnsupportedLocalSystemdSocket TODO"
-  , DocMsg
-      ND.UnsupportedReadySocketCase
-      []
-      "UnsupportedReadySocketCase TODO"
-  , DocMsg
-      (ND.DiffusionErrored protoSomeException)
-      []
-      "DiffusionErrored TODO"
-  ]
 
 instance (Show ntnAddr, Show ntcAddr) =>
   LogFormatting (ND.InitializationTracer ntnAddr ntcAddr)  where
@@ -649,6 +594,74 @@ instance (Show ntnAddr, Show ntcAddr) =>
     , "path" .= String (pack (show exception))
     ]
 
+-- Everything strict in DiffusionInitializationTracer
+docDiffusionInit :: Documented (ND.InitializationTracer Socket.SockAddr LocalAddress)
+docDiffusionInit = Documented [
+    DocMsg
+      (ND.RunServer (pure protoSockAddr))
+      []
+      "RunServer TODO"
+  , DocMsg
+      (ND.RunLocalServer protoLocalAddress)
+      []
+      "RunLocalServer TODO"
+  , DocMsg
+      (ND.UsingSystemdSocket protoLocalAddress)
+      []
+      "UsingSystemdSocket TODO"
+  , DocMsg
+      (ND.CreateSystemdSocketForSnocketPath protoLocalAddress)
+      []
+      "CreateSystemdSocketForSnocketPath TODO"
+  , DocMsg
+      (ND.CreatedLocalSocket protoLocalAddress)
+      []
+      "CreatedLocalSocket TODO"
+  , DocMsg
+      (ND.ConfiguringLocalSocket protoLocalAddress protoFileDescriptor)
+      []
+      "ConfiguringLocalSocket TODO"
+  , DocMsg
+      (ND.ListeningLocalSocket protoLocalAddress protoFileDescriptor)
+      []
+      "ListeningLocalSocket TODO"
+  , DocMsg
+      (ND.LocalSocketUp protoLocalAddress protoFileDescriptor)
+      []
+      "LocalSocketUp TODO"
+  , DocMsg
+      (ND.CreatingServerSocket protoSockAddr)
+      []
+      "CreatingServerSocket TODO"
+  , DocMsg
+      (ND.ConfiguringServerSocket protoSockAddr)
+      []
+      "ConfiguringServerSocket TODO"
+  , DocMsg
+      (ND.ListeningServerSocket protoSockAddr)
+      []
+      "ListeningServerSocket TODO"
+  , DocMsg
+      (ND.ServerSocketUp protoSockAddr)
+      []
+      "ServerSocketUp TODO"
+  , DocMsg
+      (ND.UnsupportedLocalSystemdSocket protoSockAddr)
+      []
+      "UnsupportedLocalSystemdSocket TODO"
+  , DocMsg
+      ND.UnsupportedReadySocketCase
+      []
+      "UnsupportedReadySocketCase TODO"
+  , DocMsg
+      (ND.DiffusionErrored protoSomeException)
+      []
+      "DiffusionErrored TODO"
+  ]
+
+--------------------------------------------------------------------------------
+-- LedgerPeers Tracer
+--------------------------------------------------------------------------------
 
 severityLedgerPeers :: TraceLedgerPeers -> SeverityS
 severityLedgerPeers PickedPeer {}                  = Debug

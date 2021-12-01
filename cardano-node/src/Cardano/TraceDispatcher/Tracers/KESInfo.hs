@@ -48,6 +48,10 @@ traceAsMaybeKESInfo pr (Trace tr) = Trace $
               Nothing   -> (lc, mbC, Nothing))
         tr
 
+--------------------------------------------------------------------------------
+-- KESInfo Tracer
+--------------------------------------------------------------------------------
+
 severityKESInfo :: TraceLabelCreds HotKey.KESInfo -> SeverityS
 severityKESInfo (TraceLabelCreds _creds a) = severityKESInfo'  a
 

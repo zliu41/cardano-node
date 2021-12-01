@@ -83,6 +83,7 @@ library
                        Cardano.Node.Types
                        Cardano.TraceDispatcher.API
                        Cardano.TraceDispatcher.Compat
+                       Cardano.TraceDispatcher.Documentation
                        Cardano.TraceDispatcher.Era.Byron
                        Cardano.TraceDispatcher.Era.HardFork
                        Cardano.TraceDispatcher.Era.Shelley
@@ -101,7 +102,7 @@ library
                        Cardano.TraceDispatcher.Tracers.P2P
                        Cardano.TraceDispatcher.Tracers.NonP2P
                        Cardano.TraceDispatcher.Tracers.NodeToClient
-                       Cardano.TraceDispatcher.Tracers.NodeToNode               
+                       Cardano.TraceDispatcher.Tracers.NodeToNode
                        Cardano.TraceDispatcher.Formatting
                        Cardano.TraceDispatcher.Render
                        Cardano.Tracing.Config
