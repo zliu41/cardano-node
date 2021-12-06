@@ -11,6 +11,8 @@ module Cardano.Logging.DocuGenerator (
   , docTracerDatapoint
   , anyProto
   , DocuResult
+  , appDoc
+  , mapDoc
 ) where
 
 import           Cardano.Logging.Types
@@ -53,6 +55,12 @@ unpackDocu (DocuDatapoint b) = b
 
 anyProto :: a
 anyProto = undefined
+
+appDoc :: (a -> b) -> DocMsg a -> DocMsg b
+appDoc f DocMsg {..} = DocMsg  (f dmPrototype) dmMetricsMD dmMarkdown
+
+mapDoc :: (a -> b) -> [DocMsg a] -> [DocMsg b]
+mapDoc f = map (appDoc f)
 
 docTracer :: MonadIO m
   => BackendConfig

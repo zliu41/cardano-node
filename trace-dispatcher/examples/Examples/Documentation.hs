@@ -10,7 +10,7 @@ import           Examples.TestObjects
 
 docTracers :: IO ()
 docTracers = do
-  let t = standardTracer
+  t <- standardTracer
   t1' <- humanFormatter True "cardano" t
   let t1 = withSeverityTraceForgeEvent
                 (appendName "node" t1')

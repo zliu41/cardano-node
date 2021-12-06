@@ -17,7 +17,7 @@ import           Debug.Trace
 
 main :: IO ()
 main = do
-  let stdioTr = standardTracer
+  stdioTr <- standardTracer
   tr      <- stdoutTracers stdioTr
   filtr   <- filterTracers stdioTr
   imtr    <- inMemoryTracers
