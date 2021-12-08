@@ -98,6 +98,18 @@ readSigningKey name filePath =
     Left err -> liftTxGenError err
     Right key -> setName name key
 
+defineSigningKey :: KeyName -> TextEnvelope -> ActionM ()
+defineSigningKey name descr
+  = case deserialiseFromTextEnvelopeAnyOf types descr of
+    Right key -> setName name key
+    Left err -> throwE $ ApiError $ show err
+  where
+    types :: [FromSomeType HasTextEnvelope (SigningKey PaymentKey)]
+    types =
+      [ FromSomeType (AsSigningKey AsGenesisUTxOKey) castSigningKey
+      , FromSomeType (AsSigningKey AsPaymentKey) id
+      ]
+
 getLocalSubmitTx :: ActionM LocalSubmitTx
 getLocalSubmitTx = submitTxToNodeLocal <$> getLocalConnectInfo
 
