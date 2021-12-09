@@ -16,6 +16,7 @@ action a = case a of
   StartProtocol filePath -> startProtocol filePath
   ReadSigningKey name filePath -> readSigningKey name filePath
   DefineSigningKey name descr -> defineSigningKey name descr
+  AddFund txIn lovelace keyName -> addFund txIn lovelace keyName
   SecureGenesisFund fundName fundKey genesisKey -> secureGenesisFund fundName fundKey genesisKey
   SplitFund newFunds newKey sourceFund -> splitFund  newFunds newKey sourceFund
   SplitFundToList fundList destKey sourceFund -> splitFundToList fundList destKey sourceFund
