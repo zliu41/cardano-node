@@ -49,6 +49,7 @@ module Cardano.Api.Eras
 import           Prelude
 
 import           Data.Aeson (FromJSON (..), ToJSON, toJSON, withText)
+import           Data.Function (on)
 import qualified Data.Text as Text
 import           Data.Type.Equality (TestEquality (..), (:~:) (Refl))
 
@@ -253,6 +254,9 @@ instance Enum AnyCardanoEra where
          error $
             "AnyCardanoEra.toEnum: " <> show n
             <> " does not correspond to any known enumerated era."
+
+instance Ord AnyCardanoEra where
+   compare = compare `on` fromEnum
 
 instance ToJSON AnyCardanoEra where
    toJSON (AnyCardanoEra era) = toJSON era
