@@ -61,6 +61,19 @@ module Gen.Cardano.Api.Typed
   , genRational
   ) where
 
+import           Cardano.Prelude
+
+import           Control.Monad.Fail (fail)
+import qualified Data.ByteString as BS
+import qualified Data.ByteString.Short as SBS
+import           Data.Coerce
+import qualified Data.Map.Strict as Map
+import           Data.String
+import qualified Data.Text as Text
+import           Hedgehog (Gen, Range)
+import qualified Hedgehog.Gen as Gen
+import qualified Hedgehog.Range as Range
+
 import           Cardano.Api hiding (txIns)
 import qualified Cardano.Api as Api
 import           Cardano.Api.Byron (KeyWitness (ByronKeyWitness),
@@ -72,24 +85,11 @@ import           Cardano.Api.Shelley (Hash (ScriptDataHash), KESPeriod (KESPerio
                    StakeCredential (StakeCredentialByKey), StakePoolKey,
                    refInsScriptsAndInlineDatsSupportedInEra)
 
-import           Cardano.Prelude
-
-import           Control.Monad.Fail (fail)
-import qualified Data.ByteString as BS
-import qualified Data.ByteString.Short as SBS
-import           Data.Coerce
-import           Data.String
-import qualified Data.Text as Text
-
 import qualified Cardano.Binary as CBOR
 import qualified Cardano.Crypto.Hash as Crypto
 import qualified Cardano.Crypto.Seed as Crypto
 import qualified Cardano.Ledger.Shelley.TxBody as Ledger (EraIndependentTxBody)
 import qualified PlutusCore as Plutus
-
-import           Hedgehog (Gen, Range)
-import qualified Hedgehog.Gen as Gen
-import qualified Hedgehog.Range as Range
 
 import qualified Cardano.Crypto.Hash.Class as CRYPTO
 import           Cardano.Ledger.Alonzo.Language (Language (..))
@@ -533,7 +533,11 @@ genTxBodyContent era = do
   txIns <- map (, BuildTxWith (KeyWitness KeyWitnessForSpending)) <$> Gen.list (Range.constant 1 10) genTxIn
   txInsCollateral <- genTxInsCollateral era
   txInsReference <- genTxInsReference era
-  txOuts <- Gen.list (Range.constant 1 10) (genTxOutTxContext era)
+  txOuts <-
+    Gen.list (Range.constant 1 10) (genTxOutTxContext era)
+    <&> fixDatumHashCollisions
+      -- Without this fix, generated script data may have the same hashes for
+      -- both present (value + hash) and non-present (hash only) values.
   txTotalCollateral <- genTxTotalCollateral era
   txReturnCollateral <- genTxReturnCollateral era
   txFee <- genTxFee era
@@ -567,6 +571,33 @@ genTxBodyContent era = do
     , Api.txMintValue
     , Api.txScriptValidity
     }
+
+
+-- | Ensure that all script data with the same hash are
+-- either all presented as values or all presented as hashes.
+--
+-- It's possible to have a hash without its datum, and also with its datum,
+-- and these two possibilities are semantically equivalent.
+fixDatumHashCollisions :: forall era. [TxOut CtxTx era] -> [TxOut CtxTx era]
+fixDatumHashCollisions outs = map replaceOutHashWithItsDatum outs
+  where
+    replaceOutHashWithItsDatum :: TxOut CtxTx era -> TxOut CtxTx era
+    replaceOutHashWithItsDatum (TxOut address value datum script) =
+      TxOut address value (replaceHashWithItsDatum datum) script
+
+    replaceHashWithItsDatum :: TxOutDatum CtxTx era -> TxOutDatum CtxTx era
+    replaceHashWithItsDatum datum =
+      case datum of
+        TxOutDatumHash _ hash -> fromMaybe datum $ Map.lookup hash hashedData
+        _ -> datum
+
+    hashedData :: Map (Hash ScriptData) (TxOutDatum CtxTx era)
+    hashedData =
+      Map.fromList
+        [ (hashScriptData scriptData, datum)
+        | TxOut _ _ datum@(TxOutDatumInTx _ scriptData) _ <- outs
+        ]
+
 
 genTxInsCollateral :: CardanoEra era -> Gen (TxInsCollateral era)
 genTxInsCollateral era =
