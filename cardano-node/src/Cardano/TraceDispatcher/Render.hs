@@ -37,7 +37,7 @@ import qualified Data.Text.Encoding as Text
 import           Cardano.Logging
 import           Cardano.Slotting.Slot (EpochNo (..), SlotNo (..),
                      WithOrigin (..))
-import           Cardano.Node.Queries (ConvertTxId (..))                    
+import           Cardano.Node.Queries (ConvertTxId (..))
 import           Ouroboros.Consensus.Block (BlockNo (..), ConvertRawHash (..),
                      RealPoint (..))
 import           Ouroboros.Consensus.Block.Abstract (Point (..))
@@ -53,9 +53,6 @@ import           Ouroboros.Network.Block (ChainHash (..), HeaderHash,
 
 condenseT :: Condense a => a -> Text
 condenseT = Text.pack . condense
-
-showT :: Show a => a -> Text
-showT = Text.pack . show
 
 -- renderBlockOrEBB :: BlockOrEBB -> Text
 -- renderBlockOrEBB (Block slotNo) = "Block at " <> renderSlotNo slotNo

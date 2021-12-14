@@ -69,12 +69,11 @@ import Ouroboros.Consensus.HardFork.Combinator.Embed.Unary
 import Ouroboros.Consensus.Ledger.Abstract (IsLedger)
 import Ouroboros.Consensus.Ledger.Extended (ExtLedgerState)
 import Ouroboros.Consensus.Node (NodeKernel (..))
-import Ouroboros.Consensus.Protocol.Ledger.HotKey qualified as HotKey
 import Ouroboros.Consensus.Shelley.Ledger qualified as Shelley
 import Ouroboros.Consensus.Shelley.Ledger.Block (ShelleyBlock)
 import Ouroboros.Consensus.Shelley.Ledger.Mempool (TxId (..))
 import Ouroboros.Consensus.Shelley.Node ()
-import Ouroboros.Consensus.Shelley.Protocol.HotKey qualified as HotKey
+import Ouroboros.Consensus.Protocol.Ledger.HotKey qualified as HotKey
 import Ouroboros.Consensus.Storage.ChainDB qualified as ChainDB
 import Ouroboros.Consensus.TypeFamilyWrappers
 import Ouroboros.Consensus.Util.Orphans ()

@@ -82,6 +82,8 @@ import           Cardano.TraceDispatcher.Formatting ()
 import           Cardano.TraceDispatcher.Render
 import           Cardano.TraceDispatcher.Tracers.StartLeadershipCheck
 
+import           Cardano.Protocol.TPraos.OCert (KESPeriod (..))
+
 import           Ouroboros.Network.BlockFetch.ClientState (TraceLabelPeer (..))
 import qualified Ouroboros.Network.BlockFetch.ClientState as BlockFetch
 import           Ouroboros.Network.KeepAlive (TraceKeepAliveClient (..))
@@ -109,13 +111,12 @@ import           Ouroboros.Consensus.MiniProtocol.LocalTxSubmission.Server
 import           Ouroboros.Consensus.Node.Run (SerialiseNodeToNodeConstraints,
                      estimateBlockSize)
 import           Ouroboros.Consensus.Node.Tracers
-import qualified Ouroboros.Consensus.Shelley.Protocol.HotKey as HotKey
+import qualified Ouroboros.Consensus.Protocol.Ledger.HotKey as HotKey
 
 import           Ouroboros.Network.Block hiding (blockPrevHash)
 import           Ouroboros.Network.BlockFetch.Decision
 import           Ouroboros.Network.DeltaQ (GSV (..), PeerGSV (..))
 
-import           Cardano.Protocol.TPraos.OCert (KESPeriod (..))
 
 instance LogFormatting a => LogFormatting (TraceLabelCreds a) where
   forMachine dtal (TraceLabelCreds creds a)  =

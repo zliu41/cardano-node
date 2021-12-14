@@ -1,15 +1,15 @@
-{-# LANGUAGE DataKinds                  #-}
-{-# LANGUAGE DerivingStrategies         #-}
-{-# LANGUAGE DisambiguateRecordFields   #-}
-{-# LANGUAGE EmptyCase                  #-}
-{-# LANGUAGE FlexibleContexts           #-}
-{-# LANGUAGE FlexibleInstances          #-}
-{-# LANGUAGE MultiParamTypeClasses      #-}
-{-# LANGUAGE NamedFieldPuns             #-}
-{-# LANGUAGE OverloadedStrings          #-}
-{-# LANGUAGE ScopedTypeVariables        #-}
-{-# LANGUAGE TypeFamilies               #-}
-{-# LANGUAGE UndecidableInstances       #-}
+{-# LANGUAGE DataKinds                #-}
+{-# LANGUAGE DerivingStrategies       #-}
+{-# LANGUAGE DisambiguateRecordFields #-}
+{-# LANGUAGE EmptyCase                #-}
+{-# LANGUAGE FlexibleContexts         #-}
+{-# LANGUAGE FlexibleInstances        #-}
+{-# LANGUAGE MultiParamTypeClasses    #-}
+{-# LANGUAGE NamedFieldPuns           #-}
+{-# LANGUAGE OverloadedStrings        #-}
+{-# LANGUAGE ScopedTypeVariables      #-}
+{-# LANGUAGE TypeFamilies             #-}
+{-# LANGUAGE UndecidableInstances     #-}
 
 {-# OPTIONS_GHC -Wno-orphans  #-}
 
@@ -27,24 +27,23 @@ import qualified Data.Text as Text
 import qualified Cardano.Api as Api
 import           Cardano.Api.Orphans ()
 import qualified Cardano.Api.Shelley as Api
+import qualified Cardano.Crypto.Hash.Class as Crypto
 import           Cardano.Ledger.Crypto (StandardCrypto)
 import           Cardano.Logging
 import           Cardano.Prelude
 import           Cardano.Slotting.Block (BlockNo (..))
 
-import           Ouroboros.Consensus.Ledger.SupportsMempool (txId)
-import qualified Ouroboros.Consensus.Ledger.SupportsMempool as SupportsMempool
-import           Ouroboros.Consensus.Util.Condense (condense)
 import           Ouroboros.Network.Block (SlotNo (..), blockHash, blockNo,
                      blockSlot)
 import           Ouroboros.Network.Point (WithOrigin, withOriginToMaybe)
 
+import           Ouroboros.Consensus.Ledger.SupportsMempool (txId)
+import qualified Ouroboros.Consensus.Ledger.SupportsMempool as SupportsMempool
+import qualified Ouroboros.Consensus.Protocol.Ledger.HotKey as HotKey
+import           Ouroboros.Consensus.Protocol.TPraos (TPraosCannotForge (..))
 import           Ouroboros.Consensus.Shelley.Ledger hiding (TxId)
 import           Ouroboros.Consensus.Shelley.Ledger.Inspect
-import           Ouroboros.Consensus.Shelley.Protocol (TPraosCannotForge (..))
-import qualified Ouroboros.Consensus.Shelley.Protocol.HotKey as HotKey
-
-import qualified Cardano.Crypto.Hash.Class as Crypto
+import           Ouroboros.Consensus.Util.Condense (condense)
 
 import           Cardano.Protocol.TPraos.BHeader (LastAppliedBlock, labBlockNo)
 import           Cardano.Protocol.TPraos.Rules.OCert
@@ -67,7 +66,6 @@ import qualified Cardano.Ledger.Era as Ledger
 import qualified Cardano.Ledger.SafeHash as SafeHash
 import qualified Cardano.Ledger.ShelleyMA.Rules.Utxo as MA
 import qualified Cardano.Ledger.ShelleyMA.Timelocks as MA
-
 
 -- TODO: this should be exposed via Cardano.Api
 import           Cardano.Ledger.Shelley.API hiding (ShelleyBasedEra)
@@ -348,7 +346,7 @@ instance ( ShelleyBasedEra era
          , LogFormatting (PredicateFailure (Core.EraRule "DELEGS" era))
          , LogFormatting (PredicateFailure (Core.EraRule "UTXOW" era))
          ) => LogFormatting (LedgerPredicateFailure era) where
-  forMachine dtal (UtxowFailure f) = forMachine dtal f
+  forMachine dtal (UtxowFailure f)  = forMachine dtal f
   forMachine dtal (DelegsFailure f) = forMachine dtal f
 
 instance LogFormatting (AlonzoPredFail (Alonzo.AlonzoEra StandardCrypto)) where

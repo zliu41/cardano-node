@@ -58,8 +58,8 @@ import           Ouroboros.Consensus.MiniProtocol.LocalTxSubmission.Server
                      (TraceLocalTxSubmissionServerEvent (..))
 import qualified Ouroboros.Consensus.Node.Run as Consensus
 import qualified Ouroboros.Consensus.Node.Tracers as Consensus
+import qualified Ouroboros.Consensus.Protocol.Ledger.HotKey as HotKey
 import           Ouroboros.Consensus.Shelley.Ledger.Block
-import qualified Ouroboros.Consensus.Shelley.Protocol.HotKey as HotKey
 import qualified Ouroboros.Consensus.Storage.ChainDB as ChainDB
 
 import           Ouroboros.Network.Block (Point (..), Tip)
@@ -88,9 +88,6 @@ import           Ouroboros.Network.PeerSelection.RootPeersDNS
                      (TraceLocalRootPeers (..), TracePublicRootPeers (..))
 import           Ouroboros.Network.Protocol.BlockFetch.Type (BlockFetch)
 import           Ouroboros.Network.Protocol.ChainSync.Type (ChainSync)
-
-
-
 import           Ouroboros.Network.Protocol.LocalStateQuery.Type
                      (LocalStateQuery)
 import qualified Ouroboros.Network.Protocol.LocalTxSubmission.Type as LTS

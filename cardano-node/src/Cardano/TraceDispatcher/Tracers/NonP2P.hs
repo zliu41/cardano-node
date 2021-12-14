@@ -37,12 +37,9 @@ module Cardano.TraceDispatcher.Tracers.NonP2P
 
 import           Cardano.Logging
 import           Cardano.Prelude hiding (Show, show)
-import           Control.Monad.Class.MonadTime
 import           Data.Aeson (Value (String), (.=))
 import qualified Data.IP as IP
 import           Data.Text (pack)
-import           Data.Time.Clock (secondsToDiffTime)
-import qualified Network.DNS as DNS
 import qualified Network.Socket as Socket
 import           Text.Show
 
@@ -56,27 +53,8 @@ import           Ouroboros.Network.Subscription.Dns (DnsTrace (..),
 import           Ouroboros.Network.Subscription.Ip (SubscriptionTrace,
                      WithIPList (..))
 import           Ouroboros.Network.Subscription.Worker (ConnectResult (..),
-                     LocalAddresses (..), SubscriberError,
-                     SubscriptionTrace (..))
+                     SubscriberError, SubscriptionTrace (..))
 
-
-showT :: Show a => a -> Text
-showT = pack . show
-
-protoLocalAdresses :: LocalAddresses addr
-protoLocalAdresses = LocalAddresses Nothing Nothing Nothing
-
-protoDiffTime :: DiffTime
-protoDiffTime = secondsToDiffTime 1
-
-protoDomain :: DNS.Domain
-protoDomain = "www.example.org"
-
-protoLocalAdress :: LocalAddress
-protoLocalAdress = LocalAddress "loopback"
-
-protoSomeException :: SomeException
-protoSomeException = SomeException (AssertionFailed "just fooled")
 
 instance LogFormatting NtN.RemoteAddress where
     forMachine _dtal (Socket.SockAddrInet port addr) =
@@ -190,7 +168,7 @@ docIPSubscription :: Documented (WithIPList (SubscriptionTrace Socket.SockAddr))
 docIPSubscription = Documented $ map withIPList (undoc docSubscription)
   where
     withIPList (DocMsg v nl comment) =
-      DocMsg (WithIPList protoLocalAdresses [] v) nl ("IP Subscription: " <> comment)
+      DocMsg (WithIPList anyProto [] v) nl ("IP Subscription: " <> comment)
 
 --------------------------------------------------------------------------------
 -- DNSSubscription Tracer
@@ -246,7 +224,7 @@ docDNSSubscription :: Documented (WithDomainName (SubscriptionTrace Socket.SockA
 docDNSSubscription = Documented $ map withDomainName (undoc docSubscription)
   where
     withDomainName (DocMsg v nl comment) =
-      DocMsg (WithDomainName protoDomain v) nl ("DNS Subscription: " <> comment)
+      DocMsg (WithDomainName anyProto v) nl ("DNS Subscription: " <> comment)
 
 
 docSubscription :: Documented (SubscriptionTrace Socket.SockAddr)
@@ -260,11 +238,11 @@ docSubscription = Documented [
         []
         "Connection Attempt end with destination and outcome."
     , DocMsg
-        (SubscriptionTraceSocketAllocationException anyProto protoSomeException)
+        (SubscriptionTraceSocketAllocationException anyProto (anyProto :: SomeException))
         []
         "Socket Allocation Exception with destination and the exception."
     , DocMsg
-        (SubscriptionTraceConnectException anyProto protoSomeException)
+        (SubscriptionTraceConnectException anyProto (anyProto :: SomeException))
         []
         "Connection Attempt Exception with destination and exception."
     , DocMsg
@@ -313,7 +291,7 @@ docSubscription = Documented [
         []
         "Missing local address."
     , DocMsg
-        (SubscriptionTraceApplicationException anyProto protoSomeException)
+        (SubscriptionTraceApplicationException anyProto (anyProto :: SomeException))
         []
         "Application Exception occured."
     , DocMsg
@@ -364,42 +342,42 @@ instance LogFormatting (WithDomainName DnsTrace) where
 docDNSResolver :: Documented (WithDomainName DnsTrace)
 docDNSResolver = Documented [
       DocMsg
-        (WithDomainName protoDomain
+        (WithDomainName anyProto
           (DnsTraceLookupException anyProto))
         []
         "A DNS lookup exception occured."
     , DocMsg
-        (WithDomainName protoDomain
+        (WithDomainName anyProto
           (DnsTraceLookupAError anyProto))
         []
         "A lookup failed with an error."
     , DocMsg
-        (WithDomainName protoDomain
+        (WithDomainName anyProto
           (DnsTraceLookupAAAAError anyProto))
         []
         "AAAA lookup failed with an error."
     , DocMsg
-        (WithDomainName protoDomain
+        (WithDomainName anyProto
           DnsTraceLookupIPv4First)
         []
         "Returning IPv4 address first."
     , DocMsg
-        (WithDomainName protoDomain
+        (WithDomainName anyProto
           DnsTraceLookupIPv6First)
         []
         "Returning IPv6 address first."
     , DocMsg
-        (WithDomainName protoDomain
+        (WithDomainName anyProto
           DnsTraceLookupIPv6First)
         []
         "Returning IPv6 address first."
     , DocMsg
-        (WithDomainName protoDomain
+        (WithDomainName anyProto
           (DnsTraceLookupAResult [anyProto]))
         []
         "Lookup A result."
     , DocMsg
-        (WithDomainName protoDomain
+        (WithDomainName anyProto
           (DnsTraceLookupAAAAResult [anyProto]))
         []
         "Lookup AAAA result."
@@ -478,7 +456,7 @@ namesForLocalErrorPolicy (WithAddr _ ev) = case ev of
 
 
 docLocalErrorPolicy :: Documented (WithAddr LocalAddress ErrorPolicyTrace)
-docLocalErrorPolicy = docErrorPolicy' protoLocalAdress
+docLocalErrorPolicy = docErrorPolicy' anyProto
 
 -- WithAddr has strict constructors
 
@@ -486,12 +464,12 @@ docErrorPolicy' :: adr -> Documented (WithAddr adr ErrorPolicyTrace)
 docErrorPolicy' adr = Documented [
       DocMsg
         (WithAddr adr
-          (ErrorPolicySuspendPeer anyProto protoDiffTime protoDiffTime))
+          (ErrorPolicySuspendPeer anyProto anyProto anyProto))
         []
         "Suspending peer with a given exception."
     , DocMsg
         (WithAddr adr
-          (ErrorPolicySuspendConsumer anyProto protoDiffTime))
+          (ErrorPolicySuspendConsumer anyProto anyProto))
         []
         "Suspending consumer."
     , DocMsg

@@ -860,10 +860,12 @@ instance (Show addr, Show versionNumber, Show agreedOptions, LogFormatting addr,
           , "remoteAddress" .= forMachine dtal remoteAddress
           , "connectionState" .= toJSON connState
           ]
-    forMachine dtal (TrPruneConnections peers) =
+    forMachine dtal (TrPruneConnections pruningSet numberPruned chosenPeers) =
         mkObject
           [ "kind" .= String "PruneConnections"
-          , "peers" .= toJSON (forMachine dtal `map` peers)
+          , "prunedPeers" .= toJSON pruningSet
+          , "numberPrunedPeers" .= toJSON numberPruned
+          , "choiceSet" .= toJSON (forMachine dtal `Set.map` chosenPeers)
           ]
     forMachine _dtal (TrConnectionCleanup connId) =
         mkObject
@@ -903,20 +905,20 @@ instance (Show addr, Show versionNumber, Show agreedOptions, LogFormatting addr,
     forHuman = pack . show
     asMetrics (TrConnectionManagerCounters (ConnectionManagerCounters {..})) =
           [ IntM
-              "cardano.node.connectionManager.prunableConns"
-              (fromIntegral prunableConns)
+              "cardano.node.connectionManager.fullDuplexConns"
+              (fromIntegral fullDuplexConns)
           , IntM
               "cardano.node.connectionManager.duplexConns"
               (fromIntegral duplexConns)
           , IntM
               "cardano.node.connectionManager.unidirectionalConns"
-              (fromIntegral uniConns)
+              (fromIntegral unidirectionalConns)
           , IntM
-              "cardano.node.connectionManager.incomingConns"
-              (fromIntegral incomingConns)
+              "cardano.node.connectionManager.inboundConns"
+              (fromIntegral inboundConns)
           , IntM
-              "cardano.node.connectionManager.outgoingConns"
-              (fromIntegral outgoingConns)
+              "cardano.node.connectionManager.outboundConns"
+              (fromIntegral outboundConns)
             ]
     asMetrics _ = []
 
@@ -1011,7 +1013,7 @@ docConnectionManager = Documented
       []
       ""
   ,  DocMsg
-      (TrPruneConnections [])
+      (TrPruneConnections anyProto anyProto anyProto)
       []
       ""
   ,  DocMsg
@@ -1028,11 +1030,11 @@ docConnectionManager = Documented
       ""
   ,  DocMsg
       (TrConnectionManagerCounters anyProto)
-      [("cardano.node.connectionManager.prunableConns","")
+      [("cardano.node.connectionManager.fullDuplexConns","")
       ,("cardano.node.connectionManager.duplexConns","")
       ,("cardano.node.connectionManager.unidirectionalConns","")
-      ,("cardano.node.connectionManager.incomingConns","")
-      ,("cardano.node.connectionManager.outgoingConns","")
+      ,("cardano.node.connectionManager.inboundConns","")
+      ,("cardano.node.connectionManager.outboundConns","")
       ]
       ""
   ,  DocMsg

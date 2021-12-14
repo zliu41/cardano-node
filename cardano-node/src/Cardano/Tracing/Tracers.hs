@@ -96,8 +96,8 @@ import           Ouroboros.Network.ConnectionManager.Types (ConnectionManagerCou
 import qualified Ouroboros.Network.Diffusion as Diffusion
 import qualified Ouroboros.Network.Diffusion.NonP2P as NonP2P
 import qualified Ouroboros.Network.Diffusion.P2P as P2P
-import           Ouroboros.Network.NodeToClient (LocalAddress, NodeToClientVersion)
-import           Ouroboros.Network.NodeToNode (NodeToNodeVersion, RemoteAddress)
+import           Ouroboros.Network.NodeToClient (LocalAddress)
+import           Ouroboros.Network.NodeToNode (RemoteAddress)
 
 import qualified Ouroboros.Consensus.Storage.ChainDB as ChainDB
 import qualified Ouroboros.Consensus.Storage.LedgerDB.OnDisk as LedgerDB

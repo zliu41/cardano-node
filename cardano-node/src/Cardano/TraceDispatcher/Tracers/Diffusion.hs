@@ -32,20 +32,12 @@ module Cardano.TraceDispatcher.Tracers.Diffusion
 import           Cardano.Logging
 import           Cardano.Prelude hiding (Show, show)
 import qualified Codec.CBOR.Term as CBOR
-import           Control.Monad.Class.MonadTime
 import           Data.Aeson (Value (String), (.=))
 import           Data.Text (pack)
-import           Data.Time.Clock (secondsToDiffTime)
-import qualified Network.DNS as DNS
-import           Network.Mux (MiniProtocolNum (..), MuxBearerState (..),
-                     MuxTrace (..), WithMuxBearer (..))
-import           Network.Mux.Types (MiniProtocolDir (..), MuxSDUHeader (..),
-                     RemoteClockModel (..))
+import           Network.Mux (MuxTrace (..), WithMuxBearer (..))
 import qualified Network.Socket as Socket
 import           Network.TypedProtocol.Codec (AnyMessageAndAgency (..))
-import           System.IO.Unsafe (unsafePerformIO)
 import           Text.Show
-import           Unsafe.Coerce
 
 import           Cardano.Node.Configuration.TopologyP2P (UseLedger (..))
 
@@ -60,55 +52,7 @@ import           Ouroboros.Network.PeerSelection.RelayAccessPoint
                      (RelayAccessPoint (..))
 import           Ouroboros.Network.Protocol.BlockFetch.Type (Message (..))
 import qualified Ouroboros.Network.Protocol.Handshake.Type as HS
-import           Ouroboros.Network.Snocket (FileDescriptor, LocalAddress (..),
-                     socketFileDescriptor)
 
-
-
-showT :: Show a => a -> Text
-showT = pack . show
-
-protoPeer :: peer
-protoPeer = unsafeCoerce (NtN.ConnectionId protoSockAddr protoSockAddr)
-
-protoDiffTime :: DiffTime
-protoDiffTime = secondsToDiffTime 1
-
-protoDomain :: DNS.Domain
-protoDomain = "www.example.org"
-
-protoMuxSDUHeader :: MuxSDUHeader
-protoMuxSDUHeader = MuxSDUHeader {
-      mhTimestamp = RemoteClockModel 1
-    , mhNum       = MiniProtocolNum 1
-    , mhDir       = InitiatorDir
-    , mhLength    = 1
-    }
-
-protoMuxBearerState :: MuxBearerState
-protoMuxBearerState = Mature
-
-protoMiniProtocolNum :: MiniProtocolNum
-protoMiniProtocolNum = MiniProtocolNum 1
-
-protoMiniProtocolDir :: MiniProtocolDir
-protoMiniProtocolDir = InitiatorDir
-
-protoSomeException :: SomeException
-protoSomeException = SomeException (AssertionFailed "just fooled")
-
-protoSockAddr :: Socket.SockAddr
-protoSockAddr = Socket.SockAddrUnix "loopback"
-
-protoLocalAddress :: LocalAddress
-protoLocalAddress = LocalAddress "loopback"
-
-{-# NOINLINE protoFileDescriptor #-}
-protoFileDescriptor :: FileDescriptor
-protoFileDescriptor =
-  unsafePerformIO $ do
-    sock <- Socket.mkSocket 111
-    socketFileDescriptor sock
 
 --------------------------------------------------------------------------------
 -- Mux Tracer
@@ -192,133 +136,133 @@ instance (LogFormatting peer, Show peer) =>
 docMux :: Documented (WithMuxBearer peer MuxTrace)
 docMux = Documented [
       DocMsg
-        (WithMuxBearer protoPeer
+        (WithMuxBearer anyProto
           MuxTraceRecvHeaderStart)
         []
         "Bearer receive header start."
     , DocMsg
-        (WithMuxBearer protoPeer
-          (MuxTraceRecvHeaderEnd protoMuxSDUHeader))
+        (WithMuxBearer anyProto
+          (MuxTraceRecvHeaderEnd anyProto))
         []
         "Bearer receive header end."
     , DocMsg
-        (WithMuxBearer protoPeer
-          (MuxTraceRecvDeltaQObservation protoMuxSDUHeader anyProto))
+        (WithMuxBearer anyProto
+          (MuxTraceRecvDeltaQObservation anyProto anyProto))
         []
         "Bearer DeltaQ observation."
     , DocMsg
-        (WithMuxBearer protoPeer
+        (WithMuxBearer anyProto
           (MuxTraceRecvDeltaQSample 1.0 1 1 1.0 1.0 1.0 1.0 ""))
         []
         "Bearer DeltaQ sample."
     , DocMsg
-        (WithMuxBearer protoPeer
+        (WithMuxBearer anyProto
           (MuxTraceRecvStart 1))
         []
         "Bearer receive start."
     , DocMsg
-        (WithMuxBearer protoPeer
+        (WithMuxBearer anyProto
           (MuxTraceRecvEnd 1))
         []
         "Bearer receive end."
     , DocMsg
-        (WithMuxBearer protoPeer
-          (MuxTraceSendStart protoMuxSDUHeader))
+        (WithMuxBearer anyProto
+          (MuxTraceSendStart anyProto))
         []
         "Bearer send start."
     , DocMsg
-        (WithMuxBearer protoPeer
+        (WithMuxBearer anyProto
           MuxTraceSendEnd)
         []
         "Bearer send end."
     , DocMsg
-        (WithMuxBearer protoPeer
-          (MuxTraceState protoMuxBearerState))
+        (WithMuxBearer anyProto
+          (MuxTraceState anyProto))
         []
         "State."
     , DocMsg
-        (WithMuxBearer protoPeer
-          (MuxTraceCleanExit protoMiniProtocolNum protoMiniProtocolDir))
+        (WithMuxBearer anyProto
+          (MuxTraceCleanExit anyProto anyProto))
         []
         "Miniprotocol terminated cleanly."
     , DocMsg
-        (WithMuxBearer protoPeer
+        (WithMuxBearer anyProto
           (MuxTraceExceptionExit
-              protoMiniProtocolNum protoMiniProtocolDir protoSomeException))
+              anyProto anyProto anyProto))
         []
         "Miniprotocol terminated with exception."
     , DocMsg
-        (WithMuxBearer protoPeer
-          (MuxTraceChannelRecvStart protoMiniProtocolNum))
+        (WithMuxBearer anyProto
+          (MuxTraceChannelRecvStart anyProto))
         []
         "Channel receive start."
     , DocMsg
-        (WithMuxBearer protoPeer
-          (MuxTraceChannelRecvEnd protoMiniProtocolNum 1))
+        (WithMuxBearer anyProto
+          (MuxTraceChannelRecvEnd anyProto 1))
         []
         "Channel receive end."
     , DocMsg
-        (WithMuxBearer protoPeer
-          (MuxTraceChannelSendStart protoMiniProtocolNum 1))
+        (WithMuxBearer anyProto
+          (MuxTraceChannelSendStart anyProto 1))
         []
         "Channel send start."
     , DocMsg
-        (WithMuxBearer protoPeer
-          (MuxTraceChannelSendEnd protoMiniProtocolNum))
+        (WithMuxBearer anyProto
+          (MuxTraceChannelSendEnd anyProto))
         []
         "Channel send end."
     , DocMsg
-        (WithMuxBearer protoPeer
+        (WithMuxBearer anyProto
           MuxTraceHandshakeStart)
         []
         "Handshake start."
     , DocMsg
-        (WithMuxBearer protoPeer
-          (MuxTraceHandshakeClientEnd protoDiffTime))
+        (WithMuxBearer anyProto
+          (MuxTraceHandshakeClientEnd anyProto))
         []
         "Handshake client end."
     , DocMsg
-        (WithMuxBearer protoPeer
-          (MuxTraceHandshakeClientError protoSomeException protoDiffTime))
+        (WithMuxBearer anyProto
+          (MuxTraceHandshakeClientError (anyProto :: SomeException) anyProto))
         []
         "Handshake client error."
     , DocMsg
-        (WithMuxBearer protoPeer
-          (MuxTraceHandshakeServerError protoSomeException))
+        (WithMuxBearer anyProto
+          (MuxTraceHandshakeServerError (anyProto :: SomeException)))
         []
         "Handshake server error."
     , DocMsg
-        (WithMuxBearer protoPeer
+        (WithMuxBearer anyProto
           MuxTraceSDUReadTimeoutException)
         []
         "Timed out reading SDU."
     , DocMsg
-        (WithMuxBearer protoPeer
+        (WithMuxBearer anyProto
           MuxTraceSDUWriteTimeoutException)
         []
         "Timed out writing SDU."
     , DocMsg
-        (WithMuxBearer protoPeer
-          (MuxTraceStartEagerly protoMiniProtocolNum protoMiniProtocolDir))
+        (WithMuxBearer anyProto
+          (MuxTraceStartEagerly anyProto anyProto))
         []
         "Eagerly started."
     , DocMsg
-        (WithMuxBearer protoPeer
-          (MuxTraceStartOnDemand protoMiniProtocolNum protoMiniProtocolDir))
+        (WithMuxBearer anyProto
+          (MuxTraceStartOnDemand anyProto anyProto))
         []
         "Preparing to start."
     , DocMsg
-        (WithMuxBearer protoPeer
-          (MuxTraceStartedOnDemand protoMiniProtocolNum protoMiniProtocolDir))
+        (WithMuxBearer anyProto
+          (MuxTraceStartedOnDemand anyProto anyProto))
         []
         "Started on demand."
     , DocMsg
-        (WithMuxBearer protoPeer
-          (MuxTraceTerminating protoMiniProtocolNum protoMiniProtocolDir))
+        (WithMuxBearer anyProto
+          (MuxTraceTerminating anyProto anyProto))
         []
         "Terminating."
     , DocMsg
-        (WithMuxBearer protoPeer
+        (WithMuxBearer anyProto
           MuxTraceShutdown)
         []
         "Mux shutdown."
@@ -375,7 +319,7 @@ instance LogFormatting (NtN.HandshakeTr NtN.RemoteAddress NtN.NodeToNodeVersion)
 docHandshake :: Documented (NtN.HandshakeTr adr ver)
 docHandshake = Documented [
       DocMsg
-        (WithMuxBearer protoPeer
+        (WithMuxBearer anyProto
           (TraceSendMsg
             (AnyMessageAndAgency anyProto
               (HS.MsgProposeVersions anyProto))))
@@ -383,7 +327,7 @@ docHandshake = Documented [
         "Propose versions together with version parameters.  It must be\
         \ encoded to a sorted list.."
     , DocMsg
-        (WithMuxBearer protoPeer
+        (WithMuxBearer anyProto
           (TraceSendMsg
             (AnyMessageAndAgency anyProto
               (HS.MsgAcceptVersion anyProto anyProto))))
@@ -391,7 +335,7 @@ docHandshake = Documented [
         "The remote end decides which version to use and sends chosen version.\
         \The server is allowed to modify version parameters."
     , DocMsg
-        (WithMuxBearer protoPeer
+        (WithMuxBearer anyProto
           (TraceSendMsg
             (AnyMessageAndAgency anyProto
               (HS.MsgRefuse anyProto))))
@@ -439,7 +383,7 @@ namesForLocalHandshake''' HS.MsgReplyVersions {}   = ["ReplyVersions"]
 namesForLocalHandshake''' HS.MsgAcceptVersion {}   = ["AcceptVersion"]
 namesForLocalHandshake''' HS.MsgRefuse {}          = ["Refuse"]
 
-instance LogFormatting (NtC.HandshakeTr LocalAddress NtC.NodeToClientVersion) where
+instance LogFormatting (NtC.HandshakeTr NtC.LocalAddress NtC.NodeToClientVersion) where
   forMachine _dtal (WithMuxBearer b ev) =
     mkObject [ "kind" .= String "LocalHandshakeTrace"
              , "bearer" .= show b
@@ -450,7 +394,7 @@ instance LogFormatting (NtC.HandshakeTr LocalAddress NtC.NodeToClientVersion) wh
 docLocalHandshake :: Documented (NtC.HandshakeTr adr ver)
 docLocalHandshake = Documented [
       DocMsg
-        (WithMuxBearer protoPeer
+        (WithMuxBearer anyProto
           (TraceSendMsg
             (AnyMessageAndAgency anyProto
               (HS.MsgProposeVersions anyProto))))
@@ -458,7 +402,7 @@ docLocalHandshake = Documented [
         "Propose versions together with version parameters.  It must be\
         \ encoded to a sorted list.."
     , DocMsg
-        (WithMuxBearer protoPeer
+        (WithMuxBearer anyProto
           (TraceSendMsg
             (AnyMessageAndAgency anyProto
               (HS.MsgAcceptVersion anyProto anyProto))))
@@ -466,7 +410,7 @@ docLocalHandshake = Documented [
         "The remote end decides which version to use and sends chosen version.\
         \The server is allowed to modify version parameters."
     , DocMsg
-        (WithMuxBearer protoPeer
+        (WithMuxBearer anyProto
           (TraceSendMsg
             (AnyMessageAndAgency anyProto
               (HS.MsgRefuse anyProto))))
@@ -594,59 +538,58 @@ instance (Show ntnAddr, Show ntcAddr) =>
     , "path" .= String (pack (show exception))
     ]
 
--- Everything strict in DiffusionInitializationTracer
-docDiffusionInit :: Documented (ND.InitializationTracer Socket.SockAddr LocalAddress)
+docDiffusionInit :: Documented (ND.InitializationTracer Socket.SockAddr NtC.LocalAddress)
 docDiffusionInit = Documented [
     DocMsg
-      (ND.RunServer (pure protoSockAddr))
+      (ND.RunServer (pure anyProto))
       []
       "RunServer TODO"
   , DocMsg
-      (ND.RunLocalServer protoLocalAddress)
+      (ND.RunLocalServer anyProto)
       []
       "RunLocalServer TODO"
   , DocMsg
-      (ND.UsingSystemdSocket protoLocalAddress)
+      (ND.UsingSystemdSocket anyProto)
       []
       "UsingSystemdSocket TODO"
   , DocMsg
-      (ND.CreateSystemdSocketForSnocketPath protoLocalAddress)
+      (ND.CreateSystemdSocketForSnocketPath anyProto)
       []
       "CreateSystemdSocketForSnocketPath TODO"
   , DocMsg
-      (ND.CreatedLocalSocket protoLocalAddress)
+      (ND.CreatedLocalSocket anyProto)
       []
       "CreatedLocalSocket TODO"
   , DocMsg
-      (ND.ConfiguringLocalSocket protoLocalAddress protoFileDescriptor)
+      (ND.ConfiguringLocalSocket anyProto anyProto)
       []
       "ConfiguringLocalSocket TODO"
   , DocMsg
-      (ND.ListeningLocalSocket protoLocalAddress protoFileDescriptor)
+      (ND.ListeningLocalSocket anyProto anyProto)
       []
       "ListeningLocalSocket TODO"
   , DocMsg
-      (ND.LocalSocketUp protoLocalAddress protoFileDescriptor)
+      (ND.LocalSocketUp anyProto anyProto)
       []
       "LocalSocketUp TODO"
   , DocMsg
-      (ND.CreatingServerSocket protoSockAddr)
+      (ND.CreatingServerSocket anyProto)
       []
       "CreatingServerSocket TODO"
   , DocMsg
-      (ND.ConfiguringServerSocket protoSockAddr)
+      (ND.ConfiguringServerSocket anyProto)
       []
       "ConfiguringServerSocket TODO"
   , DocMsg
-      (ND.ListeningServerSocket protoSockAddr)
+      (ND.ListeningServerSocket anyProto)
       []
       "ListeningServerSocket TODO"
   , DocMsg
-      (ND.ServerSocketUp protoSockAddr)
+      (ND.ServerSocketUp anyProto)
       []
       "ServerSocketUp TODO"
   , DocMsg
-      (ND.UnsupportedLocalSystemdSocket protoSockAddr)
+      (ND.UnsupportedLocalSystemdSocket anyProto)
       []
       "UnsupportedLocalSystemdSocket TODO"
   , DocMsg
@@ -654,7 +597,7 @@ docDiffusionInit = Documented [
       []
       "UnsupportedReadySocketCase TODO"
   , DocMsg
-      (ND.DiffusionErrored protoSomeException)
+      (ND.DiffusionErrored anyProto)
       []
       "DiffusionErrored TODO"
   ]
@@ -739,7 +682,7 @@ docLedgerPeers :: Documented TraceLedgerPeers
 docLedgerPeers = Documented [
     DocMsg
       (PickedPeer
-        (RelayAccessDomain  protoDomain 1)
+        (RelayAccessDomain  anyProto 1)
         (AccPoolStake 0.5)
         (PoolStake 0.5))
       []
@@ -774,7 +717,7 @@ docLedgerPeers = Documented [
       []
       "RequestForPeers (NumberOfPeers 1)"
   , DocMsg
-      (ReusingLedgerState 1 protoDiffTime)
+      (ReusingLedgerState 1 anyProto)
       []
       ""
   , DocMsg

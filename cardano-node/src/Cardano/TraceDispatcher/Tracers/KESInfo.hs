@@ -24,7 +24,7 @@ import           Cardano.Node.Queries (GetKESInfo (..))
 import           Cardano.Protocol.TPraos.OCert (KESPeriod (..))
 import           Ouroboros.Consensus.Block.Forging
 import           Ouroboros.Consensus.Node.Tracers (TraceLabelCreds (..))
-import qualified Ouroboros.Consensus.Shelley.Protocol.HotKey as HotKey
+import qualified Ouroboros.Consensus.Protocol.Ledger.HotKey as HotKey
 
 
 

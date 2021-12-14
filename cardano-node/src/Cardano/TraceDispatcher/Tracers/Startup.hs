@@ -64,8 +64,6 @@ import           Cardano.Node.Configuration.POM (NodeConfiguration, ncProtocol)
 import           Cardano.Node.Protocol (SomeConsensusProtocol (..))
 import           Cardano.Node.Protocol.Types (protocolName)
 
-showT :: Show a => a -> Text
-showT = pack . show
 
 getStartupInfo ::
      NodeConfiguration
@@ -405,4 +403,4 @@ ppN2CSocketInfo = ppSocketInfo getFilePath
 
 ppN2NSocketInfo :: SocketOrSocketInfo SockAddr SockAddr
                 -> String
-ppN2NSocketInfo = ppSocketInfo show  
+ppN2NSocketInfo = ppSocketInfo show
