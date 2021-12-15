@@ -33,7 +33,7 @@ import Cardano.Analysis.MachTimeline
 import Cardano.Analysis.Run
 import Cardano.Analysis.Version
 import Cardano.Unlog.Commands
-import Cardano.Unlog.LogObject          hiding (Text)
+import Cardano.Unlog.LogObject
 import Cardano.Unlog.Render
 
 
@@ -207,7 +207,7 @@ runMachineTimeline run@Run{genesis} logfiles filters filterNames MachineTimeline
       dumpLOStream objs
 
     -- 1. Derive the basic scalars and vectors
-    let (,) runStats noisySlotStats = timelineFromLogObjects run objs
+    let (,) timelineAccum noisySlotStats = timelineFromLogObjects run objs
     forM_ mtofSlotStats $
       \(JsonOutputFile f) -> do
         progress "raw-slots" (Q f)
@@ -230,7 +230,7 @@ runMachineTimeline run@Run{genesis} logfiles filters filterNames MachineTimeline
     let drvVectors0, _drvVectors1 :: [DerivedSlot]
         (,) drvVectors0 _drvVectors1 = computeDerivedVectors slotStats
         timeline :: MachTimeline
-        timeline = slotStatsMachTimeline run slotStats
+        timeline = slotStatsMachTimeline run slotStats timelineAccum
         timelineOutput :: LBS.ByteString
         timelineOutput = AE.encode timeline
 
@@ -238,14 +238,14 @@ runMachineTimeline run@Run{genesis} logfiles filters filterNames MachineTimeline
     forM_ mtofTimelinePretty
       (renderPrettyMachTimeline slotStats timeline)
     forM_ mtofStatsCsv
-      (renderExportStats runStats timeline)
+      (renderExportStats (aRunScalars timelineAccum) timeline)
     forM_ mtofTimelineCsv
-       (renderExportTimeline slotStats)
+      (renderExportTimeline slotStats)
     forM_ mtofDerivedVectors0Csv
-       (renderDerivedSlots drvVectors0)
+      (renderDerivedSlots drvVectors0)
     forM_ mtofHistogram
       (renderHistogram "CPU usage spans over 85%" "Span length"
-        (toList $ sort $ sSpanLensCPU85 timeline))
+        (toList $ sort $ mtSpanLensCPU85 timeline))
 
     flip (maybe $ LBS.putStrLn timelineOutput) mtofAnalysis $
       \case

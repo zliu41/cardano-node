@@ -12,6 +12,7 @@ import Data.Time.Clock qualified as Time
 
 import Cardano.Analysis.Run
 import Cardano.Slotting.Slot (EpochNo (..),  SlotNo (..))
+import Cardano.Unlog.LogObject
 
 
 newtype EpochSlot = EpochSlot { unEpochSlot :: Word64 }
@@ -48,6 +49,19 @@ slotStart Genesis{..} =
   . (* slotLength)
   . fromIntegral
   . unSlotNo
+
+-- loSlot :: Genesis -> LogObject -> SlotNo
+-- loSlot g LogObject{loAt, loBody} = case loBody of
+--   LOTraceStartLeadershipCheck{loSlot} -> loSlot
+--   LOTraceLeadershipDecided   {loSlot} -> loSlot
+--   LOBlockForged              {loSlot} -> loSlot
+--   LOChainSyncServerSendHeader{loSlot} -> loSlot
+--   LOChainSyncClientSeenHeader{loSlot} -> loSlot
+--   _ -> timeToSlot g loAt
+
+-- XXX: this is fundamentally wrong, since ProtocolParams can change slot duration.
+timeToSlot :: Genesis -> UTCTime -> SlotNo
+timeToSlot Genesis{systemStart} t = SlotNo . floor $ t `Time.diffUTCTime` systemStart
 
 sinceSlot :: UTCTime -> SlotStart -> NominalDiffTime
 sinceSlot t (SlotStart start) = Time.diffUTCTime t start

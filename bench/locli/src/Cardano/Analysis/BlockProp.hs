@@ -54,7 +54,7 @@ import Cardano.Analysis.Chain
 import Cardano.Analysis.ChainFilter
 import Cardano.Analysis.Run
 import Cardano.Analysis.Version
-import Cardano.Unlog.LogObject  hiding (Text)
+import Cardano.Unlog.LogObject
 import Cardano.Unlog.Render
 import Cardano.Unlog.Resources
 
@@ -465,13 +465,13 @@ blockEventMapsFromLogObjects run (f@(unJsonLogfile -> fp), xs) =
 blockPropMachEventsStep :: Run -> JsonLogfile -> MachView -> LogObject -> MachView
 blockPropMachEventsStep run@Run{genesis} (JsonLogfile fp) mv@MachView{..} lo = case lo of
   -- 0. Notice (observer only)
-  LogObject{loAt, loHost, loBody=LOChainSyncClientSeenHeader{loBlock,loBlockNo,loSlotNo}} ->
+  LogObject{loAt, loHost, loBody=LOChainSyncClientSeenHeader{loBlock,loBlockNo,loSlot}} ->
     let mbe0 = getBlock loBlock
     in if isJust mbe0 then mv else
       MOE
        (ObserverEvents
-        loHost loBlock loBlockNo loSlotNo
-        (slotStart genesis loSlotNo) (Just loAt)
+        loHost loBlock loBlockNo loSlot
+        (slotStart genesis loSlot) (Just loAt)
         Nothing Nothing Nothing 0 Nothing Nothing [] [])
       & doInsert loBlock
   -- 1. Request (observer only)
@@ -495,7 +495,7 @@ blockPropMachEventsStep run@Run{genesis} (JsonLogfile fp) mv@MachView{..} lo = c
       mbe0
       & doInsert loBlock
   -- 2. Acquire:Forge (forger only)
-  LogObject{loAt, loHost, loBody=LOBlockForged{loBlock,loPrev,loBlockNo,loSlotNo}} ->
+  LogObject{loAt, loHost, loBody=LOBlockForged{loBlock,loPrev,loBlockNo,loSlot}} ->
     getBlock loBlock
     <&> bimapMbe'
           (const.Left $
@@ -508,9 +508,9 @@ blockPropMachEventsStep run@Run{genesis} (JsonLogfile fp) mv@MachView{..} lo = c
         , bfeBlock        = loBlock
         , bfeBlockPrev    = loPrev
         , bfeBlockNo      = loBlockNo
-        , bfeSlotNo       = loSlotNo
-        , bfeSlotStart    = slotStart genesis loSlotNo
-        , bfeEpochNo      = fst $ genesis `unsafeParseSlot` loSlotNo
+        , bfeSlotNo       = loSlot
+        , bfeSlotStart    = slotStart genesis loSlot
+        , bfeEpochNo      = fst $ genesis `unsafeParseSlot` loSlot
         , bfeBlockSize    = Nothing
         , bfeChecked      = mvChecked
         , bfeLeading      = mvLeading

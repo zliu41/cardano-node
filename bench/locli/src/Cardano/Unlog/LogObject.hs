@@ -5,6 +5,7 @@
 {-# LANGUAGE ImportQualifiedPost #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE TypeSynonymInstances #-}
 {-# OPTIONS_GHC -Wno-partial-fields -Wno-orphans #-}
 
 module Cardano.Unlog.LogObject (module Cardano.Unlog.LogObject) where
@@ -33,8 +34,8 @@ import Cardano.Logging.Resources.Types
 
 import Data.Accum (zeroUTCTime)
 
+type FastText = ShortText
 
-type Text = ShortText
 
 readLogObjectStream :: JsonLogfile -> IO [LogObject]
 readLogObjectStream (JsonLogfile f) =
@@ -76,7 +77,7 @@ newtype OutputFile
 data LogObject
   = LogObject
     { loAt   :: !UTCTime
-    , loKind :: !Text
+    , loKind :: !FastText
     , loHost :: !Host
     , loTid  :: !TId
     , loBody :: !LOBody
@@ -86,23 +87,23 @@ data LogObject
 
 instance ToJSON LogObject
 
-instance ToJSON ShortText where
+instance ToJSON FastText where
   toJSON = String . toText
 
-instance FromJSON ShortText where
+instance FromJSON FastText where
   parseJSON = AE.withText "String" $ pure . fromText
 
-instance Print ShortText where
+instance Print FastText where
   hPutStr   h = hPutStr   h . toText
   hPutStrLn h = hPutStrLn h . toText
 
-newtype TId = TId { unTId :: ShortText }
+newtype TId = TId { unTId :: FastText }
   deriving (Eq, Generic, Ord)
   deriving newtype (FromJSON, ToJSON)
   deriving anyclass NFData
   deriving Show via Quiet TId
 
-newtype Hash = Hash { unHash :: ShortText }
+newtype Hash = Hash { unHash :: FastText }
   deriving (Eq, Generic, Ord)
   deriving newtype (FromJSON, ToJSON)
   deriving anyclass NFData
@@ -115,7 +116,7 @@ instance Show Hash where show = LText.unpack . toText . unHash
 instance AE.ToJSONKey Hash where
   toJSONKey = AE.toJSONKeyText (toText . unHash)
 
-newtype Host = Host { unHost :: ShortText }
+newtype Host = Host { unHost :: FastText }
   deriving (Eq, Generic, Ord)
   deriving newtype (IsString, FromJSON, ToJSON)
   deriving anyclass NFData
@@ -132,7 +133,7 @@ deriving instance NFData a => NFData (Resources a)
 -- LogObject stream interpretation
 --
 
-interpreters :: Map Text (Object -> Parser LOBody)
+interpreters :: Map FastText (Object -> Parser LOBody)
 interpreters = Map.fromList
   [ (,) "TraceStartLeadershipCheck" $
     \v -> LOTraceStartLeadershipCheck
@@ -174,7 +175,7 @@ interpreters = Map.fromList
     \v -> do
        x :: Object <- v .: "summary"
        LOGeneratorSummary
-         <$> ((x .: "ssFailures" :: Parser [Text])
+         <$> ((x .: "ssFailures" :: Parser [FastText])
               <&> null)
          <*> x .: "ssTxSent"
          <*> x .: "ssElapsed"
@@ -245,36 +246,55 @@ interpreters = Map.fromList
    hashFromPoint :: LText.Text -> Hash
    hashFromPoint = Hash . fromText . Prelude.head . LText.splitOn "@"
 
-logObjectStreamInterpreterKeys :: [Text]
+logObjectStreamInterpreterKeys :: [FastText]
 logObjectStreamInterpreterKeys = Map.keys interpreters
 
 data LOBody
-  = LOTraceStartLeadershipCheck !SlotNo !Word64 !Float
-  | LOTraceLeadershipDecided    !SlotNo !Bool
+  = LODecodeError !String
+
+  -- general
   | LOResources !ResourceStats
+  | LOLedgerTookSnapshot
+
+  -- mempool & tx submission
   | LOMempoolTxs !Word64
   | LOMempoolRejectedTx
-  | LOLedgerTookSnapshot
-  | LOBlockContext !Word64
-  | LOGeneratorSummary !Bool !Word64 !NominalDiffTime (Vector Float)
-  | LOTxsAcked !(Vector Text)
+  | LOTxsAcked !(Vector FastText)
   | LOTxsCollected !Word64
-  | LOTxsProcessed !Word64 !Int
+  | LOTxsProcessed
+    { loAccepted         :: !Word64
+    , loRejected         :: !Word64
+    }
+
+  -- forging
+  | LOTraceStartLeadershipCheck
+    { loSlot             :: !SlotNo
+    , loUTxO             :: !Word64
+    , loDensity          :: !Float }
+  | LOTraceLeadershipDecided
+    { loSlot             :: !SlotNo
+    , loLeader           :: !Bool }
+  | LOBlockContext
+    { loBlockNo          :: !BlockNo }
   | LOBlockForged
     { loBlock            :: !Hash
     , loPrev             :: !Hash
     , loBlockNo          :: !BlockNo
-    , loSlotNo           :: !SlotNo
+    , loSlot             :: !SlotNo
     }
+
+  -- chaindb
   | LOBlockAddedToCurrentChain
     { loBlock            :: !Hash
     , loSize             :: !(Maybe Int)
     , loLength           :: !Int
     }
+
+  -- chainsync & blockfetch
   | LOChainSyncServerSendHeader
     { loBlock            :: !Hash
     , loBlockNo          :: !BlockNo
-    , loSlotNo           :: !SlotNo
+    , loSlot             :: !SlotNo
     }
   | LOBlockFetchServerSending
     { loBlock            :: !Hash
@@ -286,13 +306,19 @@ data LOBody
   | LOChainSyncClientSeenHeader
     { loBlock            :: !Hash
     , loBlockNo          :: !BlockNo
-    , loSlotNo           :: !SlotNo
+    , loSlot             :: !SlotNo
     }
   | LOBlockFetchClientCompletedFetch
     { loBlock            :: !Hash
     }
+
+  | LOGeneratorSummary
+    { loNoFailures       :: !Bool
+    , loTxsSent          :: !Word64
+    , loElapsed          :: !NominalDiffTime
+    , loThreadwiseTps    :: !(Vector Float)
+    }
   | LOAny !Object
-  | LODecodeError !String
   deriving (Generic, Show)
   deriving anyclass NFData
 
@@ -312,10 +338,10 @@ instance FromJSON LogObject where
             Just interp -> interp unwrapped
             Nothing -> pure $ LOAny unwrapped
    where
-     unwrap :: Text -> Text -> Object -> Parser (Object, Text)
+     unwrap :: FastText -> FastText -> Object -> Parser (Object, FastText)
      unwrap wrappedKeyPred unwrapKey v = do
        kind <- (fromText <$>) <$> v .:? "kind"
-       wrapped   :: Maybe Text <-
+       wrapped   :: Maybe FastText <-
          (fromText <$>) <$> v .:? toText wrappedKeyPred
        unwrapped :: Maybe Object <- v .:? toText unwrapKey
        case (kind, wrapped, unwrapped) of
@@ -323,7 +349,7 @@ instance FromJSON LogObject where
          (Just kind0, _, _) -> pure (v, kind0)
          _ -> fail $ "Unexpected LogObject .data: " <> show v
 
-extendObject :: Text -> Value -> Value -> Value
+extendObject :: FastText -> Value -> Value -> Value
 extendObject k v (Object hm) = Object $ hm <> HM.singleton (toText k) v
 extendObject k _ _ = error . Text.unpack $ "Summary key '" <> k <> "' does not serialise to an Object."
 

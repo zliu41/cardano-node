@@ -8,8 +8,7 @@ import Prelude                  ((!!), error)
 import Cardano.Prelude          hiding (head)
 
 import Data.Aeson               (ToJSON(..), FromJSON(..))
-import Data.List.Split          (splitOn)
-import Data.Text   qualified as T
+import Data.Text                qualified as T
 import Data.Text.Short          (toText)
 import Data.Time.Clock          (NominalDiffTime)
 import Data.Time                (UTCTime)
@@ -23,7 +22,7 @@ import Cardano.Analysis.ChainFilter
 import Cardano.Analysis.Run
 import Cardano.Analysis.Version
 import Cardano.Logging.Resources.Types
-import Cardano.Unlog.LogObject  hiding (Text)
+import Cardano.Unlog.LogObject
 import Cardano.Unlog.Render
 
 import Data.Distribution
@@ -31,6 +30,17 @@ import Data.Distribution
 --
 -- * API types
 --
+data Condition
+  = Note    [Id] !Text
+  | Warning [Id] !Text
+  deriving (Generic, Show, ToJSON)
+
+data Id
+  = IBlock   !Hash
+  | IBlockNo !BlockNo
+  | ISlot    !SlotNo
+  | ITime    !UTCTime
+  deriving (Generic, Show, ToJSON)
 
 -- | Results of block propagation analysis.
 data BlockPropagation
@@ -149,27 +159,28 @@ data DataDomain
 -- | The top-level representation of the machine timeline analysis results.
 data MachTimeline
   = MachTimeline
-    { sVersion           :: !Version
-    , sSlotRange         :: (SlotNo, SlotNo) -- ^ Analysis range, inclusive.
-    , sMaxChecks         :: !Word64
-    , sSlotMisses        :: ![Word64]
-    , sSpanLensCPU85     :: ![Int]
-    , sSpanLensCPU85EBnd :: ![Int]
-    , sSpanLensCPU85Rwd  :: ![Int]
+    { mtVersion           :: !Version
+    , mtConditions        :: [Condition]
+    , mtSlotRange         :: (SlotNo, SlotNo) -- ^ Analysis range, inclusive.
+    , mtMaxChecks         :: !Word64
+    , mtSlotMisses        :: ![Word64]
+    , mtSpanLensCPU85     :: ![Int]
+    , mtSpanLensCPU85EBnd :: ![Int]
+    , mtSpanLensCPU85Rwd  :: ![Int]
     -- distributions
-    , sMissDistrib       :: !(Distribution Float Float)
-    , sLeadsDistrib      :: !(Distribution Float Word64)
-    , sUtxoDistrib       :: !(Distribution Float Word64)
-    , sDensityDistrib    :: !(Distribution Float Float)
-    , sSpanCheckDistrib  :: !(Distribution Float NominalDiffTime)
-    , sSpanLeadDistrib   :: !(Distribution Float NominalDiffTime)
-    , sSpanForgeDistrib  :: !(Distribution Float NominalDiffTime)
-    , sBlocklessDistrib  :: !(Distribution Float Word64)
-    , sSpanLensCPU85Distrib
-                         :: !(Distribution Float Int)
-    , sSpanLensCPU85EBndDistrib :: !(Distribution Float Int)
-    , sSpanLensCPU85RwdDistrib  :: !(Distribution Float Int)
-    , sResourceDistribs  :: !(Resources (Distribution Float Word64))
+    , mtMissDistrib       :: !(Distribution Float Float)
+    , mtLeadsDistrib      :: !(Distribution Float Word64)
+    , mtUtxoDistrib       :: !(Distribution Float Word64)
+    , mtDensityDistrib    :: !(Distribution Float Float)
+    , mtSpanCheckDistrib  :: !(Distribution Float NominalDiffTime)
+    , mtSpanLeadDistrib   :: !(Distribution Float NominalDiffTime)
+    , mtSpanForgeDistrib  :: !(Distribution Float NominalDiffTime)
+    , mtBlocklessDistrib  :: !(Distribution Float Word64)
+    , mtSpanLensCPU85Distrib
+                          :: !(Distribution Float Int)
+    , mtSpanLensCPU85EBndDistrib :: !(Distribution Float Int)
+    , mtSpanLensCPU85RwdDistrib  :: !(Distribution Float Int)
+    , mtResourceDistribs  :: !(Resources (Distribution Float Word64))
     }
   deriving (Generic, Show, ToJSON)
 
@@ -185,7 +196,7 @@ data SlotStats
     , slCountForges  :: !Word64
     , slChainDBSnap  :: !Word64
     , slRejectedTx   :: !Word64
-    , slBlockNo      :: !Word64
+    , slBlockNo      :: !BlockNo
     , slBlockless    :: !Word64
     , slEarliest     :: !UTCTime
     , slSpanCheck    :: !NominalDiffTime
@@ -362,7 +373,7 @@ instance RenderTimeline SlotStats where
     , Field 4 0 "slot"         "  epo" "slot"    $ IWord64 (unEpochSlot . slEpochSlot)
     , Field 2 0 "epoch"        "ch "   "#"       $ IWord64 (unEpochNo . slEpoch)
     , Field 3 0 "safetyInt"    "safe"  "int"     $ IWord64 (unEpochSafeInt . slEpochSafeInt)
-    , Field 5 0 "block"        "block" "no."     $ IWord64 slBlockNo
+    , Field 5 0 "block"        "block" "no."     $ IWord64 (unBlockNo . slBlockNo)
     , Field 5 0 "blockGap"     "block" "gap"     $ IWord64 slBlockless
     , Field 3 0 "leadChecks"   "lead"  "chk"     $ IWord64 slCountChecks
     , Field 3 0 "leadShips"    "ship"  "win"     $ IWord64 slCountLeads
@@ -399,9 +410,6 @@ instance RenderTimeline SlotStats where
                 <*> (fromIntegral . max 1 . (1024 *) <$> rCentiMut slResources)))
     , Field 7 0 "mempoolTxs"   "Mempool" "txs"   $ IWord64 slMempoolTxs
     , Field 9 0 "utxoEntries"  "UTxO"  "entries" $ IWord64 slUtxoSize
-    , Field 10 0 "absSlotTime" "Absolute" "slot time" $ IText
-      (\SlotStats{..}->
-         T.pack $ " " `splitOn` show slStart !! 1)
     ]
    where
      t w = nChunksEachOf 4 (w + 1) "mempool tx"

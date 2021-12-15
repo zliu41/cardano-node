@@ -15,7 +15,7 @@ import Options.Applicative qualified as Opt
 import Ouroboros.Network.Block (SlotNo(..))
 
 import Cardano.Analysis.ChainFilter
-import Cardano.Unlog.LogObject hiding (Text)
+import Cardano.Unlog.LogObject
 
 --
 -- Analysis CLI command data types
