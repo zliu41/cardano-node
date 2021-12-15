@@ -136,6 +136,13 @@ txSubmissionClient tr bmtr initialTxSource endOfProtocolCallback =
     -> Word16
     -> Word16
     -> m (ClientStTxIds blocking (GenTxId CardanoBlock) (GenTx CardanoBlock) m ())
+{-
+requestTxIds (Exhausted,_,_) _blocking _ackNum _reqNum = do
+    traceWith tr EndOfProtocol
+    endOfProtocolCallback stats
+    pure $ SendMsgDone ()
+-}
+
   requestTxIds state blocking ackNum reqNum = do
     let ack = Ack $ fromIntegral ackNum
         req = Req $ fromIntegral reqNum

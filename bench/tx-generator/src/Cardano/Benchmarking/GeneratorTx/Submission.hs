@@ -176,7 +176,9 @@ tpsLimitedTxFeeder tracer threads txSendQueue (TPSRate rate) txs = do
   -- TODO: Move everything to IO () and avoid problems from over-polymorphism.
   now <- liftIO Clock.getCurrentTime
   foldM_ feedTx (now, 0) (zip txs [0..])
+  traceWith tracer $ TraceBenchTxSubDebug "tpsLimitedFeeder : transmitting done"
   liftIO $ tpsLimitedTxFeederShutdown threads txSendQueue
+  traceWith tracer $ TraceBenchTxSubDebug "tpsLimitedFeeder : shutdown done"
  where
 
   feedTx :: (UTCTime, NominalDiffTime)
@@ -184,7 +186,8 @@ tpsLimitedTxFeeder tracer threads txSendQueue (TPSRate rate) txs = do
          -> m (UTCTime, NominalDiffTime)
   feedTx (lastPreDelay, lastDelay) (tx, ix) = do
     liftIO . STM.atomically $ STM.writeTBQueue txSendQueue (Just tx)
-    traceWith tracer $ TraceBenchTxSubServFed [getTxId $ getTxBody tx] ix
+--    traceWith tracer $ TraceBenchTxSubServFed [getTxId $ getTxBody tx] ix
+    traceWith tracer $ TraceBenchTxSubServFed [] ix    
     now <- liftIO Clock.getCurrentTime
     let targetDelay = realToFrac $ 1.0 / rate
         loopCost = (now `Clock.diffUTCTime` lastPreDelay) - lastDelay

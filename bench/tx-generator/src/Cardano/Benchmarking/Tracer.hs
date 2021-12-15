@@ -88,12 +88,13 @@ createLoggingLayerTracers loggingLayer
 initTracers :: Trace IO Text -> Trace IO Text -> BenchTracers
 initTracers baseTrace tr =
   BenchTracers
-    baseTrace
-    benchTracer
-    connectTracer
-    submitTracer
-    lowLevelSubmitTracer
-    n2nSubmitTracer
+    { btBase_        = baseTrace
+    , btTxSubmit_    = benchTracer
+    , btConnect_     = connectTracer
+    , btSubmission2_ = submitTracer
+    , btLowLevel_    = lowLevelSubmitTracer
+    , btN2N_         = n2nSubmitTracer
+    }
  where
   tr' :: Trace IO Text
   tr' = appendName "generate-txs" tr
@@ -111,7 +112,8 @@ initTracers baseTrace tr =
   lowLevelSubmitTracer = toLogObjectMinimal (appendName "llSubmit" tr')
 
   n2nSubmitTracer :: Tracer IO NodeToNodeSubmissionTrace
-  n2nSubmitTracer = toLogObjectMinimal (appendName "submitN2N" tr')
+--  n2nSubmitTracer = toLogObjectMinimal (appendName "submitN2N" tr')
+  n2nSubmitTracer = toLogObjectVerbose (appendName "submitN2N" tr')
 
 {-------------------------------------------------------------------------------
   Overall benchmarking trace
