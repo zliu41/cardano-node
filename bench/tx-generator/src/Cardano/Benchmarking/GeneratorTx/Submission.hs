@@ -276,7 +276,7 @@ walletTxSource walletScript txSendQueue = Active $ worker walletScript
   unFold script n = do
     next <- runWalletScript script
     case next of
-      Done -> error "unexpected WalletScript Done" --return ([], script)
+      Done -> return ([], script) -- error "unexpected WalletScript Done" --
       NextTx s tx -> do
         (l, out) <- unFold s $ pred n
         return (tx:l, out)
