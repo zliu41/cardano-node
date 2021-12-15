@@ -41,6 +41,7 @@ module Cardano.Api.Script (
     Witness(..),
     KeyWitnessInCtx(..),
     ScriptWitnessInCtx(..),
+    IsScriptWitnessInCtx(..),
     ScriptDatum(..),
     ScriptRedeemer,
     scriptWitnessScript,
@@ -770,6 +771,17 @@ deriving instance Show (KeyWitnessInCtx witctx)
 deriving instance Eq   (ScriptWitnessInCtx witctx)
 deriving instance Show (ScriptWitnessInCtx witctx)
 
+class IsScriptWitnessInCtx ctx where
+  scriptWitnessInCtx :: ScriptWitnessInCtx ctx
+
+instance IsScriptWitnessInCtx WitCtxTxIn where
+  scriptWitnessInCtx = ScriptWitnessForSpending
+
+instance IsScriptWitnessInCtx WitCtxMint where
+  scriptWitnessInCtx = ScriptWitnessForMinting
+
+instance IsScriptWitnessInCtx WitCtxStake where
+  scriptWitnessInCtx = ScriptWitnessForStakeAddr
 
 -- ----------------------------------------------------------------------------
 -- Script execution units
