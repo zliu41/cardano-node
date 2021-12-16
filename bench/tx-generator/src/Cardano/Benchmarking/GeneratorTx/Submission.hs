@@ -159,9 +159,8 @@ tpsLimitedTxFeederShutdown ::
   -> TxSendQueue era
   -> IO ()
 tpsLimitedTxFeederShutdown threads txSendQueue
-   = STM.atomically $
-       replicateM_ (fromIntegral threads)
-          $ STM.writeTBQueue txSendQueue Nothing
+   = replicateM_ (fromIntegral threads)
+       $ STM.atomically $ STM.writeTBQueue txSendQueue Nothing
 
 tpsLimitedTxFeeder :: forall m era .
      MonadIO m
@@ -251,24 +250,23 @@ walletTxSource walletScript txSendQueue = Active $ worker walletScript
   consumeTxsBlocking ::
        MonadIO m
     => Req -> m (Bool, [Tx era])
-  consumeTxsBlocking req
-    = liftIO . STM.atomically $ go req []
+  consumeTxsBlocking req = go req []
    where
-    go :: Req -> [Tx era] -> STM (Bool, [Tx era])
+    go :: MonadIO m => Req -> [Tx era] -> m (Bool, [Tx era])
     go 0 acc = pure (False, acc)
-    go n acc = STM.readTBQueue txSendQueue >>=
+    go n acc = (liftIO $ STM.atomically $ STM.readTBQueue txSendQueue) >>=
       \case
         Nothing -> pure (True, acc)
-        Just tx -> go (n - 1) (tx:acc)
+        Just tx -> go (n - 1) (tx : acc)
 
   consumeTxsNonBlocking ::
        MonadIO m
     => Req -> m (Bool, [Tx era])
   consumeTxsNonBlocking req
-    = liftIO . STM.atomically $
-        if req==0 then pure (False, [])
-          else do
-            STM.tryReadTBQueue txSendQueue >>= \case
+    = if req==0
+         then pure (False, [])
+         else do
+            (liftIO $ STM.atomically $ STM.tryReadTBQueue txSendQueue) >>= \case
               Nothing -> pure (False, [])
               Just Nothing -> pure (True, [])
               Just (Just tx) -> pure (False, [tx])
