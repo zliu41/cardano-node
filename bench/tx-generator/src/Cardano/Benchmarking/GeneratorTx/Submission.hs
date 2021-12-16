@@ -238,9 +238,11 @@ walletTxSource walletScript txSendQueue = Active $ worker walletScript
  where
   worker :: forall m blocking . MonadIO m => WalletScript era -> TokBlockingStyle blocking -> Req -> m (TxSource era, [Tx era])
   worker script blocking req = do
+    liftIO $ print ("walletTxSource" :: String, req, blocking)
     (done, dummyList :: [Tx era]) <- case blocking of
        TokBlocking -> consumeTxsBlocking req
        TokNonBlocking -> consumeTxsNonBlocking req
+    liftIO $ print ("walletTxSource done " :: String,req,done, length dummyList)
     (txList, newScript) <- liftIO $ unFold script $ length dummyList
     if done
        then return (Exhausted, txList)
