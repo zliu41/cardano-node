@@ -22,10 +22,6 @@ data Message =
   | Message3 MessageID Double
   deriving (Eq, Ord, Show)
 
-
-showT :: Show a => a -> Text
-showT = pack . show
-
 instance LogFormatting Message where
   forMachine _dtal (Message1 mid i) =
     mkObject [ "kind" .= String "Message1"

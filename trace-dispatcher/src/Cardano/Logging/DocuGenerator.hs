@@ -10,6 +10,7 @@ module Cardano.Logging.DocuGenerator (
   , docTracer
   , docTracerDatapoint
   , anyProto
+  , showT
   , DocuResult
   , appDoc
   , mapDoc
@@ -55,6 +56,9 @@ unpackDocu (DocuDatapoint b) = b
 
 anyProto :: a
 anyProto = undefined
+
+showT :: Show a => a -> Text
+showT = pack . show
 
 appDoc :: (a -> b) -> DocMsg a -> DocMsg b
 appDoc f DocMsg {..} = DocMsg  (f dmPrototype) dmMetricsMD dmMarkdown

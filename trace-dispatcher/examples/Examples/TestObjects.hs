@@ -25,7 +25,7 @@ import           Cardano.Logging
 import qualified Data.Aeson as AE
 import qualified Data.HashMap.Strict as HM
 import           Data.Kind (Type)
-import           Data.Text (Text, pack)
+import           Data.Text (pack)
 import           Data.Word (Word64)
 import           GHC.Generics
 import           Text.Printf (printf)
@@ -93,9 +93,6 @@ newtype LogHash = LogHash { unLogHash :: Word64 }
 
 instance AE.ToJSON LogHash where
     toEncoding = AE.genericToEncoding AE.defaultOptions
-
-showT :: Show a => a -> Text
-showT = pack . show
 
 -- The actual test trace messages
 data TraceForgeEvent blk
