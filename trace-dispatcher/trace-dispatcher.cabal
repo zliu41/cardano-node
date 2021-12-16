@@ -38,6 +38,7 @@ library
                       , cborg
                       , containers
                       , contra-tracer
+                      , datapoint-forward
                       , ekg
                       , ekg-core
                       , ekg-forward

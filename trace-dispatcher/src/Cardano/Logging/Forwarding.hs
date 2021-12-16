@@ -43,27 +43,36 @@ import           Ouroboros.Network.Socket (AcceptedConnectionsLimit (..),
                      connectToNode, newNetworkMutableState, nullNetworkConnectTracers,
                      nullNetworkServerTracers, withServerNode)
 
+import qualified DataPoint.Forward.Configuration as DPF
+import           DataPoint.Forward.Network.Forwarder
+import           DataPoint.Forward.Utils (DataPointStore, initDataPointStore)
 import qualified System.Metrics as EKG
 import qualified System.Metrics.Configuration as EKGF
 import           System.Metrics.Network.Forwarder
 import qualified Trace.Forward.Configuration as TF
 import           Trace.Forward.Network.Forwarder
-import           Trace.Forward.Protocol.Type (NodeInfo (..))
 import           Trace.Forward.Utils
 
 import           Cardano.Logging.Types
-
 
 initForwarding :: forall m. (MonadIO m)
   => IOManager
   -> TraceConfig
   -> EKG.Store
-  -> NodeInfo
-  -> m (ForwardSink TraceObject)
-initForwarding iomgr config ekgstore nodeInfo = liftIO $ do
+  -> m (ForwardSink TraceObject, DataPointStore)
+initForwarding iomgr config ekgStore = liftIO $ do
   forwardSink <- initForwardSink tfConfig
-  launchForwarders iomgr config ekgstore ekgConfig tfConfig forwardSink
-  pure forwardSink
+  dpStore <- initDataPointStore
+  launchForwarders
+    iomgr
+    config
+    ekgConfig
+    tfConfig
+    dpfConfig
+    ekgStore
+    forwardSink
+    dpStore
+  pure (forwardSink, dpStore)
  where
   LocalSocket p = tofAddress $ tcForwarder config
 
@@ -81,23 +90,39 @@ initForwarding iomgr config ekgstore nodeInfo = liftIO $ do
     TF.ForwarderConfiguration
       { TF.forwarderTracer       = contramap show stdoutTracer
       , TF.acceptorEndpoint      = TF.LocalPipe p
-      , TF.getNodeInfo           = pure nodeInfo
       , TF.disconnectedQueueSize = 200000
       , TF.connectedQueueSize    = 2000
+      }
+
+  dpfConfig :: DPF.ForwarderConfiguration
+  dpfConfig =
+    DPF.ForwarderConfiguration
+      { DPF.forwarderTracer  = contramap show stdoutTracer
+      , DPF.acceptorEndpoint = DPF.LocalPipe p
       }
 
 launchForwarders
   :: IOManager
   -> TraceConfig
-  -> EKG.Store
   -> EKGF.ForwarderConfiguration
   -> TF.ForwarderConfiguration TraceObject
+  -> DPF.ForwarderConfiguration
+  -> EKG.Store
   -> ForwardSink TraceObject
+  -> DataPointStore
   -> IO ()
-launchForwarders iomgr TraceConfig{tcForwarder} store ekgConfig tfConfig sink =
+launchForwarders iomgr TraceConfig{tcForwarder} ekgConfig tfConfig dpfConfig ekgStore sink dpStore =
   void . async $
     runActionInLoop
-      (launchForwardersViaLocalSocket iomgr tcForwarder (ekgConfig, tfConfig) sink store)
+      (launchForwardersViaLocalSocket
+         iomgr
+         tcForwarder
+         ekgConfig
+         tfConfig
+         dpfConfig
+         sink
+         ekgStore
+         dpStore)
       (TF.LocalPipe p)
       1
  where
@@ -106,30 +131,36 @@ launchForwarders iomgr TraceConfig{tcForwarder} store ekgConfig tfConfig sink =
 launchForwardersViaLocalSocket
   :: IOManager
   -> TraceOptionForwarder
-  -> (EKGF.ForwarderConfiguration, TF.ForwarderConfiguration TraceObject)
+  -> EKGF.ForwarderConfiguration
+  -> TF.ForwarderConfiguration TraceObject
+  -> DPF.ForwarderConfiguration
   -> ForwardSink TraceObject
   -> EKG.Store
+  -> DataPointStore
   -> IO ()
 launchForwardersViaLocalSocket iomgr
   TraceOptionForwarder {tofAddress=(LocalSocket p), tofMode=Initiator}
-  configs sink store =
+  ekgConfig tfConfig dpfConfig sink ekgStore dpStore =
     doConnectToAcceptor (localSnocket iomgr) (localAddressFromPath p)
-      noTimeLimitsHandshake configs sink store
+      noTimeLimitsHandshake ekgConfig tfConfig dpfConfig sink ekgStore dpStore
 launchForwardersViaLocalSocket iomgr
   TraceOptionForwarder {tofAddress=(LocalSocket p), tofMode=Responder}
-  configs sink store =
+  ekgConfig tfConfig dpfConfig sink ekgStore dpStore =
     doListenToAcceptor (localSnocket iomgr) (localAddressFromPath p)
-      noTimeLimitsHandshake configs sink store
+      noTimeLimitsHandshake ekgConfig tfConfig dpfConfig sink ekgStore dpStore
 
 doConnectToAcceptor
   :: Snocket IO fd addr
   -> addr
   -> ProtocolTimeLimits (Handshake UnversionedProtocol Term)
-  -> (EKGF.ForwarderConfiguration, TF.ForwarderConfiguration TraceObject)
+  -> EKGF.ForwarderConfiguration
+  -> TF.ForwarderConfiguration TraceObject
+  -> DPF.ForwarderConfiguration
   -> ForwardSink TraceObject
   -> EKG.Store
+  -> DataPointStore
   -> IO ()
-doConnectToAcceptor snocket address timeLimits (ekgConfig, tfConfig) sink store = do
+doConnectToAcceptor snocket address timeLimits ekgConfig tfConfig dpfConfig sink ekgStore dpStore = do
   connectToNode
     snocket
     unversionedHandshakeCodec
@@ -140,8 +171,9 @@ doConnectToAcceptor snocket address timeLimits (ekgConfig, tfConfig) sink store 
     (simpleSingletonVersions
        UnversionedProtocol
        UnversionedProtocolData
-         (forwarderApp [ (forwardEKGMetrics ekgConfig store, 1)
-                       , (forwardTraceObjects tfConfig sink, 2)
+         (forwarderApp [ (forwardEKGMetrics   ekgConfig ekgStore, 1)
+                       , (forwardTraceObjects tfConfig  sink,     2)
+                       , (forwardDataPoints   dpfConfig dpStore,  3)
                        ]
          )
     )
@@ -166,11 +198,14 @@ doListenToAcceptor
   => Snocket IO fd addr
   -> addr
   -> ProtocolTimeLimits (Handshake UnversionedProtocol Term)
-  -> (EKGF.ForwarderConfiguration, TF.ForwarderConfiguration TraceObject)
+  -> EKGF.ForwarderConfiguration
+  -> TF.ForwarderConfiguration TraceObject
+  -> DPF.ForwarderConfiguration
   -> ForwardSink TraceObject
   -> EKG.Store
+  -> DataPointStore
   -> IO ()
-doListenToAcceptor snocket address timeLimits (ekgConfig, tfConfig) sink store = do
+doListenToAcceptor snocket address timeLimits ekgConfig tfConfig dpfConfig sink ekgStore dpStore = do
   networkState <- newNetworkMutableState
   race_ (cleanNetworkMutableState networkState)
         $ withServerNode
@@ -187,8 +222,9 @@ doListenToAcceptor snocket address timeLimits (ekgConfig, tfConfig) sink store =
               UnversionedProtocol
               UnversionedProtocolData
               (SomeResponderApplication $
-                forwarderApp [ (forwardEKGMetricsResp ekgConfig store, 1)
-                             , (forwardTraceObjectsResp tfConfig sink, 2)
+                forwarderApp [ (forwardEKGMetricsResp   ekgConfig ekgStore, 1)
+                             , (forwardTraceObjectsResp tfConfig  sink,     2)
+                             , (forwardDataPointsResp   dpfConfig dpStore,  3)
                              ]
               )
             )
