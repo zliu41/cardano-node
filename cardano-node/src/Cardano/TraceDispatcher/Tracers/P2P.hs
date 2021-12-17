@@ -44,7 +44,8 @@ module Cardano.TraceDispatcher.Tracers.P2P
 
   , namesForInboundGovernor
   , severityInboundGovernor
-  , docInboundGovernor
+  , docInboundGovernorLocal
+  , docInboundGovernorRemote
 
   ) where
 
@@ -56,22 +57,23 @@ import           Data.Aeson.Types (listValue)
 import qualified Data.Map.Strict as Map
 import qualified Data.Set as Set
 import           Data.Text (pack)
-import           Network.Socket (SockAddr)
+import           Network.Socket (SockAddr (..))
 import           Prelude (id, show)
 
-import           Cardano.Node.Configuration.Topology ()
 import           Cardano.Node.Configuration.TopologyP2P ()
 import           Cardano.Tracing.OrphanInstances.Network ()
 
 import           Cardano.TraceDispatcher.Tracers.NodeToNode ()
 import           Cardano.TraceDispatcher.Tracers.NonP2P ()
 
+import           Network.Mux (MiniProtocolNum (..))
 import           Ouroboros.Network.ConnectionHandler
                      (ConnectionHandlerTrace (..))
 import           Ouroboros.Network.ConnectionId (ConnectionId (..))
-import           Ouroboros.Network.ConnectionManager.Types
-                     (ConnectionManagerCounters (..),
-                     ConnectionManagerTrace (..))
+import           Ouroboros.Network.ConnectionManager.Types (AbstractState (..),
+                     ConnectionManagerCounters (..),
+                     ConnectionManagerTrace (..), DemotedToColdRemoteTr (..),
+                     OperationResult (..))
 import qualified Ouroboros.Network.ConnectionManager.Types as ConnectionManager
 import           Ouroboros.Network.InboundGovernor (InboundGovernorTrace (..))
 import qualified Ouroboros.Network.InboundGovernor as InboundGovernor
@@ -92,6 +94,7 @@ import           Ouroboros.Network.PeerSelection.RootPeersDNS
 import           Ouroboros.Network.PeerSelection.Types ()
 import           Ouroboros.Network.RethrowPolicy (ErrorCommand (..))
 import           Ouroboros.Network.Server2 (ServerTrace (..))
+import           Ouroboros.Network.Snocket (LocalAddress (..))
 
 --------------------------------------------------------------------------------
 -- LocalRootPeers Tracer
@@ -1145,22 +1148,21 @@ namesForInboundGovernor InboundGovernor.TrUnexpectedlyFalseAssertion {} =
                             ["UnexpectedlyFalseAssertion"]
 
 severityInboundGovernor :: InboundGovernorTrace peerAddr -> SeverityS
-severityInboundGovernor TrNewConnection {}           = Debug
-severityInboundGovernor TrResponderRestarted {}      = Debug
-severityInboundGovernor TrResponderStartFailure {}   = Error
-severityInboundGovernor TrResponderErrored {}        = Info
-severityInboundGovernor TrResponderStarted {}        = Debug
-severityInboundGovernor TrResponderTerminated {}     = Debug
-severityInboundGovernor TrPromotedToWarmRemote {}    = Info
-severityInboundGovernor TrPromotedToHotRemote {}     = Info
-severityInboundGovernor TrDemotedToColdRemote {}     = Info
-severityInboundGovernor TrWaitIdleRemote {}          = Debug
-severityInboundGovernor TrMuxCleanExit {}            = Debug
-severityInboundGovernor TrMuxErrored {}              = Info
-severityInboundGovernor TrInboundGovernorCounters {} = Info
-severityInboundGovernor TrRemoteState {}             = Debug
-severityInboundGovernor InboundGovernor.TrUnexpectedlyFalseAssertion {}
-                                                     = Error
+severityInboundGovernor TrNewConnection {}                              = Debug
+severityInboundGovernor TrResponderRestarted {}                         = Debug
+severityInboundGovernor TrResponderStartFailure {}                      = Error
+severityInboundGovernor TrResponderErrored {}                           = Info
+severityInboundGovernor TrResponderStarted {}                           = Debug
+severityInboundGovernor TrResponderTerminated {}                        = Debug
+severityInboundGovernor TrPromotedToWarmRemote {}                       = Info
+severityInboundGovernor TrPromotedToHotRemote {}                        = Info
+severityInboundGovernor TrDemotedToColdRemote {}                        = Info
+severityInboundGovernor TrWaitIdleRemote {}                             = Debug
+severityInboundGovernor TrMuxCleanExit {}                               = Debug
+severityInboundGovernor TrMuxErrored {}                                 = Info
+severityInboundGovernor TrInboundGovernorCounters {}                    = Info
+severityInboundGovernor TrRemoteState {}                                = Debug
+severityInboundGovernor InboundGovernor.TrUnexpectedlyFalseAssertion {} = Error
 
 instance (ToJSON addr, Show addr)
       => LogFormatting (InboundGovernorTrace addr) where
@@ -1248,63 +1250,116 @@ instance (ToJSON addr, Show addr)
               ]
   asMetrics _ = []
 
-docInboundGovernor :: Documented (InboundGovernorTrace peerAddr)
-docInboundGovernor = Documented
+protoProvenance :: ConnectionManager.Provenance
+protoProvenance = ConnectionManager.Inbound
+
+protoConnectionId :: peerAddr -> ConnectionId peerAddr
+protoConnectionId pa = ConnectionId pa pa
+
+protoMiniProtocolNum :: MiniProtocolNum
+protoMiniProtocolNum = MiniProtocolNum 1
+
+protoSomeException :: SomeException
+protoSomeException = SomeException (AssertionFailed "just fooled")
+
+protoAbstractState :: AbstractState
+protoAbstractState = UnknownConnectionSt
+
+protoOperationResult :: a -> OperationResult a
+protoOperationResult = OperationSuccess
+
+protoDemotedToColdRemoteTr :: DemotedToColdRemoteTr
+protoDemotedToColdRemoteTr = CommitTr
+
+protoInboundGovernorCounters :: InboundGovernorCounters
+protoInboundGovernorCounters = InboundGovernorCounters 1 1
+
+protoRemoteAddr :: SockAddr
+protoRemoteAddr = SockAddrUnix "loopback"
+
+protoLocalAddress :: LocalAddress
+protoLocalAddress = LocalAddress "loopback"
+
+
+-- Not possible to prvide such prototype,
+-- as type and constructor are not exported
+-- protoIGAssertionLocation :: IGAssertionLocation peerAddr
+-- protoIGAssertionLocation = InboundGovernorLoop Nothing protoAbstractState
+
+docInboundGovernorLocal ::
+   Documented (InboundGovernorTrace (ConnectionId LocalAddress))
+docInboundGovernorLocal = docInboundGovernor (protoConnectionId protoLocalAddress)
+
+docInboundGovernorRemote ::
+   Documented (InboundGovernorTrace (ConnectionId SockAddr))
+docInboundGovernorRemote = docInboundGovernor (protoConnectionId protoRemoteAddr)
+
+docInboundGovernor :: peerAddr -> Documented (InboundGovernorTrace peerAddr)
+docInboundGovernor peerAddr = Documented
   [  DocMsg
-      (TrResponderRestarted anyProto anyProto)
+      (TrNewConnection protoProvenance (protoConnectionId peerAddr))
       []
       ""
   ,  DocMsg
-      (TrResponderStartFailure anyProto anyProto anyProto)
+      (TrResponderRestarted (protoConnectionId peerAddr) protoMiniProtocolNum)
       []
       ""
   ,  DocMsg
-      (TrResponderErrored anyProto anyProto anyProto)
+      (TrResponderStartFailure (protoConnectionId peerAddr) protoMiniProtocolNum
+        protoSomeException)
       []
       ""
   ,  DocMsg
-      (TrResponderStarted anyProto anyProto)
+      (TrResponderErrored (protoConnectionId peerAddr) protoMiniProtocolNum
+        protoSomeException)
       []
       ""
   ,  DocMsg
-      (TrResponderTerminated anyProto anyProto)
+      (TrResponderStarted  (protoConnectionId peerAddr) protoMiniProtocolNum)
       []
       ""
   ,  DocMsg
-      (TrPromotedToWarmRemote anyProto anyProto)
+      (TrResponderTerminated  (protoConnectionId peerAddr) protoMiniProtocolNum)
       []
       ""
   ,  DocMsg
-      (TrPromotedToHotRemote anyProto)
+      (TrPromotedToWarmRemote (protoConnectionId peerAddr)
+        (protoOperationResult protoAbstractState))
       []
       ""
   ,  DocMsg
-      (TrDemotedToColdRemote anyProto anyProto)
+      (TrPromotedToHotRemote (protoConnectionId peerAddr))
+      []
+      ""
+  ,  DocMsg
+      (TrDemotedToColdRemote (protoConnectionId peerAddr)
+        (protoOperationResult protoDemotedToColdRemoteTr))
       []
       "All mini-protocols terminated.  The boolean is true if this connection\
       \ was not used by p2p-governor, and thus the connection will be terminated."
   ,  DocMsg
-      (TrWaitIdleRemote anyProto anyProto)
+      (TrWaitIdleRemote (protoConnectionId peerAddr)
+        (protoOperationResult protoAbstractState))
       []
       ""
   ,  DocMsg
-      (TrMuxCleanExit anyProto)
+      (TrMuxCleanExit (protoConnectionId peerAddr))
       []
       ""
   ,  DocMsg
-      (TrMuxErrored anyProto anyProto)
+      (TrMuxErrored (protoConnectionId peerAddr) protoSomeException)
       []
       ""
   ,  DocMsg
-      (TrInboundGovernorCounters anyProto)
+      (TrInboundGovernorCounters protoInboundGovernorCounters)
       []
       ""
   ,  DocMsg
-      (TrRemoteState anyProto)
+      (TrRemoteState Map.empty)
       []
       ""
-  ,  DocMsg
-      (InboundGovernor.TrUnexpectedlyFalseAssertion anyProto)
-      []
-      ""
+  -- ,  DocMsg
+  --     (InboundGovernor.TrUnexpectedlyFalseAssertion protoIGAssertionLocation)
+  --     []
+  --     ""
   ]

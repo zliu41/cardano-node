@@ -472,14 +472,14 @@ mkDiffusionTracers  trBase trForward mbTrEKG _trDataPoint trConfig = do
                 namesForMux
                 severityMux
                 allPublic
-    configureTracers trConfig docMux [dtMuxTr]
+    configureTracers trConfig docMuxRemote [dtMuxTr]
     dtLocalMuxTr   <-  mkCardanoTracer
                 trBase trForward mbTrEKG
                 "MuxLocal"
                 namesForMux
                 severityMux
                 allPublic
-    configureTracers trConfig docMux [dtLocalMuxTr]
+    configureTracers trConfig docMuxLocal [dtLocalMuxTr]
     dtHandshakeTr   <-  mkCardanoTracer
                 trBase trForward mbTrEKG
                 "Handshake"

@@ -44,7 +44,6 @@ import           Cardano.Node.Types
 import           Cardano.Tracing.Config
 import           Ouroboros.Consensus.Mempool.API (MempoolCapacityBytesOverride (..), MempoolCapacityBytes (..))
 import           Ouroboros.Consensus.Storage.LedgerDB.DiskPolicy (SnapshotInterval (..))
-import           Ouroboros.Network.Block (MaxSlotNo (..))
 import           Ouroboros.Network.NodeToNode (DiffusionMode (..), AcceptedConnectionsLimit (..))
 import qualified Ouroboros.Consensus.Node as Consensus ( NetworkP2PMode (..) )
 

@@ -500,9 +500,9 @@ docTracers configFileName outputFileName _ = do
                 namesForMux
                 severityMux
                 allPublic
-    configureTracers trConfig docMux [dtMuxTr]
+    configureTracers trConfig docMuxRemote [dtMuxTr]
     dtMuxTrDoc <- documentTracer trConfig dtMuxTr
-      (docMux :: Documented (WithMuxBearer peer MuxTrace))
+      (docMuxRemote :: Documented (WithMuxBearer (ConnectionId RemoteAddress) MuxTrace))
 
     dtLocalMuxTr   <-  mkCardanoTracer
                 trBase trForward mbTrEKG
@@ -510,9 +510,9 @@ docTracers configFileName outputFileName _ = do
                 namesForMux
                 severityMux
                 allPublic
-    configureTracers trConfig docMux [dtLocalMuxTr]
+    configureTracers trConfig docMuxLocal [dtLocalMuxTr]
     dtLocalMuxTrDoc <- documentTracer trConfig dtLocalMuxTr
-      (docMux :: Documented (WithMuxBearer peer MuxTrace))
+      (docMuxLocal :: Documented (WithMuxBearer (ConnectionId LocalAddress) MuxTrace))
 
     dtHandshakeTr   <-  mkCardanoTracer
                 trBase trForward mbTrEKG
@@ -658,9 +658,10 @@ docTracers configFileName outputFileName _ = do
       namesForInboundGovernor
       severityInboundGovernor
       allPublic
-    configureTracers trConfig docInboundGovernor [inboundGovernorTr]
+    configureTracers trConfig docInboundGovernorRemote [inboundGovernorTr]
     inboundGovernorTrDoc <- documentTracer trConfig inboundGovernorTr
-      (docInboundGovernor :: Documented (InboundGovernorTrace Socket.SockAddr))
+      (docInboundGovernorRemote :: Documented (InboundGovernorTrace
+                                                (ConnectionId Socket.SockAddr)))
 
     localConnectionManagerTr  <-  mkCardanoTracer
       trBase trForward mbTrEKG
@@ -685,7 +686,7 @@ docTracers configFileName outputFileName _ = do
       allPublic
     configureTracers trConfig docServer [localServerTr]
     localServerTrDoc <- documentTracer trConfig localServerTr
-      (docServer :: Documented (ServerTrace Socket.SockAddr))
+      (docServer :: Documented (ServerTrace LocalAddress))
 
 
     localInboundGovernorTr  <-  mkCardanoTracer
@@ -694,9 +695,10 @@ docTracers configFileName outputFileName _ = do
       namesForInboundGovernor
       severityInboundGovernor
       allPublic
-    configureTracers trConfig docInboundGovernor [localInboundGovernorTr]
+    configureTracers trConfig docInboundGovernorLocal [localInboundGovernorTr]
     localInboundGovernorTrDoc <- documentTracer trConfig localInboundGovernorTr
-      (docInboundGovernor :: Documented (InboundGovernorTrace Socket.SockAddr))
+      (docInboundGovernorLocal :: Documented (InboundGovernorTrace
+                                                (ConnectionId LocalAddress)))
 
 -- DiffusionTracersExtra nonP2P
 
