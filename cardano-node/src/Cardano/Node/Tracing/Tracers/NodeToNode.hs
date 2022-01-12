@@ -41,6 +41,7 @@ import           Text.Show
 
 import           Cardano.Node.Queries (ConvertTxId)
 import           Cardano.Node.Tracing.Render (renderHeaderHash, renderTxIdForDetails)
+import           Cardano.Node.TraceConstraints (TraceConstraints)
 
 import           Ouroboros.Consensus.Block (ConvertRawHash, GetHeader, HasHeader, Header,
                    StandardHash, getHeader)
@@ -333,30 +334,27 @@ namesForTBlockFetchSerialised (BlockFetch.TraceLabelPeer _ v) =
 
 -- TODO Tracers
 -- Provide complete implementation of forMachine
-instance ( ConvertTxId blk
-         , HasTxId (GenTx blk)
-         , ConvertRawHash blk
-         , StandardHash blk
-         , HasTxs blk
+instance ( StandardHash blk
+         , TraceConstraints blk
          )
       => LogFormatting (AnyMessageAndAgency (BlockFetch (Serialised blk) (Point blk))) where
-  forMachine DMinimal (AnyMessageAndAgency stok (MsgBlock _blk)) =
+  forMachine _ (AnyMessageAndAgency stok (MsgBlock blk)) =
     mkObject [ "kind" .= String "MsgBlock"
              , "agency" .= String (pack $ show stok)
-            -- , "blockHash" .= renderHeaderHash (Proxy @blk) (blockHash blk)
-            -- , "blockSize" .= toJSON (estimateBlockSize (getHeader blk))
+             , "blockHash" .= renderHeaderHash (Proxy @blk) (blockHash blk)
+             , "blockSize" .= toJSON (estimateBlockSize (getHeader blk))
              ]
 
-  forMachine _dtal (AnyMessageAndAgency stok (MsgBlock _blk)) =
-    mkObject [ "kind" .= String "MsgBlock"
-             , "agency" .= String (pack $ show stok)
-          -- , "blockHash" .= renderHeaderHash (Proxy @blk) (blockHash blk)
-          --  , "blockSize" .= toJSON (estimateBlockSize (getHeader blk))
-          --   , "txIds" .= toJSON (presentTx <$> extractTxs blk)
-             ]
-      -- where
-      --   presentTx :: GenTx blk -> Value
-      --   presentTx =  String . renderTxIdForDetails dtal . txId
+  -- forMachine _dtal (AnyMessageAndAgency stok (MsgBlock blk)) =
+  --   mkObject [ "kind" .= String "MsgBlock"
+  --            , "agency" .= String (pack $ show stok)
+  --            , "blockHash" .= renderHeaderHash (Proxy @blk) (blockHash blk)
+  --            , "blockSize" .= toJSON (estimateBlockSize (getHeader blk))
+  --            , "txIds" .= toJSON (presentTx <$> extractTxs blk)
+  --            ]
+  --      where
+  --         presentTx :: GenTx blk -> Value
+  --         presentTx =  String . renderTxIdForDetails dtal . txId
 
   forMachine _v (AnyMessageAndAgency stok MsgRequestRange{}) =
     mkObject [ "kind" .= String "MsgRequestRange"

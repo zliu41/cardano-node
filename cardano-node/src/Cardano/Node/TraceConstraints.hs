@@ -1,5 +1,5 @@
-{-# LANGUAGE ConstraintKinds  #-}
-{-# LANGUAGE DataKinds        #-}
+{-# LANGUAGE ConstraintKinds #-}
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 module Cardano.Node.TraceConstraints (TraceConstraints) where
 
@@ -9,8 +9,8 @@ import           Data.Aeson
 
 import           Cardano.BM.Tracing (ToObject)
 import           Cardano.Logging (LogFormatting)
-import           Cardano.Node.Queries (ConvertTxId, GetKESInfo (..),
-                     HasKESInfo (..), HasKESMetricsData (..), LedgerQueries)
+import           Cardano.Node.Queries (ConvertTxId, GetKESInfo (..), HasKESInfo (..),
+                   HasKESMetricsData (..), LedgerQueries)
 
 import           Cardano.Ledger.Alonzo (AlonzoEra)
 import           Cardano.Ledger.Alonzo.PParams (PParamsUpdate)
@@ -20,14 +20,15 @@ import           Cardano.Ledger.Alonzo.Rules.Utxow (AlonzoPredFail)
 import           Cardano.Ledger.Alonzo.TxBody (TxOut)
 import           Cardano.Ledger.Crypto (StandardCrypto)
 
-import           Ouroboros.Consensus.Block (BlockProtocol, CannotForge,
-                     ConvertRawHash, ForgeStateUpdateError, Header)
+import           Ouroboros.Network.Block (HasHeader, Serialised)
+
+import           Ouroboros.Consensus.Block (BlockProtocol, CannotForge, ConvertRawHash,
+                   ForgeStateUpdateError, GetHeader, Header)
 import           Ouroboros.Consensus.HeaderValidation (OtherHeaderEnvelopeError)
 import           Ouroboros.Consensus.Ledger.Abstract (LedgerError)
-import           Ouroboros.Consensus.Ledger.Inspect (LedgerEvent, LedgerUpdate,
-                     LedgerWarning)
-import           Ouroboros.Consensus.Ledger.SupportsMempool (ApplyTxErr,
-                     HasTxId, HasTxs (..))
+import           Ouroboros.Consensus.Ledger.Inspect (LedgerEvent, LedgerUpdate, LedgerWarning)
+import           Ouroboros.Consensus.Ledger.SupportsMempool (ApplyTxErr, HasTxId, HasTxs (..))
+import           Ouroboros.Consensus.Node.Run (SerialiseNodeToNodeConstraints)
 import           Ouroboros.Consensus.Protocol.Abstract (ValidationErr)
 import           Ouroboros.Consensus.Shelley.Ledger.Mempool (GenTx, TxId)
 
@@ -47,6 +48,10 @@ type TraceConstraints blk =
     , GetKESInfo blk
     , Show blk
     , Show (Header blk)
+
+    , GetHeader (Serialised blk)
+    , HasHeader (Serialised blk)
+    , SerialiseNodeToNodeConstraints (Serialised blk)
 
     , ToObject (ApplyTxErr blk)
     , ToObject (GenTx blk)
