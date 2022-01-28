@@ -31,6 +31,7 @@ module Cardano.Api (
     CardanoEraStyle(..),
     cardanoEraStyle,
     shelleyBasedToCardanoEra,
+    withShelleyBasedCardanoEra,
 
     -- ** Deprecated
     Byron,
