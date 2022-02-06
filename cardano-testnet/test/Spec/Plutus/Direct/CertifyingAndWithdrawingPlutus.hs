@@ -690,28 +690,29 @@ hprop_plutus_certifying_withdrawing = H.integration . H.runFinallies . H.workspa
     , "--testnet-magic", show @Int testnetMagic
     ]
 
-  -- Things take long on non-linux machines
-  if isLinux
-  then H.threadDelay 5000000
-  else H.threadDelay 10000000
+  H.justByDurationM 10 $ do
+    H.note_ "Check UTxO at script staking address to see if withdrawal was successful"
 
-  H.note_ "Check UTxO at script staking address to see if withdrawal was successful"
+    void $ H.execCli' execConfig
+          [ "query", "utxo"
+          , "--address", scriptPaymentAddressWithStaking
+          , "--cardano-mode"
+          , "--testnet-magic", show @Int testnetMagic
+          , "--out-file", work </> "utxo-plutus-staking-payment-address-2.json"
+          ]
 
-  void $ H.execCli' execConfig
-        [ "query", "utxo"
-        , "--address", scriptPaymentAddressWithStaking
-        , "--cardano-mode"
-        , "--testnet-magic", show @Int testnetMagic
-        , "--out-file", work </> "utxo-plutus-staking-payment-address-2.json"
-        ]
+    H.cat $ work </> "utxo-plutus-staking-payment-address-2.json"
 
-  H.cat $ work </> "utxo-plutus-staking-payment-address-2.json"
+    utxoPlutusPaymentAddrJson2 <- H.leftFailM . H.readJsonFile $ work </> "utxo-plutus-staking-payment-address-2.json"
+    case J.fromJSON @(UTxO AlonzoEra) utxoPlutusPaymentAddrJson2 of
+      J.Success (UTxO utxoPlutus2) -> do
+        -- Get total lovelace at plutus script address
 
-  utxoPlutusPaymentAddrJson2 <- H.leftFailM . H.readJsonFile $ work </> "utxo-plutus-staking-payment-address-2.json"
-  UTxO utxoPlutus2 <- H.noteShowM $ H.jsonErrorFail $ J.fromJSON @(UTxO AlonzoEra) utxoPlutusPaymentAddrJson2
-  -- Get total lovelace at plutus script address
+        let lovelaceAtPlutusAddr = mconcat . map (\(TxOut _ v _) -> txOutValueToLovelace v) $ Map.elems utxoPlutus2
 
-  let lovelaceAtPlutusAddr = mconcat . map (\(TxOut _ v _) -> txOutValueToLovelace v) $ Map.elems utxoPlutus2
+        H.note_ "Check that the withdrawal from the Plutus staking address was successful"
 
-  H.note_ "Check that the withdrawal from the Plutus staking address was successful"
-  lovelaceAtPlutusAddr === pr + 5000000 + 5000000 + 5000000 + 5000000 + Lovelace minrequtxo
+        if lovelaceAtPlutusAddr == pr + 5000000 + 5000000 + 5000000 + 5000000 + Lovelace minrequtxo
+          then return $ Just ()
+          else return Nothing
+      J.Error _ -> return Nothing
