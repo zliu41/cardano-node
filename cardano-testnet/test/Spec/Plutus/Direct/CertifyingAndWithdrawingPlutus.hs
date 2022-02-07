@@ -30,6 +30,7 @@ import qualified Data.Text as T
 import qualified Hedgehog as H
 import qualified Hedgehog.Extras.Stock.IO.Network.Sprocket as IO
 import qualified Hedgehog.Extras.Test.Base as H
+import qualified Hedgehog.Extras.Test.Concurrent as H
 import qualified Hedgehog.Extras.Test.File as H
 import qualified Hedgehog.Extras.Test.Process as H
 import qualified System.Directory as IO
@@ -101,7 +102,7 @@ hprop_plutus_certifying_withdrawing = H.integration . H.runFinallies . H.workspa
 
   utxo1Json <- H.leftFailM . H.readJsonFile $ work </> "utxo-1.json"
   UTxO utxo1 <- H.noteShowM $ H.jsonErrorFail $ J.fromJSON @(UTxO AlonzoEra) utxo1Json
-  txin <- H.noteShow $ head $ Map.keys utxo1
+  txin <- H.noteShow =<< H.headM (Map.keys utxo1)
 
   -- Staking keys
   utxoStakingVkey2 <- H.note $ tempAbsPath </> "shelley/utxo-keys/utxo2-stake.vkey"
@@ -212,7 +213,7 @@ hprop_plutus_certifying_withdrawing = H.integration . H.runFinallies . H.workspa
     length delegsAndRewards === 1
     return delegsAndRewards
 
-  let (pledgerSAddr, _rewards, _poolId) = head delegsAndRewards
+  (pledgerSAddr, _rewards, _poolId) <- H.headM delegsAndRewards
 
   -- Pledger and owner are and can be the same
   T.unpack (serialiseAddress pledgerSAddr) === poolownerstakeaddr
@@ -231,7 +232,7 @@ hprop_plutus_certifying_withdrawing = H.integration . H.runFinallies . H.workspa
 
   utxoWithStaking1Json <- H.leftFailM . H.readJsonFile $ work </> "utxo-addr-with-staking-1.json"
   UTxO utxoWithStaking1 <- H.noteShowM $ H.jsonErrorFail $ J.fromJSON @(UTxO AlonzoEra) utxoWithStaking1Json
-  txinForStakeReg <- H.noteShow $ head $ Map.keys utxoWithStaking1
+  txinForStakeReg <- H.noteShow =<< H.headM (Map.keys utxoWithStaking1)
 
   void $ H.execCli [ "stake-address", "registration-certificate"
                    , "--stake-verification-key-file", utxoStakingVkey2
@@ -279,7 +280,7 @@ hprop_plutus_certifying_withdrawing = H.integration . H.runFinallies . H.workspa
     delegsAndRewardsMapUser <- H.noteShowM $ H.jsonErrorFail $ J.fromJSON @DelegationsAndRewards userStakeAddrInfoJSON
     let delegsAndRewardsUser = mergeDelegsAndRewards delegsAndRewardsMapUser
         userStakeAddrInfo = filter (\(sAddr,_,_) -> utxostakingaddr == T.unpack (serialiseAddress sAddr)) delegsAndRewardsUser
-        (userSAddr, _rewards, _poolId) = head userStakeAddrInfo
+    (userSAddr, _rewards, _poolId) <- H.headM userStakeAddrInfo
     return userSAddr
 
   H.note_ $ "Check staking key: " <> show utxoStakingVkey2 <> " was registered"
@@ -299,7 +300,7 @@ hprop_plutus_certifying_withdrawing = H.integration . H.runFinallies . H.workspa
 
   utxo2Json <- H.leftFailM . H.readJsonFile $ work </> "utxo-2.json"
   UTxO utxo2 <- H.noteShowM $ H.jsonErrorFail $ J.fromJSON @(UTxO AlonzoEra) utxo2Json
-  txin2 <- H.noteShow $ head $ Map.keys utxo2
+  txin2 <- H.noteShow =<< H.headM (Map.keys utxo2)
 
   H.note_ "Create delegation certificate of pledger"
 
@@ -351,7 +352,7 @@ hprop_plutus_certifying_withdrawing = H.integration . H.runFinallies . H.workspa
 
     currRegPools <- H.leftFailM . H.readJsonFile $ work </> "current-registered.pools.json"
     poolIds <- H.noteShowM $ H.jsonErrorFail $ J.fromJSON @(Set PoolId) currRegPools
-    poolId <- H.noteShow $ head $ Set.toList poolIds
+    poolId <- H.noteShow =<< H.headM (Set.toList poolIds)
 
     H.note_ "Check stake pool was successfully registered"
     T.unpack (serialiseToBech32 poolId) === stakePoolId
@@ -368,7 +369,8 @@ hprop_plutus_certifying_withdrawing = H.integration . H.runFinallies . H.workspa
   delegsAndRewardsMapPledge <- H.noteShowM $ H.jsonErrorFail $ J.fromJSON @DelegationsAndRewards pledgeStakeAddrInfoJSON
   let delegsAndRewardsPledge = mergeDelegsAndRewards delegsAndRewardsMapPledge
       pledgeStakeAddrInfo = filter (\(sAddr,_,_) -> poolownerstakeaddr == T.unpack (serialiseAddress sAddr)) delegsAndRewardsPledge
-      (pledgeSAddr, _rewards, pledgerDelegPoolId) = head pledgeStakeAddrInfo
+
+  (pledgeSAddr, _rewards, pledgerDelegPoolId) <- H.headM pledgeStakeAddrInfo
 
   H.note_ "Check pledge has been delegated to pool"
   case pledgerDelegPoolId of
@@ -394,7 +396,7 @@ hprop_plutus_certifying_withdrawing = H.integration . H.runFinallies . H.workspa
 
   utxo3Json <- H.leftFailM . H.readJsonFile $ work </> "utxo-3.json"
   UTxO utxo3 <- H.noteShowM $ H.jsonErrorFail $ J.fromJSON @(UTxO AlonzoEra) utxo3Json
-  txin3 <- H.noteShow . head $ Map.keys utxo3
+  txin3 <- H.noteShow =<< H.headM (Map.keys utxo3)
 
   void $ H.execCli
     [ "stake-address", "registration-certificate"
@@ -442,7 +444,8 @@ hprop_plutus_certifying_withdrawing = H.integration . H.runFinallies . H.workspa
     delegsAndRewardsMapPlutus <- H.noteShowM $ H.jsonErrorFail $ J.fromJSON @DelegationsAndRewards plutusStakeAddrInfoJSON
     let delegsAndRewardsPlutus = mergeDelegsAndRewards delegsAndRewardsMapPlutus
         plutusStakeAddrInfo = filter (\(sAddr,_,_) -> plutusStakingAddr == T.unpack (serialiseAddress sAddr)) delegsAndRewardsPlutus
-        (plutusSAddr, _rewards, _poolId) = head plutusStakeAddrInfo
+
+    (plutusSAddr, _rewards, _poolId) <- H.headM plutusStakeAddrInfo
 
     H.note_ "Check if Plutus staking script has been registered"
     T.unpack (serialiseAddress plutusSAddr) === plutusStakingAddr
@@ -470,7 +473,7 @@ hprop_plutus_certifying_withdrawing = H.integration . H.runFinallies . H.workspa
 
   utxo4Json <- H.leftFailM . H.readJsonFile $ work </> "utxo-4.json"
   UTxO utxo4 <- H.noteShowM $ H.jsonErrorFail $ J.fromJSON @(UTxO AlonzoEra) utxo4Json
-  txin4 <- H.noteShow . head $ Map.keys utxo4
+  txin4 <- H.noteShow =<< H.headM (Map.keys utxo4)
   txinCollateral1 <- H.noteShow $ Map.keys utxo4 !! 1
 
   H.note_ "Delegate Plutus staking script to stake pool"
@@ -511,6 +514,8 @@ hprop_plutus_certifying_withdrawing = H.integration . H.runFinallies . H.workspa
                , "--testnet-magic", show @Int testnetMagic
                ]
 
+  H.threadDelay 10000000
+
   poolIdPlutusDeleg <- H.byDurationM 3 12 $ do
     H.note_ "Check to see if staking script was delegated"
 
@@ -525,7 +530,7 @@ hprop_plutus_certifying_withdrawing = H.integration . H.runFinallies . H.workspa
     delegsAndRewardsMapStakingScript <- H.noteShowM $ H.jsonErrorFail $ J.fromJSON @DelegationsAndRewards stakingScriptAddrInfoJSON
     let delegsAndRewardsStakingScript = mergeDelegsAndRewards delegsAndRewardsMapStakingScript
         stakingScriptAddrInfo = filter (\(sAddr,_,_) -> plutusStakingAddr == T.unpack (serialiseAddress sAddr)) delegsAndRewardsStakingScript
-        (_stakingSAddr, _rewards, poolIdPlutusDeleg) = head stakingScriptAddrInfo
+    (_stakingSAddr, _rewards, poolIdPlutusDeleg) <- H.noteShow =<< H.headM stakingScriptAddrInfo
     return poolIdPlutusDeleg
 
   H.note_ $ "Check plutus staking script: " <> (work </> "plutus-staking-script-delegation.json") <> " was delegated"
@@ -615,7 +620,8 @@ hprop_plutus_certifying_withdrawing = H.integration . H.runFinallies . H.workspa
   delegsAndRewardsMapScriptRewards <- H.noteShowM $ H.jsonErrorFail $ J.fromJSON @DelegationsAndRewards stakingRewardsJSON
   let delegsAndRewardsScriptRewards = mergeDelegsAndRewards delegsAndRewardsMapScriptRewards
       stakingScriptRewardsAddrInfo = filter (\(sAddr,_,_) -> plutusStakingAddr == T.unpack (serialiseAddress sAddr)) delegsAndRewardsScriptRewards
-      (_, scriptRewards, _) = head stakingScriptRewardsAddrInfo
+
+  (_, scriptRewards, _) <- H.headM stakingScriptRewardsAddrInfo
 
   pr@(Lovelace plutusRewards) <-
     case scriptRewards of
@@ -638,7 +644,7 @@ hprop_plutus_certifying_withdrawing = H.integration . H.runFinallies . H.workspa
 
   utxo5Json <- H.leftFailM . H.readJsonFile $ work </> "utxo-5.json"
   UTxO utxo5 <- H.noteShowM $ H.jsonErrorFail $ J.fromJSON @(UTxO AlonzoEra) utxo5Json
-  txin5 <- H.noteShow . head $ Map.keys utxo5
+  txin5 <- H.noteShow =<< H.headM (Map.keys utxo5)
   txinCollateral2 <- H.noteShow $ Map.keys utxo5 !! 1
 
   let minrequtxo = 999978
