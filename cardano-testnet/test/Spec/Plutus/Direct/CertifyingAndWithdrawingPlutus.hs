@@ -206,25 +206,22 @@ hprop_plutus_certifying_withdrawing = H.integration . H.runFinallies . H.workspa
                , "--testnet-magic", show @Int testnetMagic
                ]
 
-  -- Things take long on non-linux machines
-  if isLinux
-  then H.threadDelay 5000000
-  else H.threadDelay 10000000
+  delegsAndRewards <- H.byDurationM 3 12 $ do
+    -- Check to see if pledge's stake address was registered
 
-  -- Check to see if pledge's stake address was registered
+    void $ H.execCli' execConfig
+      [ "query",  "stake-address-info"
+      , "--address", poolownerstakeaddr
+      , "--testnet-magic", show @Int testnetMagic
+      , "--out-file", work </> "pledgeownerregistration.json"
+      ]
 
-  void $ H.execCli' execConfig
-    [ "query",  "stake-address-info"
-    , "--address", poolownerstakeaddr
-    , "--testnet-magic", show @Int testnetMagic
-    , "--out-file", work </> "pledgeownerregistration.json"
-    ]
+    pledgerStakeInfo <- H.leftFailM . H.readJsonFile $ work </> "pledgeownerregistration.json"
+    delegsAndRewardsMap <- H.noteShowM $ H.jsonErrorFail $ J.fromJSON @DelegationsAndRewards pledgerStakeInfo
+    let delegsAndRewards = mergeDelegsAndRewards delegsAndRewardsMap
 
-  pledgerStakeInfo <- H.leftFailM . H.readJsonFile $ work </> "pledgeownerregistration.json"
-  delegsAndRewardsMap <- H.noteShowM $ H.jsonErrorFail $ J.fromJSON @DelegationsAndRewards pledgerStakeInfo
-  let delegsAndRewards = mergeDelegsAndRewards delegsAndRewardsMap
-
-  length delegsAndRewards === 1
+    length delegsAndRewards === 1
+    return delegsAndRewards
 
   let (pledgerSAddr, _rewards, _poolId) = head delegsAndRewards
 
