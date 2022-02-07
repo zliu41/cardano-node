@@ -690,7 +690,7 @@ hprop_plutus_certifying_withdrawing = H.integration . H.runFinallies . H.workspa
     , "--testnet-magic", show @Int testnetMagic
     ]
 
-  H.justByDurationM 10 $ do
+  H.byDurationM 3 12 $ do
     H.note_ "Check UTxO at script staking address to see if withdrawal was successful"
 
     void $ H.execCli' execConfig
@@ -704,15 +704,10 @@ hprop_plutus_certifying_withdrawing = H.integration . H.runFinallies . H.workspa
     H.cat $ work </> "utxo-plutus-staking-payment-address-2.json"
 
     utxoPlutusPaymentAddrJson2 <- H.leftFailM . H.readJsonFile $ work </> "utxo-plutus-staking-payment-address-2.json"
-    case J.fromJSON @(UTxO AlonzoEra) utxoPlutusPaymentAddrJson2 of
-      J.Success (UTxO utxoPlutus2) -> do
-        -- Get total lovelace at plutus script address
+    UTxO utxoPlutus2 <- H.noteShowM $ H.jsonErrorFail $ J.fromJSON @(UTxO AlonzoEra) utxoPlutusPaymentAddrJson2
+    -- Get total lovelace at plutus script address
 
-        let lovelaceAtPlutusAddr = mconcat . map (\(TxOut _ v _) -> txOutValueToLovelace v) $ Map.elems utxoPlutus2
+    let lovelaceAtPlutusAddr = mconcat . map (\(TxOut _ v _) -> txOutValueToLovelace v) $ Map.elems utxoPlutus2
 
-        H.note_ "Check that the withdrawal from the Plutus staking address was successful"
-
-        if lovelaceAtPlutusAddr == pr + 5000000 + 5000000 + 5000000 + 5000000 + Lovelace minrequtxo
-          then return $ Just ()
-          else return Nothing
-      J.Error _ -> return Nothing
+    H.note_ "Check that the withdrawal from the Plutus staking address was successful"
+    lovelaceAtPlutusAddr === pr + 5000000 + 5000000 + 5000000 + 5000000 + Lovelace minrequtxo
