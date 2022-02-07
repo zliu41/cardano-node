@@ -26,7 +26,7 @@ tests = do
   pure $ T.testGroup "test/Spec.hs"
     [ T.testGroup "Spec"
       [ -- Fails to meet deadline on MacOS for an unknown reason
-        H.ignoreOnWindows "Plutus.Direct.CertifyingAndWithdrawingPlutus" Spec.Plutus.Direct.CertifyingAndWithdrawingPlutus.hprop_plutus_certifying_withdrawing
+        H.testProperty "Plutus.Direct.CertifyingAndWithdrawingPlutus" Spec.Plutus.Direct.CertifyingAndWithdrawingPlutus.hprop_plutus_certifying_withdrawing
       , H.testProperty "Plutus.Direct.TxInLockingPlutus" Spec.Plutus.Direct.TxInLockingPlutus.hprop_plutus
         -- This hangs on Windows for an unknown reason
       , H.ignoreOnWindows "Plutus.Script.TxInLockingPlutus" Spec.Plutus.Script.TxInLockingPlutus.hprop_plutus
