@@ -648,34 +648,36 @@ hprop_plutus_certifying_withdrawing = H.integration . H.runFinallies . H.workspa
   txinCollateral2 <- H.noteShow $ Map.keys utxo5 !! 1
 
   let minrequtxo = 999978
-  void $ H.execCli' execConfig
-    [ "transaction", "build"
-    , "--alonzo-era"
-    , "--testnet-magic", show @Int testnetMagic
-    , "--change-address", utxoAddr
-    , "--tx-in", T.unpack $ renderTxIn txin5
-    , "--tx-in-collateral", T.unpack $ renderTxIn txinCollateral2
-    , "--tx-out", scriptPaymentAddressWithStaking <> "+" <> show @Integer (plutusRewards + minrequtxo)
-    , "--withdrawal", plutusStakingAddr <> "+" <> show @Integer plutusRewards
-    , "--withdrawal-script-file", plutusStakingScript
-    , "--withdrawal-redeemer-file", plutusStakingScriptRedeemer
-    , "--protocol-params-file", work </> "pparams.json"
-    , "--out-file", work </> "staking-script-withdrawal.txbody"
-    ]
 
-  void $ H.execCli
-    [ "transaction", "sign"
-    , "--tx-body-file", work </> "staking-script-withdrawal.txbody"
-    , "--testnet-magic", show @Int testnetMagic
-    , "--signing-key-file", utxoSKeyFile
-    , "--out-file", work </> "staking-script-withdrawal.tx"
-    ]
+  H.byDurationM 3 12 $ do
+    void $ H.execCli' execConfig
+      [ "transaction", "build"
+      , "--alonzo-era"
+      , "--testnet-magic", show @Int testnetMagic
+      , "--change-address", utxoAddr
+      , "--tx-in", T.unpack $ renderTxIn txin5
+      , "--tx-in-collateral", T.unpack $ renderTxIn txinCollateral2
+      , "--tx-out", scriptPaymentAddressWithStaking <> "+" <> show @Integer (plutusRewards + minrequtxo)
+      , "--withdrawal", plutusStakingAddr <> "+" <> show @Integer plutusRewards
+      , "--withdrawal-script-file", plutusStakingScript
+      , "--withdrawal-redeemer-file", plutusStakingScriptRedeemer
+      , "--protocol-params-file", work </> "pparams.json"
+      , "--out-file", work </> "staking-script-withdrawal.txbody"
+      ]
 
-  void $ H.execCli' execConfig
-    [ "transaction", "submit"
-    , "--tx-file", work </> "staking-script-withdrawal.tx"
-    , "--testnet-magic", show @Int testnetMagic
-    ]
+    void $ H.execCli
+      [ "transaction", "sign"
+      , "--tx-body-file", work </> "staking-script-withdrawal.txbody"
+      , "--testnet-magic", show @Int testnetMagic
+      , "--signing-key-file", utxoSKeyFile
+      , "--out-file", work </> "staking-script-withdrawal.tx"
+      ]
+
+    void $ H.execCli' execConfig
+      [ "transaction", "submit"
+      , "--tx-file", work </> "staking-script-withdrawal.tx"
+      , "--testnet-magic", show @Int testnetMagic
+      ]
 
   H.byDurationM 3 12 $ do
     H.note_ "Check UTxO at script staking address to see if withdrawal was successful"
