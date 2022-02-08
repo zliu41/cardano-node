@@ -609,21 +609,21 @@ hprop_plutus_certifying_withdrawing = H.integration . H.runFinallies . H.workspa
     , "--out-file", work </> "ledger-state.json"
     ]
 
-  void $ H.execCli' execConfig
-    [ "query",  "stake-address-info"
-    , "--address", plutusStakingAddr
-    , "--testnet-magic", show @Int testnetMagic
-    , "--out-file", work </> "plutus-staking-script-delegation-rewards.json"
-    ]
+  pr@(Lovelace plutusRewards) <- H.byDurationM 3 12 $ do
+    void $ H.execCli' execConfig
+      [ "query",  "stake-address-info"
+      , "--address", plutusStakingAddr
+      , "--testnet-magic", show @Int testnetMagic
+      , "--out-file", work </> "plutus-staking-script-delegation-rewards.json"
+      ]
 
-  stakingRewardsJSON <- H.leftFailM . H.readJsonFile $ work </> "plutus-staking-script-delegation-rewards.json"
-  delegsAndRewardsMapScriptRewards <- H.noteShowM $ H.jsonErrorFail $ J.fromJSON @DelegationsAndRewards stakingRewardsJSON
-  let delegsAndRewardsScriptRewards = mergeDelegsAndRewards delegsAndRewardsMapScriptRewards
-      stakingScriptRewardsAddrInfo = filter (\(sAddr,_,_) -> plutusStakingAddr == T.unpack (serialiseAddress sAddr)) delegsAndRewardsScriptRewards
+    stakingRewardsJSON <- H.leftFailM . H.readJsonFile $ work </> "plutus-staking-script-delegation-rewards.json"
+    delegsAndRewardsMapScriptRewards <- H.noteShowM $ H.jsonErrorFail $ J.fromJSON @DelegationsAndRewards stakingRewardsJSON
+    let delegsAndRewardsScriptRewards = mergeDelegsAndRewards delegsAndRewardsMapScriptRewards
+        stakingScriptRewardsAddrInfo = filter (\(sAddr,_,_) -> plutusStakingAddr == T.unpack (serialiseAddress sAddr)) delegsAndRewardsScriptRewards
 
-  (_, scriptRewards, _) <- H.headM stakingScriptRewardsAddrInfo
+    (_, scriptRewards, _) <- H.headM stakingScriptRewardsAddrInfo
 
-  pr@(Lovelace plutusRewards) <-
     case scriptRewards of
       Nothing -> H.failMessage callStack "Plutus staking script has no rewards"
       Just rwds -> H.assert (rwds > 0) >> return rwds
