@@ -208,7 +208,7 @@ hprop_plutus_certifying_withdrawing = H.integration . H.runFinallies . H.workspa
 
     pledgerStakeInfo <- H.leftFailM . H.readJsonFile $ work </> "pledgeownerregistration.json"
     delegsAndRewardsMap <- H.noteShowM $ H.jsonErrorFail $ J.fromJSON @DelegationsAndRewards pledgerStakeInfo
-    let delegsAndRewards = mergeDelegsAndRewards delegsAndRewardsMap
+    delegsAndRewards <- H.noteShow $ mergeDelegsAndRewards delegsAndRewardsMap
 
     length delegsAndRewards === 1
     return delegsAndRewards
@@ -278,8 +278,8 @@ hprop_plutus_certifying_withdrawing = H.integration . H.runFinallies . H.workspa
 
     userStakeAddrInfoJSON <- H.leftFailM . H.readJsonFile $ work </> "stake-address-info-utxo-staking-vkey-2.json"
     delegsAndRewardsMapUser <- H.noteShowM $ H.jsonErrorFail $ J.fromJSON @DelegationsAndRewards userStakeAddrInfoJSON
-    let delegsAndRewardsUser = mergeDelegsAndRewards delegsAndRewardsMapUser
-        userStakeAddrInfo = filter (\(sAddr,_,_) -> utxostakingaddr == T.unpack (serialiseAddress sAddr)) delegsAndRewardsUser
+    delegsAndRewardsUser <- H.noteShow $ mergeDelegsAndRewards delegsAndRewardsMapUser
+    userStakeAddrInfo <- H.noteShow $ filter (\(sAddr,_,_) -> utxostakingaddr == T.unpack (serialiseAddress sAddr)) delegsAndRewardsUser
     (userSAddr, _rewards, _poolId) <- H.headM userStakeAddrInfo
     return userSAddr
 
@@ -367,8 +367,8 @@ hprop_plutus_certifying_withdrawing = H.integration . H.runFinallies . H.workspa
 
   pledgeStakeAddrInfoJSON <- H.leftFailM . H.readJsonFile $ work </> "pledge-stake-address-info.json"
   delegsAndRewardsMapPledge <- H.noteShowM $ H.jsonErrorFail $ J.fromJSON @DelegationsAndRewards pledgeStakeAddrInfoJSON
-  let delegsAndRewardsPledge = mergeDelegsAndRewards delegsAndRewardsMapPledge
-      pledgeStakeAddrInfo = filter (\(sAddr,_,_) -> poolownerstakeaddr == T.unpack (serialiseAddress sAddr)) delegsAndRewardsPledge
+  delegsAndRewardsPledge <- H.noteShow $ mergeDelegsAndRewards delegsAndRewardsMapPledge
+  pledgeStakeAddrInfo <- H.noteShow $ filter (\(sAddr,_,_) -> poolownerstakeaddr == T.unpack (serialiseAddress sAddr)) delegsAndRewardsPledge
 
   (pledgeSAddr, _rewards, pledgerDelegPoolId) <- H.headM pledgeStakeAddrInfo
 
@@ -442,8 +442,8 @@ hprop_plutus_certifying_withdrawing = H.integration . H.runFinallies . H.workspa
 
     plutusStakeAddrInfoJSON <- H.leftFailM . H.readJsonFile $ work </> "pledge-stake-address-info.json"
     delegsAndRewardsMapPlutus <- H.noteShowM $ H.jsonErrorFail $ J.fromJSON @DelegationsAndRewards plutusStakeAddrInfoJSON
-    let delegsAndRewardsPlutus = mergeDelegsAndRewards delegsAndRewardsMapPlutus
-        plutusStakeAddrInfo = filter (\(sAddr,_,_) -> plutusStakingAddr == T.unpack (serialiseAddress sAddr)) delegsAndRewardsPlutus
+    delegsAndRewardsPlutus <- H.noteShow $ mergeDelegsAndRewards delegsAndRewardsMapPlutus
+    plutusStakeAddrInfo <- H.noteShow $ filter (\(sAddr,_,_) -> plutusStakingAddr == T.unpack (serialiseAddress sAddr)) delegsAndRewardsPlutus
 
     (plutusSAddr, _rewards, _poolId) <- H.headM plutusStakeAddrInfo
 
@@ -528,8 +528,8 @@ hprop_plutus_certifying_withdrawing = H.integration . H.runFinallies . H.workspa
 
     stakingScriptAddrInfoJSON <- H.leftFailM . H.readJsonFile $ work </> "plutus-staking-script-delegation.json"
     delegsAndRewardsMapStakingScript <- H.noteShowM $ H.jsonErrorFail $ J.fromJSON @DelegationsAndRewards stakingScriptAddrInfoJSON
-    let delegsAndRewardsStakingScript = mergeDelegsAndRewards delegsAndRewardsMapStakingScript
-        stakingScriptAddrInfo = filter (\(sAddr,_,_) -> plutusStakingAddr == T.unpack (serialiseAddress sAddr)) delegsAndRewardsStakingScript
+    delegsAndRewardsStakingScript <- H.noteShow $ mergeDelegsAndRewards delegsAndRewardsMapStakingScript
+    stakingScriptAddrInfo <- H.noteShow $ filter (\(sAddr,_,_) -> plutusStakingAddr == T.unpack (serialiseAddress sAddr)) delegsAndRewardsStakingScript
     (_stakingSAddr, _rewards, poolIdPlutusDeleg) <- H.noteShow =<< H.headM stakingScriptAddrInfo
     return poolIdPlutusDeleg
 
@@ -619,8 +619,8 @@ hprop_plutus_certifying_withdrawing = H.integration . H.runFinallies . H.workspa
 
     stakingRewardsJSON <- H.leftFailM . H.readJsonFile $ work </> "plutus-staking-script-delegation-rewards.json"
     delegsAndRewardsMapScriptRewards <- H.noteShowM $ H.jsonErrorFail $ J.fromJSON @DelegationsAndRewards stakingRewardsJSON
-    let delegsAndRewardsScriptRewards = mergeDelegsAndRewards delegsAndRewardsMapScriptRewards
-        stakingScriptRewardsAddrInfo = filter (\(sAddr,_,_) -> plutusStakingAddr == T.unpack (serialiseAddress sAddr)) delegsAndRewardsScriptRewards
+    delegsAndRewardsScriptRewards <- H.noteShow $ mergeDelegsAndRewards delegsAndRewardsMapScriptRewards
+    stakingScriptRewardsAddrInfo <- H.noteShow $ filter (\(sAddr,_,_) -> plutusStakingAddr == T.unpack (serialiseAddress sAddr)) delegsAndRewardsScriptRewards
 
     (_, scriptRewards, _) <- H.headM stakingScriptRewardsAddrInfo
 
@@ -696,7 +696,7 @@ hprop_plutus_certifying_withdrawing = H.integration . H.runFinallies . H.workspa
     UTxO utxoPlutus2 <- H.noteShowM $ H.jsonErrorFail $ J.fromJSON @(UTxO AlonzoEra) utxoPlutusPaymentAddrJson2
     -- Get total lovelace at plutus script address
 
-    let lovelaceAtPlutusAddr = mconcat . map (\(TxOut _ v _) -> txOutValueToLovelace v) $ Map.elems utxoPlutus2
+    lovelaceAtPlutusAddr <- H.noteShow $ mconcat . map (\(TxOut _ v _) -> txOutValueToLovelace v) $ Map.elems utxoPlutus2
 
     H.note_ "Check that the withdrawal from the Plutus staking address was successful"
     lovelaceAtPlutusAddr === pr + 5000000 + 5000000 + 5000000 + 5000000 + Lovelace minrequtxo
