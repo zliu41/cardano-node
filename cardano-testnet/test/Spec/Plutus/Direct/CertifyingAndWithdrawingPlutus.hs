@@ -609,7 +609,7 @@ hprop_plutus_certifying_withdrawing = H.integration . H.runFinallies . H.workspa
     , "--out-file", work </> "ledger-state.json"
     ]
 
-  pr@(Lovelace plutusRewards) <- H.byDurationM 3 12 $ do
+  pr@(Lovelace plutusRewards) <- H.byDurationM 3 20 $ do
     void $ H.execCli' execConfig
       [ "query",  "stake-address-info"
       , "--address", plutusStakingAddr
