@@ -514,7 +514,7 @@ hprop_plutus_certifying_withdrawing = H.integration . H.runFinallies . H.workspa
                , "--testnet-magic", show @Int testnetMagic
                ]
 
-  H.threadDelay 10000000
+  H.threadDelay 20000000
 
   poolIdPlutusDeleg <- H.byDurationM 3 12 $ do
     H.note_ "Check to see if staking script was delegated"
