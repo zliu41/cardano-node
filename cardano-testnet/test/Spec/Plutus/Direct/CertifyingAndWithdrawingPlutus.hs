@@ -609,7 +609,9 @@ hprop_plutus_certifying_withdrawing = H.integration . H.runFinallies . H.workspa
     , "--out-file", work </> "ledger-state.json"
     ]
 
-  pr@(Lovelace plutusRewards) <- H.byDurationM 3 20 $ do
+  let minrequtxo = 999978
+
+  pr <- H.byDurationM 3 20 $ do
     void $ H.execCli' execConfig
       [ "query",  "stake-address-info"
       , "--address", plutusStakingAddr
@@ -624,17 +626,14 @@ hprop_plutus_certifying_withdrawing = H.integration . H.runFinallies . H.workspa
 
     (_, scriptRewards, _) <- H.headM stakingScriptRewardsAddrInfo
 
-    case scriptRewards of
+    pr@(Lovelace plutusRewards) <- case scriptRewards of
       Nothing -> H.failMessage callStack "Plutus staking script has no rewards"
       Just rwds -> H.assert (rwds > 0) >> return rwds
 
-  H.note_ $ "We now withdraw the rewards from our Plutus staking address: " <> show @Integer plutusRewards
+    H.note_ $ "We now withdraw the rewards from our Plutus staking address: " <> show @Integer plutusRewards
 
-  H.note_ "Get updated UTxO"
+    H.note_ "Get updated UTxO"
 
-  let minrequtxo = 999978
-
-  H.byDurationM 3 12 $ do
     void $ H.execCli' execConfig
         [ "query", "utxo"
         , "--address", utxoAddr
@@ -678,6 +677,8 @@ hprop_plutus_certifying_withdrawing = H.integration . H.runFinallies . H.workspa
       , "--tx-file", work </> "staking-script-withdrawal.tx"
       , "--testnet-magic", show @Int testnetMagic
       ]
+
+    return pr
 
   H.byDurationM 3 12 $ do
     H.note_ "Check UTxO at script staking address to see if withdrawal was successful"
