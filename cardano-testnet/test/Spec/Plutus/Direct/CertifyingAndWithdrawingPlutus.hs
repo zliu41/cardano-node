@@ -632,24 +632,24 @@ hprop_plutus_certifying_withdrawing = H.integration . H.runFinallies . H.workspa
 
   H.note_ "Get updated UTxO"
 
-  void $ H.execCli' execConfig
-      [ "query", "utxo"
-      , "--address", utxoAddr
-      , "--cardano-mode"
-      , "--testnet-magic", show @Int testnetMagic
-      , "--out-file", work </> "utxo-5.json"
-      ]
-
-  H.cat $ work </> "utxo-5.json"
-
-  utxo5Json <- H.leftFailM . H.readJsonFile $ work </> "utxo-5.json"
-  UTxO utxo5 <- H.noteShowM $ H.jsonErrorFail $ J.fromJSON @(UTxO AlonzoEra) utxo5Json
-  txin5 <- H.noteShow =<< H.headM (Map.keys utxo5)
-  txinCollateral2 <- H.noteShow $ Map.keys utxo5 !! 1
-
   let minrequtxo = 999978
 
   H.byDurationM 3 12 $ do
+    void $ H.execCli' execConfig
+        [ "query", "utxo"
+        , "--address", utxoAddr
+        , "--cardano-mode"
+        , "--testnet-magic", show @Int testnetMagic
+        , "--out-file", work </> "utxo-5.json"
+        ]
+
+    H.cat $ work </> "utxo-5.json"
+
+    utxo5Json <- H.leftFailM . H.readJsonFile $ work </> "utxo-5.json"
+    UTxO utxo5 <- H.noteShowM $ H.jsonErrorFail $ J.fromJSON @(UTxO AlonzoEra) utxo5Json
+    txin5 <- H.noteShow =<< H.headM (Map.keys utxo5)
+    txinCollateral2 <- H.noteShow $ Map.keys utxo5 !! 1
+
     void $ H.execCli' execConfig
       [ "transaction", "build"
       , "--alonzo-era"
