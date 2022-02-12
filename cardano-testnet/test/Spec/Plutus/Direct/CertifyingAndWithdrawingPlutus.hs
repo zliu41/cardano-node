@@ -557,7 +557,7 @@ hprop_plutus_certifying_withdrawing = H.integration . H.runFinallies . H.workspa
 
   utxoPlutus /== mempty
 
-  H.note_ "Wait for rewards to be paid out. This will be current epoch + 4"
+  H.note_ "Wait for rewards to be paid out. This will be current epoch + 5"
 
   void $ H.execCli' execConfig
     [ "query",  "tip"
@@ -573,16 +573,15 @@ hprop_plutus_certifying_withdrawing = H.integration . H.runFinallies . H.workspa
         H.failMessage callStack "cardano-cli query tip returned Nothing for EpochNo"
       Just currEpoch -> return currEpoch
 
-  let rewardsEpoch = currEpoch + 4
+  let rewardsEpoch = currEpoch + 5
   waitedEpoch <- waitUntilEpoch
                    (work </> "current-tip.json")
                    testnetMagic
                    execConfig
                    rewardsEpoch
 
-  H.note_ "Check we have reached 4 epochs ahead"
-  waitedEpoch === rewardsEpoch
-
+  H.note_ "Check we have reached 5 epochs ahead"
+  H.assert $ waitedEpoch >= rewardsEpoch
 
   void $ H.execCli' execConfig
     [ "query",  "tip"
