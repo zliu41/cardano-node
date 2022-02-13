@@ -190,7 +190,7 @@ jobs:
       if: ${{ always() }}
       continue-on-error: true
       with:
-        name: chairman-test-artifacts-${{ matrix.os }}-${{ matrix.ghc }}
+        name: chairman-test-artifacts-${{ matrix.os }}-${{ matrix.n }}-${{ matrix.ghc }}
         path: ${{ runner.temp }}/chairman/
 
   release:
