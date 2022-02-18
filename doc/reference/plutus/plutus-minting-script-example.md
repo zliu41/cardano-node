@@ -2,19 +2,19 @@
 
 ## What is a Plutus minting script?
 
-This is a type of Plutus script that is required to validate the minting of multi-asset tokens. We can do this using Mary era scripts, however, Plutus scripts allow us to encode more logic beyond requiring verification keys and timelocks. The Plutus minting script expects only a redeemer in order to successfully validate the minting of a multi-asset.
+This is a type of Plutus script that is required to validate the minting of multi-asset tokens. We can do this using Mary-era scripts. However, Plutus scripts allow us to encode more logic beyond requiring verification keys and timelocks. The Plutus minting script expects only a redeemer in order to successfully validate the minting of a multi-asset.
 
 ### An example of using a Plutus minting script
 
 Below is an example that shows how to use a Plutus minting script. This is a step-by-step
 process involving:
 
-+ the creation of the `AlwaysSucceeds` Plutus minting script (i.e. anybody can mint)
++ the creation of the `AlwaysSucceeds` Plutus minting script (ie. anybody can mint)
 + the creation of a transaction that mints multi-assets using the `AlwaysSucceeds` Plutus minting script
 
 In this example we will use the [anyone can mint](../../../plutus-example/plutus-example/src/Cardano/PlutusExample/MintingScript.hs) Plutus minting script. In order to execute a Plutus minting script, we require the following:
 
-- Collateral tx input(s) - these are provided and are forfeited in the event the Plutus script fails to execute.
+- Collateral tx input(s) - these are provided and are forfeited if the Plutus script fails to execute.
 - The Plutus script should be serialized in the text envelope format. `cardano-cli` expects Plutus scripts to be serialized in the text envelope format.
 - A redeemer.
 
