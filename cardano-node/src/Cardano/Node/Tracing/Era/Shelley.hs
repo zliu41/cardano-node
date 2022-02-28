@@ -52,7 +52,7 @@ import qualified Cardano.Ledger.Alonzo as Alonzo
 import           Cardano.Ledger.Alonzo.Rules.Bbody (AlonzoBbodyPredFail)
 import qualified Cardano.Ledger.Alonzo.Rules.Utxo as Alonzo
 import qualified Cardano.Ledger.Alonzo.Rules.Utxos as Alonzo
-import           Cardano.Ledger.Alonzo.Rules.Utxow (AlonzoPredFail (..))
+import           Cardano.Ledger.Alonzo.Rules.Utxow as Alonzo (UtxowPredicateFail (..))
 import qualified Cardano.Ledger.Alonzo.Tx as Alonzo
 import qualified Cardano.Ledger.AuxiliaryData as Core
 import           Cardano.Ledger.BaseTypes (strictMaybeToMaybe)
@@ -346,7 +346,7 @@ instance ( ShelleyBasedEra era
   forMachine dtal (UtxowFailure f)  = forMachine dtal f
   forMachine dtal (DelegsFailure f) = forMachine dtal f
 
-instance LogFormatting (AlonzoPredFail (Alonzo.AlonzoEra StandardCrypto)) where
+instance LogFormatting (Alonzo.UtxowPredicateFail (Alonzo.AlonzoEra StandardCrypto)) where
   forMachine dtal (WrappedShelleyEraFailure utxoPredFail) =
     forMachine dtal utxoPredFail
   forMachine _ (MissingRedeemers scripts) =

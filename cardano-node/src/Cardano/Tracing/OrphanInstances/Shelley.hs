@@ -25,6 +25,8 @@ import qualified Data.Aeson.Types as Aeson
 import qualified Data.HashMap.Strict as HMS
 import qualified Data.Set as Set
 import qualified Data.Text as Text
+import qualified Data.Text.Encoding as Text (decodeUtf8With)
+import qualified Data.Text.Encoding.Error as Text (lenientDecode)
 
 import qualified Cardano.Api as Api
 import           Cardano.Api.Orphans ()
@@ -53,7 +55,7 @@ import qualified Cardano.Ledger.Alonzo.PlutusScriptApi as Alonzo
 import           Cardano.Ledger.Alonzo.Rules.Bbody (AlonzoBbodyPredFail)
 import qualified Cardano.Ledger.Alonzo.Rules.Utxo as Alonzo
 import qualified Cardano.Ledger.Alonzo.Rules.Utxos as Alonzo
-import           Cardano.Ledger.Alonzo.Rules.Utxow (AlonzoPredFail (..))
+import           Cardano.Ledger.Alonzo.Rules.Utxow as Alonzo (UtxowPredicateFail (..))
 import qualified Cardano.Ledger.Alonzo.Tx as Alonzo
 import qualified Cardano.Ledger.Alonzo.TxInfo as Alonzo
 import qualified Cardano.Ledger.AuxiliaryData as Core
@@ -289,7 +291,7 @@ instance ( ShelleyBasedEra era
   toObject verb (UtxowFailure f) = toObject verb f
   toObject verb (DelegsFailure f) = toObject verb f
 
-instance ToObject (AlonzoPredFail (Alonzo.AlonzoEra StandardCrypto)) where
+instance ToObject (Alonzo.UtxowPredicateFail (Alonzo.AlonzoEra StandardCrypto)) where
   toObject v (WrappedShelleyEraFailure utxoPredFail) =
     toObject v utxoPredFail
   toObject _ (MissingRedeemers scripts) =
@@ -1004,6 +1006,10 @@ instance ToJSON (Alonzo.CollectError StandardCrypto) where
               Alonzo.ByronOutputInContext -> String "Byron output in the presence of a plutus script"
               Alonzo.TranslationLogicErrorInput -> String "Logic error translating inputs"
               Alonzo.TranslationLogicErrorRedeemer -> String "Logic error translating redeemers"
+              Alonzo.TranslationLogicErrorDoubleDatum -> String "Logic error translating datum"
+              Alonzo.LanguageNotSupported -> String "Unsupported language"
+              Alonzo.InlineDatumsNotSupported -> String "Inline datum is not supported"
+              Alonzo.ReferenceScriptsNotSupported -> String "Reference scripts are not supported"
           ]
 
 instance ToJSON Alonzo.TagMismatchDescription where
@@ -1033,7 +1039,7 @@ instance ToJSON Alonzo.FailureDescription where
         [ "kind" .= String "FailureDescription"
         , "error" .= String "PlutusFailure"
         , "description" .= t
-        , "reconstructionDetail" .= bs
+        , "reconstructionDetail" .= Text.decodeUtf8With Text.lenientDecode bs
         ]
 
 instance ToObject (AlonzoBbodyPredFail (Alonzo.AlonzoEra StandardCrypto)) where
