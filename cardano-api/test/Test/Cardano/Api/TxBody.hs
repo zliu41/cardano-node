@@ -12,6 +12,7 @@ module Test.Cardano.Api.TxBody (tests) where
 
 import           Cardano.Prelude
 
+import           Data.List (nub)
 import           Data.Type.Equality (testEquality)
 import           Hedgehog (PropertyT, evalEither, forAll, property, tripping, (===))
 import           Test.Tasty (TestTree, testGroup)
@@ -138,7 +139,10 @@ normalizeContentOriginal content =
   content
     { txAuxScripts = normalizeAuxScripts $ txAuxScripts content
     , txCertificates = normalizeCertificates $ txCertificates content
-    , txIns = sortOn fst $ txIns content
+    , txIns =
+        nub -- the same txin provided multiply is OK, ignore copies
+        $ sortOn fst
+        $ txIns content
     , txInsCollateral = normalizeInsCollateral $ txInsCollateral content
     , txMetadata = normalizeMetadata $ txMetadata content
     , txMintValue = normalizeMintValue $ txMintValue content
