@@ -49,7 +49,10 @@ test_roundtrip_TxBody_make_get =
         (normalizeContentOriginal $ viewBodyContent content)
         (\_ -> makeTransactionBody content)
         (<&> \(TxBody content') -> normalizeContentRoundtrip content')
-  | AnyCardanoEra era <- [minBound..]
+  | AnyCardanoEra era <-
+      [ minBound .. AnyCardanoEra AlonzoEra
+        -- TODO: temporary exception until Babbage consensus is implemented
+      ]
   ]
 
 
@@ -89,7 +92,10 @@ test_roundtrip_TxBody_make_get_make =
 
       assertEqBodies body1 body2
 
-  | AnyCardanoEra era <- [minBound..]
+  | AnyCardanoEra era <-
+      [ minBound .. AnyCardanoEra AlonzoEra
+      -- TODO: temporary exception until Babbage consensus is implemented
+      ]
   ]
 
 
@@ -306,6 +312,7 @@ viewBodyContent body =
     , txFee = txFee body
     , txIns = map viewTxIn $ txIns body
     , txInsCollateral = txInsCollateral body
+    , txInsReference = txInsReference body
     , txMetadata = txMetadata body
     , txMintValue = viewMintValue $ txMintValue body
     , txOuts = txOuts body
@@ -360,6 +367,7 @@ buildBodyContent protocolParams body =
     , txFee = txFee body
     , txIns = map buildTxIn $ txIns body
     , txInsCollateral = txInsCollateral body
+    , txInsReference = txInsReference body
     , txMetadata = txMetadata body
     , txMintValue = buildMintValue $ txMintValue body
     , txOuts = txOuts body
