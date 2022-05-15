@@ -1,6 +1,8 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE TemplateHaskell #-}
 
+{-# OPTIONS_GHC -Wno-deprecations #-} -- TODO Fix deprecations
+
 module Test.Cardano.Api.Typed.TxBody
   ( tests
   ) where
@@ -8,7 +10,6 @@ module Test.Cardano.Api.Typed.TxBody
 import           Cardano.Prelude
 
 import           Hedgehog (Property, annotateShow, failure, (===), MonadTest)
-import qualified Hedgehog as H
 import           Test.Tasty (TestTree)
 import           Test.Tasty.Hedgehog (testProperty)
 import           Test.Tasty.TH (testGroupGenerator)
@@ -18,6 +19,8 @@ import           Cardano.Api.Shelley (ReferenceScript (..), refScriptToShelleySc
 import           Data.Type.Equality (TestEquality (testEquality))
 import           Gen.Cardano.Api.Typed
 import           Test.Cardano.Api.Typed.Orphans ()
+
+import qualified Hedgehog as H
 
 {- HLINT ignore "Use camelCase" -}
 
