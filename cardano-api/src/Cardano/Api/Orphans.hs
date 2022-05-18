@@ -516,10 +516,10 @@ instance
   , ToJSON (Core.Tx era)
   , ToJSON (TxId (Ledger.Crypto era))
   ) => ToJSON (GenTx (ShelleyBlock protocol era)) where
-  toJSON tx = object [ "txid" .= Text.take 8 (Render.renderTxId (txId tx)) ]
+  toJSON tx = object [ "txid" .= Text.take 8 (renderTxId (txId tx)) ]
 
 instance ToJSON (SupportsMempool.TxId (GenTx (ShelleyBlock protocol era))) where
-  toJSON = String . Text.take 8 . Render.renderTxId
+  toJSON = String . Text.take 8 . renderTxId
 
 instance
   ( ShelleyCompatible protocol era
@@ -1887,3 +1887,6 @@ instance ToJSON Alonzo.TagMismatchDescription where
       , "error"           .= String "FailedUnexpectedly"
       , "reconstruction"  .= do NEL.toList forReasons :: [Alonzo.FailureDescription]
       ]
+
+renderTxId :: SupportsMempool.TxId (GenTx (ShelleyBlock protocol era)) -> Text
+renderTxId = show

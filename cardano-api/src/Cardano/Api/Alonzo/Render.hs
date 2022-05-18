@@ -1,17 +1,14 @@
 module Cardano.Api.Alonzo.Render
   ( renderBadInputsUTxOErr
   , renderValueNotConservedErr
-  , renderTxId
   ) where
 
 import           Cardano.Ledger.Shelley.API hiding (ShelleyBasedEra)
 import           Cardano.Prelude
 import           Data.Aeson (Value(..))
-import           Ouroboros.Consensus.Shelley.Ledger hiding (TxId)
 import           Prelude hiding ((.), map, show)
 
 import qualified Data.Set as Set
-import qualified Ouroboros.Consensus.Ledger.SupportsMempool as Consensus
 
 renderBadInputsUTxOErr ::  Set (TxIn era) -> Value
 renderBadInputsUTxOErr txIns
@@ -21,6 +18,3 @@ renderBadInputsUTxOErr txIns
 renderValueNotConservedErr :: Show val => val -> val -> Value
 renderValueNotConservedErr consumed produced = String $
   "This transaction consumed " <> show consumed <> " but produced " <> show produced
-
-renderTxId :: Consensus.TxId (GenTx (ShelleyBlock protocol era)) -> Text
-renderTxId = error "TODO implement"
