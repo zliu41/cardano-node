@@ -25,6 +25,7 @@
 
 module Cardano.Api.Orphans () where
 
+import           Cardano.Api.Alonzo.Render (renderScriptPurpose)
 import           Cardano.Api.Script
 import           Cardano.Api.SerialiseRaw (serialiseToRawBytesHexText)
 import           Cardano.Ledger.Alonzo.Rules.Bbody (AlonzoBbodyPredFail)
@@ -85,6 +86,8 @@ import           Prelude hiding ((.), map, show)
 
 import qualified Cardano.Api.Alonzo.Render as Render
 import qualified Cardano.Api.Ledger.Mary as Api
+import qualified Cardano.Api.Script as Api
+import qualified Cardano.Api.SerialiseRaw as Api
 import qualified Cardano.Api.TxBody as Api
 import qualified Cardano.Crypto.Hash as Hash
 import qualified Cardano.Crypto.Hash.Class as Crypto
@@ -146,7 +149,6 @@ import qualified PlutusCore.Evaluation.Machine.Exception as PlutusCore
 import qualified PlutusTx.AssocMap as AssocMap
 import qualified UntypedPlutusCore.Core.Type
 import qualified UntypedPlutusCore.Evaluation.Machine.Cek.Internal as Cek
-import qualified Cardano.Api.Script as Api
 
 -- Orphan instances involved in the JSON output of the API queries.
 -- We will remove/replace these as we provide more API wrapper types
@@ -716,13 +718,19 @@ instance
     , "value" .= do f :: PredicateFailure (Ledger.EraRule "DELEGS" era)
     ]
 
+instance ToJSON (Alonzo.ScriptPurpose StandardCrypto) where
+  toJSON = renderScriptPurpose
+
+instance ToJSONKey (Shelley.ScriptHash StandardCrypto) where
+  toJSONKey = contramap (Api.serialiseToRawBytesHexText . Api.ScriptHash) toJSONKey
+
 instance
   ( ToJSON (Core.AuxiliaryDataHash StandardCrypto)
   ) => ToJSON (UtxowPredicateFail (Alonzo.AlonzoEra StandardCrypto)) where
   toJSON (WrappedShelleyEraFailure utxoPredFail) = toJSON utxoPredFail
   toJSON (MissingRedeemers scripts) = object
     [ "kind"    .= String "MissingRedeemers"
-    , "scripts" .= do Render.renderMissingRedeemers scripts :: Value
+    , "scripts" .= do Map.fromList $ fmap swap scripts :: Map (Shelley.ScriptHash StandardCrypto) (Alonzo.ScriptPurpose StandardCrypto)
     ]
   toJSON (MissingRequiredDatums required received) = object
     [ "kind"      .= String "MissingRequiredDatums"
@@ -731,8 +739,8 @@ instance
     ]
   toJSON (PPViewHashesDontMatch ppHashInTxBody ppHashFromPParams) = object
     [ "kind"        .= String "PPViewHashesDontMatch"
-    , "fromTxBody"  .= do Render.renderScriptIntegrityHash (strictMaybeToMaybe ppHashInTxBody)    :: Value
-    , "fromPParams" .= do Render.renderScriptIntegrityHash (strictMaybeToMaybe ppHashFromPParams) :: Value
+    , "fromTxBody"  .= do strictMaybeToMaybe ppHashInTxBody    :: Maybe (Alonzo.ScriptIntegrityHash StandardCrypto)
+    , "fromPParams" .= do strictMaybeToMaybe ppHashFromPParams :: Maybe (Alonzo.ScriptIntegrityHash StandardCrypto)
     ]
   toJSON (MissingRequiredSigners missingKeyWitnesses) = object
     [ "kind"      .= String "MissingRequiredSigners"
@@ -1413,7 +1421,7 @@ instance ToJSON (Alonzo.UtxosPredicateFailure (Alonzo.AlonzoEra StandardCrypto))
   toJSON (Alonzo.ValidationTagMismatch isValidating reason) = object
     [ "kind"          .= String "ValidationTagMismatch"
     , "isvalidating"  .= isValidating
-    , "reason"        .= tagMismatchDescriptionToJson reason
+    , "reason"        .= do reason :: Alonzo.TagMismatchDescription
     ]
   toJSON (Alonzo.CollectErrors errors) = object
     [ "kind"    .= String "CollectErrors"
@@ -1424,48 +1432,35 @@ instance ToJSON (Alonzo.UtxosPredicateFailure (Alonzo.AlonzoEra StandardCrypto))
 deriving newtype instance ToJSON Alonzo.IsValid
 
 instance ToJSON (Alonzo.CollectError StandardCrypto) where
-  toJSON cError = case cError of
+  toJSON = \case
     Alonzo.NoRedeemer sPurpose -> object
-      [ "kind"          .= String "CollectError"
-      , "error"         .= String "NoRedeemer"
-      , "scriptpurpose" .= Render.renderScriptPurpose sPurpose
+      [ "kind" .= String "CollectError"
+      , "error" .= String "NoRedeemer"
+      , "scriptpurpose" .= renderScriptPurpose sPurpose
       ]
     Alonzo.NoWitness sHash -> object
-      [ "kind"        .= String "CollectError"
-      , "error"       .= String "NoWitness"
-      , "scripthash"  .= toJSON sHash
+      [ "kind" .= String "CollectError"
+      , "error" .= String "NoWitness"
+      , "scripthash" .= toJSON sHash
       ]
     Alonzo.NoCostModel lang -> object
-      [ "kind"      .= String "CollectError"
-      , "error"     .= String "NoCostModel"
-      , "language"  .= toJSON lang
+      [ "kind" .= String "CollectError"
+      , "error" .= String "NoCostModel"
+      , "language" .= toJSON lang
       ]
     Alonzo.BadTranslation err -> object
-      [ "kind"  .= String "PlutusTranslationError"
-      , "error" .= errMsg
+      [ "kind" .= String "PlutusTranslationError"
+      , "error" .= case err of
+          Alonzo.ByronInputInContext -> String "Byron input in the presence of a plutus script"
+          Alonzo.ByronOutputInContext -> String "Byron output in the presence of a plutus script"
+          Alonzo.TranslationLogicErrorInput -> String "Logic error translating inputs"
+          Alonzo.TranslationLogicErrorRedeemer -> String "Logic error translating redeemers"
+          Alonzo.TranslationLogicErrorDoubleDatum -> String "Logic error double datum"
+          Alonzo.LanguageNotSupported -> String "Language not supported"
+          Alonzo.InlineDatumsNotSupported -> String "Inline datums not supported"
+          Alonzo.ReferenceScriptsNotSupported -> String "Reference scripts not supported"
+          Alonzo.ReferenceInputsNotSupported -> String "Reference inputs not supported"
       ]
-      where errMsg = case err of
-              Alonzo.ByronInputInContext              -> String "Byron input in the presence of a plutus script"
-              Alonzo.ByronOutputInContext             -> String "Byron output in the presence of a plutus script"
-              Alonzo.TranslationLogicErrorInput       -> String "Logic error translating inputs"
-              Alonzo.TranslationLogicErrorRedeemer    -> String "Logic error translating redeemers"
-              Alonzo.TranslationLogicErrorDoubleDatum -> String "Logic error double datum"
-              Alonzo.LanguageNotSupported             -> String "Language not supported"
-              Alonzo.InlineDatumsNotSupported         -> String "Inline datums not supported"
-              Alonzo.ReferenceScriptsNotSupported     -> String "Reference scripts not supported"
-              Alonzo.ReferenceInputsNotSupported      -> String "Reference inputs not supported"
-
-tagMismatchDescriptionToJson :: Alonzo.TagMismatchDescription -> Value
-tagMismatchDescriptionToJson = \case
-  Alonzo.PassedUnexpectedly -> object
-    [ "kind"  .= String "TagMismatchDescription"
-    , "error" .= String "PassedUnexpectedly"
-    ]
-  Alonzo.FailedUnexpectedly forReasons -> object
-    [ "kind"            .= String "TagMismatchDescription"
-    , "error"           .= String "FailedUnexpectedly"
-    , "reconstruction"  .= do NEL.toList forReasons :: [Alonzo.FailureDescription]
-    ]
 
 instance ToJSON Alonzo.FailureDescription where
   toJSON (Alonzo.PlutusFailure _t bs) = object
@@ -1868,4 +1863,13 @@ showLastAppBlockNo wOblk =  case withOriginToMaybe wOblk of
 -- The following instances aren't used above
 
 instance ToJSON Alonzo.TagMismatchDescription where
-  toJSON = tagMismatchDescriptionToJson
+  toJSON = \case
+    Alonzo.PassedUnexpectedly -> object
+      [ "kind"  .= String "TagMismatchDescription"
+      , "error" .= String "PassedUnexpectedly"
+      ]
+    Alonzo.FailedUnexpectedly forReasons -> object
+      [ "kind"            .= String "TagMismatchDescription"
+      , "error"           .= String "FailedUnexpectedly"
+      , "reconstruction"  .= do NEL.toList forReasons :: [Alonzo.FailureDescription]
+      ]

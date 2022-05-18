@@ -377,5 +377,5 @@ applyTxErrorToJson ::
   , ToJSON (Ledger.PredicateFailure (Core.EraRule "PPUP" era))
   , ToJSON (Ledger.PredicateFailure (Core.EraRule "UTXO" era))
   , ToJSON (Ledger.PredicateFailure (Core.EraRule "UTXOW" era))
-  ) => Consensus.ApplyTxErr (Consensus.ShelleyBlock era) -> Value
+  ) => Consensus.ApplyTxErr (Consensus.ShelleyBlock protocol era) -> Value
 applyTxErrorToJson (Consensus.ApplyTxError predicateFailures) = toJSON (fmap toJSON predicateFailures)
