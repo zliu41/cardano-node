@@ -25,7 +25,6 @@
 
 module Cardano.Api.Orphans () where
 
-import           Cardano.Api.Alonzo.Render (renderScriptPurpose)
 import           Cardano.Api.Script
 import           Cardano.Api.SerialiseRaw (serialiseToRawBytesHexText)
 import           Cardano.Ledger.Alonzo.Rules.Bbody (AlonzoBbodyPredFail)
@@ -84,10 +83,13 @@ import           Ouroboros.Network.Block (blockHash, blockNo, blockSlot)
 import           Ouroboros.Network.Point (WithOrigin, withOriginToMaybe)
 import           Prelude hiding ((.), map, show)
 
+import qualified Cardano.Api.Address as Api
 import qualified Cardano.Api.Alonzo.Render as Render
+import qualified Cardano.Api.Certificate as Api
 import qualified Cardano.Api.Ledger.Mary as Api
 import qualified Cardano.Api.Script as Api
 import qualified Cardano.Api.SerialiseRaw as Api
+import qualified Cardano.Api.SerialiseTextEnvelope as Api
 import qualified Cardano.Api.TxBody as Api
 import qualified Cardano.Crypto.Hash as Hash
 import qualified Cardano.Crypto.Hash.Class as Crypto
@@ -719,7 +721,19 @@ instance
     ]
 
 instance ToJSON (Alonzo.ScriptPurpose StandardCrypto) where
-  toJSON = renderScriptPurpose
+  toJSON = \case
+    Alonzo.Minting pid -> object
+      [ "minting" .= toJSON (Api.PolicyID pid)
+      ]
+    Alonzo.Spending txin -> object
+      [ "spending" .= Api.fromShelleyTxIn txin
+      ]
+    Alonzo.Rewarding rwdAcct -> object
+      [ "rewarding" .= String (Api.serialiseAddress $ Api.fromShelleyStakeAddr rwdAcct)
+      ]
+    Alonzo.Certifying cert -> object
+      [ "certifying" .= toJSON (Api.textEnvelopeDefaultDescr $ Api.fromShelleyCertificate cert)
+      ]
 
 instance ToJSONKey (Shelley.ScriptHash StandardCrypto) where
   toJSONKey = contramap (Api.serialiseToRawBytesHexText . Api.ScriptHash) toJSONKey
@@ -1434,9 +1448,9 @@ deriving newtype instance ToJSON Alonzo.IsValid
 instance ToJSON (Alonzo.CollectError StandardCrypto) where
   toJSON = \case
     Alonzo.NoRedeemer sPurpose -> object
-      [ "kind" .= String "CollectError"
-      , "error" .= String "NoRedeemer"
-      , "scriptpurpose" .= renderScriptPurpose sPurpose
+      [ "kind"          .= String "CollectError"
+      , "error"         .= String "NoRedeemer"
+      , "scriptpurpose" .= do sPurpose :: Alonzo.ScriptPurpose StandardCrypto
       ]
     Alonzo.NoWitness sHash -> object
       [ "kind" .= String "CollectError"

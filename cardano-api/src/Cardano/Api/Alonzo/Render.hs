@@ -1,39 +1,17 @@
 module Cardano.Api.Alonzo.Render
-  ( renderScriptPurpose
-  , renderBadInputsUTxOErr
+  ( renderBadInputsUTxOErr
   , renderValueNotConservedErr
   , renderTxId
   ) where
 
-import           Cardano.Ledger.Crypto (StandardCrypto)
 import           Cardano.Ledger.Shelley.API hiding (ShelleyBasedEra)
 import           Cardano.Prelude
-import           Data.Aeson (ToJSON (..), Value(..), object, (.=))
+import           Data.Aeson (Value(..))
 import           Ouroboros.Consensus.Shelley.Ledger hiding (TxId)
 import           Prelude hiding ((.), map, show)
 
-import qualified Cardano.Api.Address as Api
-import qualified Cardano.Api.Certificate as Api
-import qualified Cardano.Api.Ledger.Mary as Api
-import qualified Cardano.Api.SerialiseTextEnvelope as Api
-import qualified Cardano.Api.TxBody as Api
-import qualified Cardano.Ledger.Alonzo.Tx as Alonzo
 import qualified Data.Set as Set
 import qualified Ouroboros.Consensus.Ledger.SupportsMempool as Consensus
-
-renderScriptPurpose :: Alonzo.ScriptPurpose StandardCrypto -> Value
-renderScriptPurpose (Alonzo.Minting pid) = object
-  [ "minting" .= toJSON (Api.PolicyID pid)
-  ]
-renderScriptPurpose (Alonzo.Spending txin) = object
-  [ "spending" .= Api.fromShelleyTxIn txin
-  ]
-renderScriptPurpose (Alonzo.Rewarding rwdAcct) = object
-  [ "rewarding" .= String (Api.serialiseAddress $ Api.fromShelleyStakeAddr rwdAcct)
-  ]
-renderScriptPurpose (Alonzo.Certifying cert) = object
-  [ "certifying" .= toJSON (Api.textEnvelopeDefaultDescr $ Api.fromShelleyCertificate cert)
-  ]
 
 renderBadInputsUTxOErr ::  Set (TxIn era) -> Value
 renderBadInputsUTxOErr txIns
