@@ -17,65 +17,15 @@
 
 module Cardano.Tracing.OrphanInstances.Shelley () where
 
-import           Cardano.Prelude
-
-import           Data.Aeson (Value (..), object)
-import qualified Data.Aeson as Aeson
-import qualified Data.Aeson.Types as Aeson
-import qualified Data.Set as Set
-import qualified Data.Text as Text
-
-import qualified Cardano.Api as Api
 import           Cardano.Api.Orphans ()
-import qualified Cardano.Api.Shelley as Api
-import           Cardano.Ledger.Crypto (StandardCrypto)
-
-import           Cardano.Slotting.Block (BlockNo (..))
-import           Cardano.Tracing.OrphanInstances.Common
-import           Cardano.Tracing.OrphanInstances.Consensus ()
-import           Cardano.Tracing.Render (renderTxId)
-
-import           Ouroboros.Consensus.Ledger.SupportsMempool (txId)
-import qualified Ouroboros.Consensus.Ledger.SupportsMempool as SupportsMempool
-import           Ouroboros.Consensus.Util.Condense (condense)
-import           Ouroboros.Network.Block (SlotNo (..), blockHash, blockNo, blockSlot)
-import           Ouroboros.Network.Point (WithOrigin, withOriginToMaybe)
-
-import qualified Ouroboros.Consensus.Protocol.Ledger.HotKey as HotKey
-import qualified Ouroboros.Consensus.Protocol.Praos as Praos
-import           Ouroboros.Consensus.Protocol.TPraos (TPraosCannotForge (..))
-import           Ouroboros.Consensus.Shelley.Ledger hiding (TxId)
-import           Ouroboros.Consensus.Shelley.Ledger.Inspect
-import qualified Ouroboros.Consensus.Shelley.Protocol.Praos as Praos
-
-import qualified Cardano.Crypto.Hash.Class as Crypto
-import qualified Cardano.Ledger.Alonzo.PlutusScriptApi as Alonzo
+import           Cardano.Ledger.Alonzo as Alonzo
 import           Cardano.Ledger.Alonzo.Rules.Bbody (AlonzoBbodyPredFail)
-import qualified Cardano.Ledger.Alonzo.Rules.Utxo as Alonzo
-import qualified Cardano.Ledger.Alonzo.Rules.Utxos as Alonzo
 import           Cardano.Ledger.Alonzo.Rules.Utxow (UtxowPredicateFail (..))
-import qualified Cardano.Ledger.Alonzo.Tx as Alonzo
-import qualified Cardano.Ledger.Alonzo.TxInfo as Alonzo
-import qualified Cardano.Ledger.AuxiliaryData as Core
-import qualified Cardano.Ledger.Babbage.Rules.Utxo as Babbage
 import           Cardano.Ledger.BaseTypes (activeSlotLog, strictMaybeToMaybe)
+import           Cardano.Ledger.BaseTypes (strictMaybeToMaybe)
 import           Cardano.Ledger.Chain
-import qualified Cardano.Ledger.Core as Core
-import qualified Cardano.Ledger.Core as Ledger
-import qualified Cardano.Ledger.Crypto as Core
-import qualified Cardano.Ledger.Era as Ledger
-import qualified Cardano.Ledger.SafeHash as SafeHash
-import qualified Cardano.Ledger.ShelleyMA.Rules.Utxo as MA
-import qualified Cardano.Ledger.ShelleyMA.Timelocks as MA
-import           Cardano.Protocol.TPraos.BHeader (LastAppliedBlock, labBlockNo)
-import           Cardano.Protocol.TPraos.Rules.OCert
-import           Cardano.Protocol.TPraos.Rules.Overlay
-import           Cardano.Protocol.TPraos.Rules.Tickn
-import           Cardano.Protocol.TPraos.Rules.Updn
-
--- TODO: this should be exposed via Cardano.Api
-import           Cardano.Ledger.Shelley.API hiding (ShelleyBasedEra)
-
+import           Cardano.Ledger.Crypto (StandardCrypto)
+import           Cardano.Ledger.Shelley.API hiding (ShelleyBasedEra) -- TODO: this should be exposed via Cardano.Api
 import           Cardano.Ledger.Shelley.Rules.Bbody
 import           Cardano.Ledger.Shelley.Rules.Deleg
 import           Cardano.Ledger.Shelley.Rules.Delegs
@@ -95,11 +45,52 @@ import           Cardano.Ledger.Shelley.Rules.Tick
 import           Cardano.Ledger.Shelley.Rules.Upec
 import           Cardano.Ledger.Shelley.Rules.Utxo
 import           Cardano.Ledger.Shelley.Rules.Utxow
+import           Cardano.Prelude
 import           Cardano.Protocol.TPraos.API (ChainTransitionError (ChainTransitionError))
+import           Cardano.Protocol.TPraos.BHeader (LastAppliedBlock, labBlockNo)
 import           Cardano.Protocol.TPraos.OCert (KESPeriod (KESPeriod))
+import           Cardano.Protocol.TPraos.Rules.OCert
+import           Cardano.Protocol.TPraos.Rules.Overlay
 import           Cardano.Protocol.TPraos.Rules.Prtcl
-import qualified Data.Aeson.Key as Aeson
+import           Cardano.Protocol.TPraos.Rules.Tickn
+import           Cardano.Protocol.TPraos.Rules.Updn
+import           Cardano.Slotting.Block (BlockNo (..))
+import           Cardano.Tracing.OrphanInstances.Common
+import           Cardano.Tracing.OrphanInstances.Consensus ()
+import           Cardano.Tracing.Render (renderTxId)
+import           Data.Aeson (Value (..))
+import           Ouroboros.Consensus.Ledger.SupportsMempool (txId)
+import           Ouroboros.Consensus.Protocol.TPraos (TPraosCannotForge (..))
+import           Ouroboros.Consensus.Shelley.Ledger hiding (TxId)
+import           Ouroboros.Consensus.Shelley.Ledger.Inspect
+import           Ouroboros.Consensus.Util.Condense (condense)
+import           Ouroboros.Network.Block (SlotNo (..), blockHash, blockNo, blockSlot)
+import           Ouroboros.Network.Point (WithOrigin, withOriginToMaybe)
 
+import qualified Data.Aeson as Aeson
+import qualified Data.Aeson.Types as Aeson
+import qualified Data.Set as Set
+import qualified Data.Text as Text
+import qualified Cardano.Api as Api
+import qualified Cardano.Api.Shelley as Api
+import qualified Ouroboros.Consensus.Protocol.Ledger.HotKey as HotKey
+import qualified Ouroboros.Consensus.Protocol.Praos as Praos
+import qualified Ouroboros.Consensus.Shelley.Protocol.Praos as Praos
+import qualified Cardano.Crypto.Hash.Class as Crypto
+import qualified Cardano.Ledger.Alonzo.PlutusScriptApi as Alonzo
+import qualified Cardano.Ledger.Alonzo.Rules.Utxo as Alonzo
+import qualified Cardano.Ledger.Alonzo.Rules.Utxos as Alonzo
+import qualified Cardano.Ledger.Alonzo.Tx as Alonzo
+import qualified Cardano.Ledger.Alonzo.TxInfo as Alonzo
+import qualified Cardano.Ledger.AuxiliaryData as Core
+import qualified Cardano.Ledger.Babbage.Rules.Utxo as Babbage
+import qualified Cardano.Ledger.Core as Core
+import qualified Cardano.Ledger.Core as Ledger
+import qualified Cardano.Ledger.Crypto as Core
+import qualified Cardano.Ledger.Era as Ledger
+import qualified Cardano.Ledger.SafeHash as SafeHash
+import qualified Cardano.Ledger.ShelleyMA.Rules.Utxo as MA
+import qualified Data.Aeson.Key as Aeson
 
 {- HLINT ignore "Use :" -}
 
@@ -113,6 +104,8 @@ instance ShelleyBasedEra era => ToObject (GenTx (ShelleyBlock protocol era)) whe
 
 instance ToJSON (SupportsMempool.TxId (GenTx (ShelleyBlock protocol era))) where
   toJSON = String . Text.take 8 . renderTxId
+
+-- instance ShelleyBasedEra era => ToObject (Header (ShelleyBlock era)) where -- TODO jky
 
 instance ShelleyCompatible protocol era => ToObject (Header (ShelleyBlock protocol era)) where
   toObject _verb b = mconcat
@@ -144,8 +137,6 @@ instance Core.Crypto crypto => ToObject (TPraosCannotForge crypto) where
       , "expected" .= genDlgVRFHash
       , "actual" .= coreNodeVRFHash
       ]
-
-deriving newtype instance ToJSON KESPeriod
 
 instance ToObject HotKey.KESInfo where
   toObject _verb HotKey.KESInfo { kesStartPeriod, kesEndPeriod, kesEvolution } =
@@ -390,8 +381,8 @@ instance ( ShelleyBasedEra era
              ]
   toObject _verb (MissingTxBodyMetadataHash metadataHash) =
     mconcat [ "kind" .= String "MissingTxBodyMetadataHash"
-             , "metadataHash" .= metadataHash
-             ]
+            , "metadataHash" .= metadataHash
+            ]
   toObject _verb (MissingTxMetadata txBodyMetadataHash) =
     mconcat [ "kind" .= String "MissingTxMetadata"
              , "txBodyMetadataHash" .= txBodyMetadataHash
@@ -461,15 +452,6 @@ instance ( ShelleyBasedEra era
              , "addrs"   .= addrs
              ]
 
-
-instance ToJSON MA.ValidityInterval where
-  toJSON vi =
-    Aeson.object $
-        [ "invalidBefore"    .= x | x <- mbfield (MA.invalidBefore    vi) ]
-     ++ [ "invalidHereafter" .= x | x <- mbfield (MA.invalidHereafter vi) ]
-    where
-      mbfield SNothing  = []
-      mbfield (SJust x) = [x]
 
 instance ( ShelleyBasedEra era
          , ToJSON (Core.Value era)
@@ -1052,6 +1034,7 @@ instance ToJSON Alonzo.FailureDescription where
         -- , "reconstructionDetail" .= bs
         ]
 
+-- instance ToObject (AlonzoBbodyPredFail (Alonzo.AlonzoEra StandardCrypto)) where -- TODO jky
 instance ( Ledger.Era era
          , Show (PredicateFailure (Ledger.EraRule "LEDGERS" era))
          ) => ToObject (AlonzoBbodyPredFail era) where
@@ -1196,7 +1179,5 @@ showLastAppBlockNo wOblk =  case withOriginToMaybe wOblk of
                      Just blk -> textShow . unBlockNo $ labBlockNo blk
 
 -- Common to cardano-cli
-
-deriving newtype instance Core.Crypto crypto => ToJSON (Core.AuxiliaryDataHash crypto)
 
 deriving newtype instance Core.Crypto crypto => ToJSON (TxId crypto)

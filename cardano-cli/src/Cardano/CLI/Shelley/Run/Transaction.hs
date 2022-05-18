@@ -324,8 +324,8 @@ runTransactionCmd cmd =
                     scriptFiles metadataFiles mpparams mUpProp outputFormat out
     TxSign txinfile skfiles network txoutfile ->
       runTxSign txinfile skfiles network txoutfile
-    TxSubmit anyConensusModeParams network txFp ->
-      runTxSubmit anyConensusModeParams network txFp
+    TxSubmit anyConensusModeParams network txFp errorDetailFp ->
+      runTxSubmit anyConensusModeParams network txFp errorDetailFp
     TxCalculateMinFee txbody mnw pGenesisOrParamsFile nInputs nOutputs
                       nShelleyKeyWitnesses nByronKeyWitnesses ->
       runTxCalculateMinFee txbody mnw pGenesisOrParamsFile nInputs nOutputs
@@ -1188,8 +1188,9 @@ runTxSubmit
   :: AnyConsensusModeParams
   -> NetworkId
   -> FilePath
+  -> Maybe FilePath
   -> ExceptT ShelleyTxCmdError IO ()
-runTxSubmit (AnyConsensusModeParams cModeParams) network txFile = do
+runTxSubmit (AnyConsensusModeParams cModeParams) network txFile mErrorDetailFp = do
     SocketPath sockPath <- firstExceptT ShelleyTxCmdSocketEnvError readEnvSocketPath
 
     InAnyCardanoEra era tx <- readFileTx txFile
@@ -1209,7 +1210,12 @@ runTxSubmit (AnyConsensusModeParams cModeParams) network txFile = do
       Net.Tx.SubmitSuccess -> liftIO $ putTextLn "Transaction successfully submitted."
       Net.Tx.SubmitFail reason ->
         case reason of
-          TxValidationErrorInMode err _eraInMode -> left . ShelleyTxCmdTxSubmitError . Text.pack $ show err
+          TxValidationErrorInMode err _eraInMode -> do
+            let errorAsText = Text.pack $ show err
+            forM_ mErrorDetailFp $ \errorDetailFp ->
+              liftIO $ LBS.writeFile errorDetailFp (Aeson.encode err)
+            left $ ShelleyTxCmdTxSubmitError errorAsText
+
           TxValidationEraMismatch mismatchErr -> left $ ShelleyTxCmdTxSubmitErrorEraMismatch mismatchErr
 
 -- ----------------------------------------------------------------------------
