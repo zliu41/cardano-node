@@ -84,9 +84,7 @@ import           Ouroboros.Network.Point (WithOrigin, withOriginToMaybe)
 import           Prelude hiding ((.), map, show)
 
 import qualified Cardano.Api.Address as Api
-import qualified Cardano.Api.Alonzo.Render as Render
 import qualified Cardano.Api.Certificate as Api
-import qualified Cardano.Api.Ledger.Mary as Api
 import qualified Cardano.Api.Script as Api
 import qualified Cardano.Api.SerialiseRaw as Api
 import qualified Cardano.Api.SerialiseTextEnvelope as Api
@@ -116,6 +114,7 @@ import qualified Cardano.Ledger.Era as Ledger
 import qualified Cardano.Ledger.Hashes as Ledger
 import qualified Cardano.Ledger.Mary.Value as Mary
 import qualified Cardano.Ledger.PoolDistr as Ledger
+import qualified Cardano.Ledger.SafeHash as Ledger
 import qualified Cardano.Ledger.SafeHash as SafeHash
 import qualified Cardano.Ledger.Shelley.API as Shelley
 import qualified Cardano.Ledger.Shelley.Constraints as Shelley
@@ -126,6 +125,7 @@ import qualified Cardano.Ledger.Shelley.Rewards as Shelley
 import qualified Cardano.Ledger.Shelley.RewardUpdate as Shelley
 import qualified Cardano.Ledger.ShelleyMA.Rules.Utxo as MA
 import qualified Cardano.Ledger.ShelleyMA.Timelocks as MA
+import qualified Cardano.Ledger.TxIn as Ledger
 import qualified Cardano.Prelude as CP
 import qualified Cardano.Protocol.TPraos.BHeader as Protocol
 import qualified Data.Aeson as Aeson
@@ -171,10 +171,12 @@ instance ToJSONKey Mary.AssetName where
       render = Text.decodeLatin1 . B16.encode . Mary.assetName
 
 instance ToJSON (Mary.PolicyID era) where
-  toJSON = toJSON . Api.PolicyID
+  toJSON (Mary.PolicyID (Shelley.ScriptHash h)) = Aeson.String (hashToText h)
 
 instance ToJSONKey (Mary.PolicyID era) where
-  toJSONKey = contramap Api.PolicyID toJSONKey
+  toJSONKey = toJSONKeyText render
+    where
+      render (Mary.PolicyID (Shelley.ScriptHash h)) = hashToText h
 
 instance ToJSON Mary.AssetName where
   toJSON = Aeson.String . Text.decodeLatin1 . B16.encode . Mary.assetName
@@ -723,7 +725,7 @@ instance
 instance ToJSON (Alonzo.ScriptPurpose StandardCrypto) where
   toJSON = \case
     Alonzo.Minting pid -> object
-      [ "minting" .= toJSON (Api.PolicyID pid)
+      [ "minting" .= toJSON pid
       ]
     Alonzo.Spending txin -> object
       [ "spending" .= Api.fromShelleyTxIn txin
@@ -831,7 +833,7 @@ instance
   toJSON (BadInputsUTxO badInputs) = object
     [ "kind"      .= String "BadInputsUTxO"
     , "badInputs" .= do badInputs :: Set (TxIn (Ledger.Crypto era))
-    , "error"     .= Render.renderBadInputsUTxOErr badInputs
+    , "error"     .= renderBadInputsUTxOErr badInputs
     ]
   toJSON (ExpiredUTxO ttl slot) = object
     [ "kind" .= String "ExpiredUTxO"
@@ -866,7 +868,7 @@ instance
     [ "kind"      .= String "ValueNotConservedUTxO"
     , "consumed"  .= do consumed  :: Ledger.Value era
     , "produced"  .= do produced  :: Ledger.Value era
-    , "error"     .= Render.renderValueNotConservedErr consumed produced
+    , "error"     .= renderValueNotConservedErr consumed produced
     ]
   toJSON (UpdateFailure f) = object
     [ "kind"  .= String "UpdateFailure"
@@ -898,7 +900,7 @@ instance ( ShelleyBasedEra era
   toJSON (MA.BadInputsUTxO badInputs) = object
     [ "kind"      .= String "BadInputsUTxO"
     , "badInputs" .= do badInputs                               :: Set (TxIn (Ledger.Crypto era))
-    , "error"     .= do Render.renderBadInputsUTxOErr badInputs :: Value
+    , "error"     .= do renderBadInputsUTxOErr badInputs :: Value
     ]
   toJSON (MA.OutsideValidityIntervalUTxO validityInterval slot) = object
     [ "kind"              .= String "ExpiredUTxO"
@@ -922,7 +924,7 @@ instance ( ShelleyBasedEra era
     [ "kind"      .= String "ValueNotConservedUTxO"
     , "consumed"  .= do consumed                                            :: Ledger.Value era
     , "produced"  .= do produced                                            :: Ledger.Value era
-    , "error"     .= do Render.renderValueNotConservedErr consumed produced :: Value
+    , "error"     .= do renderValueNotConservedErr consumed produced :: Value
     ]
   toJSON (MA.WrongNetwork network addrs) = object
     [ "kind"    .= String "WrongNetwork"
@@ -1337,7 +1339,7 @@ instance ToJSON (Alonzo.UtxoPredicateFailure (Alonzo.AlonzoEra StandardCrypto)) 
   toJSON (Alonzo.BadInputsUTxO badInputs) = object
     [ "kind"      .= String "BadInputsUTxO"
     , "badInputs" .= do badInputs                               :: Set (TxIn (Ledger.Crypto (Consensus.AlonzoEra StandardCrypto)))
-    , "error"     .= do Render.renderBadInputsUTxOErr badInputs :: Value
+    , "error"     .= do renderBadInputsUTxOErr badInputs :: Value
     ]
   toJSON (Alonzo.OutsideValidityIntervalUTxO validtyInterval slot) = object
     [ "kind"              .= String "ExpiredUTxO"
@@ -1361,7 +1363,7 @@ instance ToJSON (Alonzo.UtxoPredicateFailure (Alonzo.AlonzoEra StandardCrypto)) 
     [ "kind"      .= String "ValueNotConservedUTxO"
     , "consumed"  .= do consumed                                            :: Mary.Value StandardCrypto
     , "produced"  .= do produced                                            :: Mary.Value StandardCrypto
-    , "error"     .= do Render.renderValueNotConservedErr consumed produced :: Value
+    , "error"     .= do renderValueNotConservedErr consumed produced :: Value
     ]
   toJSON (Alonzo.WrongNetwork network addrs) = object
     [ "kind"    .= String "WrongNetwork"
@@ -1587,10 +1589,10 @@ instance ToJSON PV1.DCert where
   toJSON = \case
     PV1.DCertDelegRegKey stakingCredential -> object
       [ "DCertDelegRegKey" .= do stakingCredential :: PV1.StakingCredential
-      ] 
+      ]
     PV1.DCertDelegDeRegKey stakingCredential -> object
       [ "DCertDelegDeRegKey" .= do stakingCredential :: PV1.StakingCredential
-      ] 
+      ]
     PV1.DCertDelegDelegate delegator delagatee -> object
       [ "DCertDelegDelegate" .= object
         [ "delegator" .= do delegator :: PV1.StakingCredential
@@ -1611,8 +1613,6 @@ instance ToJSON PV1.DCert where
       ]
     PV1.DCertGenesis -> String "DCertGenesis"
     PV1.DCertMir -> String "DCertMir"
-  
-  -- toJSON do PV1.toData v :: Plutus.Data
 
 instance ToJSON (PV1.Interval PV1.POSIXTime) where
   toJSON (PV1.Interval lo hi) = toJSON $
@@ -1889,4 +1889,19 @@ instance ToJSON Alonzo.TagMismatchDescription where
       ]
 
 renderTxId :: SupportsMempool.TxId (GenTx (ShelleyBlock protocol era)) -> Text
-renderTxId = show
+renderTxId (ShelleyTxId shelleyTxId) =
+    Text.decodeLatin1
+  . B16.encode
+  . Crypto.hashToBytes
+  . Ledger.extractHash
+  . Ledger._unTxId
+  $ shelleyTxId
+
+renderBadInputsUTxOErr ::  Set (TxIn era) -> Value
+renderBadInputsUTxOErr txIns
+  | Set.null txIns = String "The transaction contains no inputs."
+  | otherwise = String "The transaction contains inputs that do not exist in the UTxO set."
+
+renderValueNotConservedErr :: Show val => val -> val -> Value
+renderValueNotConservedErr consumed produced = String $
+  "This transaction consumed " <> show consumed <> " but produced " <> show produced
