@@ -23,6 +23,7 @@ module Cardano.Api (
     AnyCardanoEra(..),
     anyCardanoEra,
     InAnyCardanoEra(..),
+    withCardanoEra,
 
     -- ** Shelley-based eras
     ShelleyBasedEra(..),
