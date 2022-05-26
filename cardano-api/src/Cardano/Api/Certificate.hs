@@ -1,6 +1,8 @@
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DerivingStrategies #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TypeFamilies #-}
 
 -- | Certificates embedded in transactions
@@ -38,6 +40,8 @@ module Cardano.Api.Certificate (
 
 import           Prelude
 
+import           Data.Aeson (ToJSON, object, toJSON, (.=))
+import qualified Data.Aeson as Aeson
 import           Data.ByteString (ByteString)
 import qualified Data.Foldable as Foldable
 import qualified Data.Map.Strict as Map
@@ -62,12 +66,13 @@ import           Cardano.Ledger.Shelley.TxBody (MIRPot (..))
 import qualified Cardano.Ledger.Shelley.TxBody as Shelley
 
 import           Cardano.Api.Address
-import           Cardano.Api.HasTypeProxy
 import           Cardano.Api.Hash
+import           Cardano.Api.HasTypeProxy
 import           Cardano.Api.KeysByron
 import           Cardano.Api.KeysPraos
 import           Cardano.Api.KeysShelley
 import           Cardano.Api.SerialiseCBOR
+import           Cardano.Api.SerialiseRaw (serialiseToRawBytesHexText)
 import           Cardano.Api.SerialiseTextEnvelope
 import           Cardano.Api.StakePoolMetadata
 import           Cardano.Api.Value
@@ -107,6 +112,50 @@ instance ToCBOR Certificate where
 instance FromCBOR Certificate where
     fromCBOR = fromShelleyCertificate <$> fromCBOR
 
+instance ToJSON Certificate where
+    toJSON =
+      object
+      . \case
+          StakeAddressRegistrationCertificate credential ->
+            [ "type" .= ("StakeAddressRegistration" :: Text)
+            , "credential" .= credential
+            ]
+          StakeAddressDeregistrationCertificate credential ->
+            [ "type" .= ("StakeAddressDeregistration" :: Text)
+            , "credential" .= credential
+            ]
+          StakeAddressDelegationCertificate credential pool ->
+            [ "type" .= ("StakeAddressDelegation" :: Text)
+            , "credential" .= credential
+            , "pool" .= pool
+            ]
+          StakePoolRegistrationCertificate parameters ->
+            [ "type" .= ("StakePoolRegistration" :: Text)
+            , "parameters" .= parameters
+            ]
+          StakePoolRetirementCertificate pool epoch ->
+            [ "type" .= ("StakePoolRetirement" :: Text)
+            , "pool" .= pool
+            , "epoch" .= epoch
+            ]
+          GenesisKeyDelegationCertificate genesisKeyHash
+                                          genesisDelegateKeyHash
+                                          vrfKeyHash ->
+            [ "type" .= ("GenesisKeyDelegation" :: Text)
+            , "genesisKeyHash" .= serialiseToRawBytesHexText genesisKeyHash
+            , "genesisDelegateKeyHash"
+              .= serialiseToRawBytesHexText genesisDelegateKeyHash
+            , "vrfKeyHash" .= serialiseToRawBytesHexText vrfKeyHash
+            ]
+          MIRCertificate pot target ->
+            [ "type" .= ("MIR" :: Text)
+            , "pot"
+              .=  case pot of
+                    ReservesMIR -> "reserves"
+                    TreasuryMIR -> "reserves" :: Text
+            , "target" .= target
+            ]
+
 instance HasTextEnvelope Certificate where
     textEnvelopeType _ = "CertificateShelley"
     textEnvelopeDefaultDescr cert = case cert of
@@ -136,6 +185,17 @@ data MIRTarget =
    | SendToTreasuryMIR Lovelace
   deriving stock (Eq, Show)
 
+instance ToJSON MIRTarget where
+  toJSON =
+    object
+    . \case
+        StakeAddressesMIR addresses ->
+          ["type" .= ("StakeAddresses" :: Text), "addresses" .= addresses]
+        SendToReservesMIR lovelace ->
+          ["type" .= ("SendToReserves" :: Text), "lovelace" .= lovelace]
+        SendToTreasuryMIR lovelace ->
+          ["type" .= ("SendToTreasury" :: Text), "lovelace" .= lovelace]
+
 -- ----------------------------------------------------------------------------
 -- Stake pool parameters
 --
@@ -156,13 +216,27 @@ data StakePoolParameters =
      }
   deriving (Eq, Show)
 
+instance ToJSON StakePoolParameters where
+  toJSON StakePoolParameters{..} =
+    object
+      [ "id" .= stakePoolId
+      , "vrf" .= serialiseToRawBytesHexText stakePoolVRF
+      , "cost" .= stakePoolCost
+      , "margin" .= stakePoolMargin
+      , "rewardAccount" .= stakePoolRewardAccount
+      , "pledge" .= stakePoolPledge
+      , "owners" .= map serialiseToRawBytesHexText stakePoolOwners
+      , "relays" .= stakePoolRelays
+      , "metadata" .= stakePoolMetadata
+      ]
+
 data StakePoolRelay =
 
        -- | One or both of IPv4 & IPv6
        StakePoolRelayIp
           (Maybe IPv4) (Maybe IPv6) (Maybe PortNumber)
 
-       -- | An DNS name pointing to a @A@ or @AAAA@ record.
+       -- | A DNS name pointing to a @A@ or @AAAA@ record.
      | StakePoolRelayDnsARecord
           ByteString (Maybe PortNumber)
 
@@ -172,12 +246,41 @@ data StakePoolRelay =
 
   deriving (Eq, Show)
 
+instance ToJSON StakePoolRelay where
+  toJSON =
+    object
+    . \case
+        StakePoolRelayIp ipv4 ipv6 port ->
+          [ "type" .= ("IP" :: Text)
+          , "ipv4" .= ipv4
+          , "ipv6" .= ipv6
+          , "port" .= (portToJson <$> port)
+          ]
+        StakePoolRelayDnsARecord name port ->
+          [ "type" .= ("DnsA" :: Text)
+          , "name" .= Text.decodeUtf8 name
+          , "port" .= (portToJson <$> port)
+          ]
+        StakePoolRelayDnsSrvRecord name ->
+          [ "type" .= ("DnsSrv" :: Text)
+          , "name" .= Text.decodeUtf8 name
+          ]
+    where
+      portToJson = Aeson.Number . fromIntegral
+
 data StakePoolMetadataReference =
      StakePoolMetadataReference {
        stakePoolMetadataURL  :: Text,
        stakePoolMetadataHash :: Hash StakePoolMetadata
      }
   deriving (Eq, Show)
+
+instance ToJSON StakePoolMetadataReference where
+  toJSON StakePoolMetadataReference{..} =
+    object
+      [ "url" .= stakePoolMetadataURL
+      , "hash" .= serialiseToRawBytesHexText stakePoolMetadataHash
+      ]
 
 
 -- ----------------------------------------------------------------------------
