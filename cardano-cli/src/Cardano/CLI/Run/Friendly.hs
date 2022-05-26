@@ -35,10 +35,10 @@ import qualified Cardano.Ledger.Shelley.API as Shelley
 yamlConfig :: Yaml.Config
 yamlConfig = Yaml.defConfig & setConfCompare compare
 
-friendlyTxBS :: IsCardanoEra era => CardanoEra era -> Tx era -> ByteString
+friendlyTxBS :: CardanoEra era -> Tx era -> ByteString
 friendlyTxBS era = Yaml.encodePretty yamlConfig . object . friendlyTx era
 
-friendlyTx :: IsCardanoEra era => CardanoEra era -> Tx era -> [Aeson.Pair]
+friendlyTx :: CardanoEra era -> Tx era -> [Aeson.Pair]
 friendlyTx era (Tx body witnesses) =
   ("witnesses" .= map friendlyKeyWitness witnesses) : friendlyTxBody era body
 
@@ -52,13 +52,11 @@ friendlyKeyWitness =
       ShelleyKeyWitness _era (Shelley.WitVKey key signature) ->
         ["key" .= textShow key, "signature" .= textShow signature]
 
-friendlyTxBodyBS
-  :: IsCardanoEra era => CardanoEra era -> TxBody era -> ByteString
+friendlyTxBodyBS :: CardanoEra era -> TxBody era -> ByteString
 friendlyTxBodyBS era =
   Yaml.encodePretty yamlConfig . object . friendlyTxBody era
 
-friendlyTxBody
-  :: IsCardanoEra era => CardanoEra era -> TxBody era -> [Aeson.Pair]
+friendlyTxBody :: CardanoEra era -> TxBody era -> [Aeson.Pair]
 friendlyTxBody
   era
   (TxBody
@@ -84,7 +82,7 @@ friendlyTxBody
     , "inputs" .= friendlyInputs txIns
     , "metadata" .= friendlyMetadata txMetadata
     , "mint" .= friendlyMintValue txMintValue
-    , "outputs" .= map friendlyTxOut txOuts
+    , "outputs" .= withCardanoEra era (map friendlyTxOut txOuts)
     , "required signers (payment key hashes needed for scripts)" .=
         friendlyExtraKeyWits txExtraKeyWits
     , "update proposal" .= friendlyUpdateProposal txUpdateProposal
