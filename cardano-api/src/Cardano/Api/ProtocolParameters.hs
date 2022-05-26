@@ -2,9 +2,11 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TypeFamilies #-}
 
 -- | The various Cardano protocol parameters, including:
@@ -64,10 +66,11 @@ module Cardano.Api.ProtocolParameters (
 import           Prelude
 
 import           Control.Monad
-import           Data.Aeson (FromJSON (..), ToJSON (..), object, withObject, (.!=), (.:), (.:?),
-                   (.=))
+import           Data.Aeson (FromJSON (..), ToJSON (..), defaultOptions, fieldLabelModifier,
+                   genericToJSON, object, withObject, (.!=), (.:), (.:?), (.=))
 import           Data.Bifunctor (bimap)
 import           Data.ByteString (ByteString)
+import           Data.Char (toLower)
 import           Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 import           Data.Maybe (fromMaybe, isJust, isNothing)
@@ -104,8 +107,8 @@ import           Cardano.Ledger.Babbage.Translation (coinsPerUTxOWordToCoinsPerU
 import           Cardano.Api.Address
 import           Cardano.Api.Eras
 import           Cardano.Api.Error
-import           Cardano.Api.HasTypeProxy
 import           Cardano.Api.Hash
+import           Cardano.Api.HasTypeProxy
 import           Cardano.Api.KeysByron
 import           Cardano.Api.KeysShelley
 import           Cardano.Api.Script
@@ -512,7 +515,7 @@ data ProtocolParametersUpdate =
        -- /Introduced in Alonzo/
        protocolUpdateMaxCollateralInputs :: Maybe Natural
     }
-  deriving (Eq, Show)
+  deriving (Eq, Generic, Show)
 
 instance Semigroup ProtocolParametersUpdate where
     ppu1 <> ppu2 =
@@ -641,6 +644,15 @@ instance FromCBOR ProtocolParametersUpdate where
         <*> fromCBOR
         <*> fromCBOR
         <*> fromCBOR
+
+instance ToJSON ProtocolParametersUpdate where
+  toJSON =
+    genericToJSON defaultOptions{fieldLabelModifier = lowerFirst . drop 14}
+    where
+      lowerFirst = \case
+        "" -> ""
+        'U':'T':'x':'O':xs -> "utxo" ++ xs
+        x:xs -> toLower x : xs
 
 
 -- ----------------------------------------------------------------------------
@@ -811,7 +823,7 @@ data UpdateProposal =
      UpdateProposal
        !(Map (Hash GenesisKey) ProtocolParametersUpdate)
        !EpochNo
-    deriving stock (Eq, Show)
+    deriving stock (Eq, Generic, Show)
     deriving anyclass SerialiseAsCBOR
 
 instance HasTypeProxy UpdateProposal where
@@ -833,6 +845,13 @@ instance FromCBOR UpdateProposal where
       UpdateProposal
         <$> fromCBOR
         <*> fromCBOR
+
+instance ToJSON UpdateProposal where
+  toJSON (UpdateProposal updates epoch) =
+    object
+      [ "updates" .= Map.mapKeys serialiseToRawBytesHexText updates
+      , "epoch" .= epoch
+      ]
 
 makeShelleyUpdateProposal :: ProtocolParametersUpdate
                           -> [Hash GenesisKey]
