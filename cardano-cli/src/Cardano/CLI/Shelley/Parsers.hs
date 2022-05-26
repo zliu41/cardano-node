@@ -793,7 +793,7 @@ pTransaction =
   pTransactionId = TxGetTxId <$> pInputTxOrTxBodyFile
 
   pTransactionView :: Parser TransactionCmd
-  pTransactionView = TxView <$> pInputTxOrTxBodyFile
+  pTransactionView = TxView <$> pInputTxOrTxBodyFile <*> pJsonOutput
 
 pNodeCmd :: Parser NodeCmd
 pNodeCmd =
@@ -957,10 +957,6 @@ pQueryCmd =
         <*> pNetworkId
         <*> pMaybeOutputFile
 
-    pJsonOutput :: Parser JsonOutput
-    pJsonOutput =
-      JsonOutput <$> switch (long "json" <> Opt.help "Enable JSON output")
-
     pQueryLedgerState :: Parser QueryCmd
     pQueryLedgerState = QueryDebugLedgerState'
                           <$> pConsensusModeParams
@@ -1001,6 +997,10 @@ pQueryCmd =
       <*> pNetworkId
       <*> pOperationalCertificateFile
       <*> pMaybeOutputFile
+
+pJsonOutput :: Parser JsonOutput
+pJsonOutput =
+  JsonOutput <$> switch (long "json" <> Opt.help "Enable JSON output")
 
 pGovernanceCmd :: Parser GovernanceCmd
 pGovernanceCmd =
