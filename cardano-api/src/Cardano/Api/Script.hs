@@ -2,6 +2,7 @@
 {-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
@@ -105,6 +106,7 @@ module Cardano.Api.Script (
 
 import           Prelude
 
+import qualified Data.ByteString.Base16 as Base16
 import qualified Data.ByteString.Lazy as LBS
 import           Data.ByteString.Short (ShortByteString)
 import qualified Data.ByteString.Short as SBS
@@ -150,8 +152,8 @@ import qualified Plutus.V1.Ledger.Examples as Plutus
 
 import           Cardano.Api.Eras
 import           Cardano.Api.Error
-import           Cardano.Api.HasTypeProxy
 import           Cardano.Api.Hash
+import           Cardano.Api.HasTypeProxy
 import           Cardano.Api.KeysShelley
 import           Cardano.Api.ScriptData
 import           Cardano.Api.SerialiseCBOR
@@ -246,6 +248,11 @@ instance TestEquality SimpleScriptVersion where
     testEquality SimpleScriptV2 SimpleScriptV2 = Just Refl
     testEquality _              _              = Nothing
 
+instance ToJSON (SimpleScriptVersion lang) where
+  toJSON = \case
+    SimpleScriptV1 -> Aeson.Number 1
+    SimpleScriptV2 -> Aeson.Number 2
+
 
 data PlutusScriptVersion lang where
     PlutusScriptV1 :: PlutusScriptVersion PlutusScriptV1
@@ -258,6 +265,11 @@ instance TestEquality PlutusScriptVersion where
     testEquality PlutusScriptV1 PlutusScriptV1 = Just Refl
     testEquality PlutusScriptV2 PlutusScriptV2 = Just Refl
     testEquality _ _ = Nothing
+
+instance ToJSON (PlutusScriptVersion lang) where
+  toJSON = \case
+    PlutusScriptV1 -> Aeson.Number 1
+    PlutusScriptV2 -> Aeson.Number 2
 
 
 data AnyScriptLanguage where
@@ -468,6 +480,15 @@ instance IsScriptLanguage lang => HasTextEnvelope (Script lang) where
         PlutusScriptLanguage PlutusScriptV1 -> "PlutusScriptV1"
         PlutusScriptLanguage PlutusScriptV2 -> "PlutusScriptV2"
 
+instance ToJSON (Script lang) where
+  toJSON = \case
+    SimpleScript version script ->
+      object
+        ["type" .= ("simple" :: Text), "version" .= version, "script" .= script]
+    PlutusScript version script ->
+      object
+        ["type" .= ("plutus" :: Text), "version" .= version, "script" .= script]
+
 
 -- ----------------------------------------------------------------------------
 -- Scripts in any language
@@ -553,6 +574,10 @@ instance Eq (ScriptInEra era) where
                         (languageOfScriptLanguageInEra langInEra') of
         Nothing   -> False
         Just Refl -> script == script'
+
+instance ToJSON (ScriptInEra era) where
+  toJSON (ScriptInEra language script) =
+    object ["language" .= language, "script" .= script]
 
 
 data ScriptLanguageInEra lang era where
@@ -1061,6 +1086,10 @@ instance (IsPlutusScriptLanguage lang, Typeable lang) =>
       case plutusScriptVersion :: PlutusScriptVersion lang of
         PlutusScriptV1 -> "PlutusScriptV1"
         PlutusScriptV2 -> "PlutusScriptV2"
+
+instance ToJSON (PlutusScript lang) where
+  toJSON (PlutusScriptSerialised bytes) =
+    object ["base16" .= Text.decodeUtf8 (Base16.encode $ SBS.fromShort bytes)]
 
 
 -- | An example Plutus script that always succeeds, irrespective of inputs.
