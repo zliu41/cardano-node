@@ -46,6 +46,7 @@ nodeRunParser = do
   topFp <- lastOption parseTopologyFile
   dbFp <- lastOption parseDbPath
   socketFp <- lastOption $ parseSocketPath "Path to a cardano-node socket"
+  fwdSocketFp <- lastOption $ parseForwardSocketPath "Path to a forward socket"
 
   -- Protocol files
   byronCertFile   <- optional parseByronDelegationCert
@@ -100,6 +101,7 @@ nodeRunParser = do
            , pncLoggingSwitch = mempty
            , pncLogMetrics = mempty
            , pncTraceConfig = mempty
+           , pncForwardSocket = fwdSocketFp
            , pncMaybeMempoolCapacityOverride = maybeMempoolCapacityOverride
            , pncProtocolIdleTimeout = mempty
            , pncTimeWaitTimeout = mempty
@@ -115,6 +117,15 @@ parseSocketPath :: Text -> Parser SocketPath
 parseSocketPath helpMessage =
   SocketPath <$> strOption
     ( long "socket-path"
+        <> help (toS helpMessage)
+        <> completer (bashCompleter "file")
+        <> metavar "FILEPATH"
+    )
+
+parseForwardSocketPath :: Text -> Parser SocketPath
+parseForwardSocketPath helpMessage =
+  SocketPath <$> strOption
+    ( long "forward-socket-path"
         <> help (toS helpMessage)
         <> completer (bashCompleter "file")
         <> metavar "FILEPATH"
