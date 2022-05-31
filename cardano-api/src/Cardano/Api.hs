@@ -172,6 +172,7 @@ module Cardano.Api (
     TxIn(TxIn),
     TxIx(TxIx),
     renderTxIn,
+    ReferenceInput(..),
 
     -- ** Transaction outputs
     CtxTx, CtxUTxO,

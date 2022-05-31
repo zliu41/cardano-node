@@ -779,7 +779,7 @@ data TxBodyErrorAutoBalance =
 
        -- | The transaction validity interval is too far into the future.
        -- See 'TransactionValidityIntervalError' for details.
-     | TxBodyErrorValidityInterval TransactionValidityError
+     | TxBodyErrorValidityInterval String TransactionValidityError
 
        -- | The minimum spendable UTxO threshold has not been met.
      | TxBodyErrorMinUTxONotMet
@@ -834,8 +834,8 @@ instance Error TxBodyErrorAutoBalance where
   displayError TxBodyErrorMissingParamCostPerWord =
       "The utxoCostPerWord protocol parameter is required but missing"
 
-  displayError (TxBodyErrorValidityInterval err) =
-      displayError err
+  displayError (TxBodyErrorValidityInterval txbody err) =
+      displayError err ++ " Offending txbody: " <> show txbody
 
   displayError (TxBodyErrorMinUTxONotMet txout minUTxO) =
       "Minimum UTxO threshold not met for tx output: " <> Text.unpack (prettyRenderTxOut txout) <> "\n"
@@ -910,7 +910,7 @@ makeTransactionBodyAutoBalance
   -> TxBodyContent BuildTx era
   -> AddressInEra era -- ^ Change address
   -> Maybe Word       -- ^ Override key witnesses
-  -> Either TxBodyErrorAutoBalance (BalancedTxBody era)
+  -> Either TxBodyErrorAutoBalance (BalancedTxBody era, Map ScriptWitnessIndex ExecutionUnits, TxBodyContent BuildTx era)
 makeTransactionBodyAutoBalance eraInMode systemstart history pparams
                             poolids utxo txbodycontent changeaddr mnkeys = do
 
@@ -919,7 +919,7 @@ makeTransactionBodyAutoBalance eraInMode systemstart history pparams
     -- 2. figure out the overall min fees
     -- 3. update tx with fees
     -- 4. balance the transaction and update tx change output
-
+    -- TODO: This is where the txin witnessed by the spending input gets added
     txbody0 <-
       first TxBodyError $ makeTransactionBody txbodycontent
         { txOuts =
@@ -929,7 +929,7 @@ makeTransactionBodyAutoBalance eraInMode systemstart history pparams
             -- 1,2,4 or 8 bytes?
         }
 
-    exUnitsMap <- first TxBodyErrorValidityInterval $
+    exUnitsMap <- first (TxBodyErrorValidityInterval (show txbody0)) $
                     evaluateTransactionExecutionUnits
                       eraInMode
                       systemstart history
@@ -1009,7 +1009,7 @@ makeTransactionBodyAutoBalance eraInMode systemstart history pparams
                      (TxOut changeaddr balance TxOutDatumNone ReferenceScriptNone)
                      (txOuts txbodycontent)
         }
-    return (BalancedTxBody txbody3 (TxOut changeaddr balance TxOutDatumNone ReferenceScriptNone) fee)
+    return (BalancedTxBody txbody3 (TxOut changeaddr balance TxOutDatumNone ReferenceScriptNone) fee, exUnitsMap', txbodycontent1)
  where
    era :: ShelleyBasedEra era
    era = shelleyBasedEra
@@ -1063,9 +1063,9 @@ substituteExecutionUnits exUnitsMap =
       -> ScriptWitness witctx era
       -> ScriptWitness witctx era
     f _   wit@SimpleScriptWitness{} = wit
-    f idx wit@(PlutusScriptWitness langInEra version script datum redeemer _) =
+    f idx (PlutusScriptWitness langInEra version script datum redeemer _) =
       case Map.lookup idx exUnitsMap of
-        Nothing      -> wit
+        Nothing      -> error "substituteExecutionUnits: PlutusScriptWitness" --wit -- TODO: This should be a failure
         Just exunits -> PlutusScriptWitness langInEra version script
                                             datum redeemer exunits
 
