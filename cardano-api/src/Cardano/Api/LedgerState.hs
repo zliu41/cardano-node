@@ -98,7 +98,8 @@ import           Cardano.Api.IPC (ConsensusModeParams (..),
                    LocalNodeConnectInfo (..), connectToLocalNode)
 import           Cardano.Api.KeysPraos
 import           Cardano.Api.LedgerEvent (LedgerEvent, toLedgerEvent)
-import           Cardano.Api.Modes (CardanoMode, ConsensusProtocol, EpochSlots (..))
+import           Cardano.Api.Modes (CardanoMode, EpochSlots (..))
+import qualified Cardano.Api.Modes as Api
 import           Cardano.Api.NetworkId (NetworkId (..), NetworkMagic (NetworkMagic))
 import           Cardano.Api.ProtocolParameters
 import           Cardano.Api.Query (CurrentEpochState (..), ProtocolState,
@@ -1311,8 +1312,8 @@ nextEpochEligibleLeadershipSlots
      HasField "_d" (Core.PParams (ShelleyLedgerEra era)) UnitInterval
   => Ledger.Era (ShelleyLedgerEra era)
   => Share (Core.TxOut (ShelleyLedgerEra era)) ~ Interns (Shelley.Spec.Credential 'Shelley.Spec.Staking (Ledger.Crypto (ShelleyLedgerEra era)))
-  => FromCBOR (Consensus.ChainDepState (ConsensusProtocol era))
-  => Consensus.PraosProtocolSupportsNode (ConsensusProtocol era)
+  => FromCBOR (Consensus.ChainDepState (Api.ConsensusProtocol era))
+  => Consensus.PraosProtocolSupportsNode (Api.ConsensusProtocol era)
   => ShelleyBasedEra era
   -> ShelleyGenesis Shelley.StandardShelley
   -> SerialisedCurrentEpochState era
@@ -1363,13 +1364,13 @@ nextEpochEligibleLeadershipSlots sbe sGen serCurrEpochState ptclState
   -- and the extra entropy from the protocol parameters. We then need to combine them
   -- with the (⭒) operator.
   let Consensus.PraosNonces { Consensus.candidateNonce, Consensus.evolvingNonce } =
-        Consensus.getPraosNonces (Proxy @(ConsensusProtocol era)) chainDepState
+        Consensus.getPraosNonces (Proxy @(Api.ConsensusProtocol era)) chainDepState
 
   when (evolvingNonce == candidateNonce)
    $ Left LeaderErrCandidateNonceStillEvolving
 
   -- Get the previous epoch's last block header hash nonce
-  let previousLabNonce = Consensus.previousLabNonce (Consensus.getPraosNonces (Proxy @(ConsensusProtocol era)) chainDepState)
+  let previousLabNonce = Consensus.previousLabNonce (Consensus.getPraosNonces (Proxy @(Api.ConsensusProtocol era)) chainDepState)
       extraEntropy = toLedgerNonce $ protocolParamExtraPraosEntropy pParams
       nextEpochsNonce = candidateNonce ⭒ previousLabNonce ⭒ extraEntropy
 
@@ -1478,12 +1479,12 @@ currentEpochEligibleLeadershipSlots
   :: forall era ledgerera .
      ShelleyLedgerEra era ~ ledgerera
   => Ledger.Era ledgerera
-  => Consensus.PraosProtocolSupportsNode (ConsensusProtocol era)
+  => Consensus.PraosProtocolSupportsNode (Api.ConsensusProtocol era)
   => HasField "_d" (Core.PParams ledgerera) UnitInterval
   -- => Crypto.Signable (Crypto.VRF (Ledger.Crypto ledgerera)) Shelley.Spec.Seed
   => Share (Core.TxOut (ShelleyLedgerEra era)) ~ Interns (Shelley.Spec.Credential 'Shelley.Spec.Staking (Ledger.Crypto (ShelleyLedgerEra era)))
  -- => Ledger.Crypto ledgerera ~ Shelley.StandardCrypto
-  => FromCBOR (Consensus.ChainDepState (ConsensusProtocol era))
+  => FromCBOR (Consensus.ChainDepState (Api.ConsensusProtocol era))
   -- => Consensus.ChainDepState (ConsensusProtocol era) ~ Consensus.ChainDepState (ConsensusProtocol era)
   => ShelleyBasedEra era
   -> ShelleyGenesis Shelley.StandardShelley
@@ -1505,7 +1506,7 @@ currentEpochEligibleLeadershipSlots sbe sGen eInfo pParams ptclState
   -- We use the current epoch's nonce for the current leadership schedule
   -- calculation because the TICKN transition updates the epoch nonce
   -- at the start of the epoch.
-  let epochNonce = Consensus.epochNonce (Consensus.getPraosNonces (Proxy @(ConsensusProtocol era)) chainDepState)
+  let epochNonce = Consensus.epochNonce (Consensus.getPraosNonces (Proxy @(Api.ConsensusProtocol era)) chainDepState)
   currentEpochRange <- first LeaderErrSlotRangeCalculationFailure
                          $ Slot.epochInfoRange eInfo currentEpoch
 
