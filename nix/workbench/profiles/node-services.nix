@@ -133,7 +133,7 @@ let
       }.${profile.value.era};
     };
     in
-    backend.finaliseNodeService nodeSpec
+    backend.finaliseNodeService profile.value nodeSpec
     {
       inherit port;
 
@@ -154,15 +154,15 @@ let
               nodeConfigBits.tracing.${profile.value.node.tracing_backend}));
 
       extraArgs =
-        let shutdownSlot = profile.value.node.shutdown_on_slot_synced;
-        in backend.finaliseNodeArgs nodeSpec
-          (if shutdownSlot != null
-           then if isAttrs shutdownSlot
-                then if shutdownSlot.${nodeSpec.kind} or null != null
-                     then ["--shutdown-on-slot-synced" (toString shutdownSlot.${nodeSpec.kind})]
-                     else []
-                else ["--shutdown-on-slot-synced" (toString shutdownSlot)]
-           else []);
+        backend.finaliseNodeArgs profile.value nodeSpec
+          (let shutdownSlot = profile.value.node.shutdown_on_slot_synced;
+           in if shutdownSlot != null
+              then if isAttrs shutdownSlot
+                   then if shutdownSlot.${nodeSpec.kind} or null != null
+                        then ["--shutdown-on-slot-synced" (toString shutdownSlot.${nodeSpec.kind})]
+                        else []
+                   else ["--shutdown-on-slot-synced" (toString shutdownSlot)]
+              else []);
     };
 
   ## Given an env config, evaluate it and produce the node service.
