@@ -21,16 +21,17 @@ module Cardano.Benchmarking.Tracer
   , TraceBenchTxSubmit(..)
   , TraceLowLevelSubmit(..)
   , createLoggingLayerTracers
-  , createTracers
+  , initDefaultLegacyTracers
   , createDebugTracers
-  , initTracers
   ) where
 
 
 import           Data.Aeson (ToJSON (..), encode, (.=))
 import qualified Data.Aeson as A
+
 import qualified Data.ByteString.Lazy.Char8 as BSL (unpack)
 import qualified Data.Text as T
+
 import           Data.Time.Clock (DiffTime, NominalDiffTime, getCurrentTime)
 import           Prelude (Show (..), String)
 
@@ -41,11 +42,15 @@ import qualified Codec.CBOR.Term as CBOR
 
 import           Cardano.Prelude hiding (TypeError, show)
 
-
+import qualified Cardano.BM.Configuration.Model as CM
+import           Cardano.BM.Data.Backend
+import           Cardano.BM.Data.LogItem (mapLogObject)
 import           Cardano.BM.Data.Tracer (trStructured)
+import           Cardano.BM.Data.Output
+import           Cardano.BM.Setup (setupTrace_)
 import           Cardano.BM.Tracing
-import           Network.Mux (WithMuxBearer (..))
 
+import           Network.Mux (WithMuxBearer (..))
 
 import           Cardano.Node.Configuration.Logging (LOContent (..), LoggingLayer (..))
 import           Cardano.Tracing.OrphanInstances.Byron ()
@@ -75,20 +80,42 @@ data BenchTracers =
   , btN2N_        :: Tracer IO NodeToNodeSubmissionTrace
   }
 
-createTracers :: Tracer IO String -> BenchTracers
-createTracers baseTr = initTracers tr tr
-  where
-    tr = contramap (\(_,t) -> BSL.unpack $ encode t) baseTr
-
-createDebugTracers :: BenchTracers
-createDebugTracers = createTracers debugTracer
-
 createLoggingLayerTracers :: LoggingLayer -> BenchTracers
 createLoggingLayerTracers loggingLayer
   = initTracers baseTrace tr
    where
      baseTrace = llBasicTrace loggingLayer
      tr = llAppendName loggingLayer "cli" baseTrace
+
+createDebugTracers :: BenchTracers
+createDebugTracers = createTracers debugTracer
+
+initDefaultLegacyTracers :: IO BenchTracers
+initDefaultLegacyTracers = do
+  c <- defaultConfigStdout
+  CM.setDefaultBackends c [KatipBK ]
+  CM.setSetupBackends c [KatipBK ]
+  CM.setDefaultBackends c [KatipBK ]
+  CM.setSetupScribes c [ ScribeDefinition {
+                              scName = "cli"
+                            , scFormat = ScJson
+                            , scKind = StdoutSK
+                            , scPrivacy = ScPublic
+                            , scMinSev = minBound
+                            , scMaxSev = maxBound
+                            , scRotation = Nothing
+                            }
+                         ]
+  CM.setScribes c "cardano.cli" (Just ["StdoutSK::cli"])
+  (tr :: Trace IO String, _switchboard) <- setupTrace_ c "cardano"
+  let
+    (bt :: Trace IO T.Text)  = contramap (second $ mapLogObject T.unpack) $ appendName "cli" tr
+  return $ initTracers bt bt
+
+createTracers :: Tracer IO String -> BenchTracers
+createTracers baseTr = initTracers tr tr
+  where
+    tr = contramap (\(_,t) -> BSL.unpack $ encode t) baseTr
 
 initTracers :: Trace IO Text -> Trace IO Text -> BenchTracers
 initTracers baseTrace tr =
