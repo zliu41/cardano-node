@@ -59,7 +59,7 @@ import           Ouroboros.Network.Protocol.TxSubmission2.Type (BlockingReplyLis
 import           Cardano.Api
 import           Cardano.Api.Shelley (fromShelleyTxId, toConsensusGenTx)
 
-import           Cardano.Benchmarking.Tracer
+import           Cardano.Benchmarking.LogTypes
 import           Cardano.Benchmarking.Types
 type CardanoBlock    = Consensus.CardanoBlock  StandardCrypto
 

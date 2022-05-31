@@ -11,6 +11,7 @@ import           Paths_tx_generator (version)
 import           Prelude
 
 import           Data.Monoid
+import            Data.Text
 import           Data.Version (showVersion)
 
 import           Control.Concurrent (threadDelay)
@@ -28,7 +29,7 @@ import           Cardano.Node.Types
 import           Cardano.Tracing.Config
 
 import           Cardano.Benchmarking.OuroborosImports as Core (getGenesis, protocolToNetworkId)
-import           Cardano.Benchmarking.Tracer
+import           Cardano.Benchmarking.LegacyTracer
 import           Cardano.Benchmarking.Script.Env
 import           Cardano.Benchmarking.Script.Setters
 import           Cardano.Benchmarking.Script.Store as Store

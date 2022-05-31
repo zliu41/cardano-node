@@ -52,7 +52,7 @@ import           Ouroboros.Network.Protocol.TxSubmission2.Client (TxSubmissionCl
 
 import           Ouroboros.Network.Snocket (socketSnocket)
 
-import           Cardano.Benchmarking.Tracer (SendRecvConnect, SendRecvTxSubmission2)
+import           Cardano.Benchmarking.LogTypes (SendRecvConnect, SendRecvTxSubmission2)
 
 type CardanoBlock    = Consensus.CardanoBlock  StandardCrypto
 type ConnectClient = AddrInfo -> TxSubmissionClient (GenTxId CardanoBlock) (GenTx CardanoBlock) IO () -> IO ()

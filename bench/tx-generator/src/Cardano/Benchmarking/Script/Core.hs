@@ -43,7 +43,7 @@ import           Cardano.Benchmarking.OuroborosImports as Core
                    ( LocalSubmitTx, SigningKeyFile
                    , protocolToCodecConfig, makeLocalConnectInfo)
 import           Cardano.Benchmarking.PlutusExample as PlutusExample
-import           Cardano.Benchmarking.Tracer as Core
+import           Cardano.Benchmarking.LogTypes as Core
                    ( btTxSubmit_, btN2N_, btConnect_, btSubmission2_)
 import           Cardano.Benchmarking.Types as Core
                    ( NumberOfInputsPerTx(..), NumberOfOutputsPerTx(..),NumberOfTxs(..), SubmissionErrorPolicy(..)
