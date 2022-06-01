@@ -57,20 +57,27 @@ mkNotificationsSettings = do
                   UI.input ## "es-smtp-host"
                            #. "input is-normal"
                            # set (attr "placeholder") "e.g. smtp.gmail.com"
-              , mkControlPair "SMTP port *" $
-                  UI.input ## "es-smtp-port"
-                           #. "input is-normal"
-                           # set UI.type_ "number"
-                           # set (attr "placeholder") "e.g. 587"
+                           # set (attr "required") "required"
+              , mkControlPair "SMTP port" $
+                  UI.div #. "select" #+
+                    [ UI.select ## "es-smtp-port" #+
+                        [ UI.option # set value "25"   # set text "25"
+                        , UI.option # set value "465"  # set text "465"
+                        , UI.option # set value "587"  # set text "587"
+                        , UI.option # set value "2525" # set text "2525"
+                        ]
+                    ]
               , mkControlPair "Username *" $
                   UI.input ## "es-username"
                            #. "input is-normal"
                            # set (attr "placeholder") "e.g. your.name@gmail.com"
+                           # set (attr "required") "required"
               , mkControlPair "Password *" $
                   UI.input ## "es-password"
                            #. "input is-normal"
                            # set UI.type_ "password"
                            # set (attr "placeholder") "your password"
+                           # set (attr "required") "required"
               , mkControlPair "SSL" $
                   UI.div #. "select" #+
                     [ UI.select ## "es-ssl" #+
@@ -84,11 +91,13 @@ mkNotificationsSettings = do
                            #. "input is-normal"
                            # set UI.type_ "email"
                            # set (attr "placeholder") "e.g. your.no.reply@gmail.com"
+                           # set (attr "required") "required"
               , mkControlPair "To *" $
                   UI.input ## "es-email-to"
                            #. "input is-normal"
                            # set UI.type_ "email"
                            # set (attr "placeholder") "e.g. your.name@gmail.com"
+                           # set (attr "required") "required"
               , mkControlPair "Subject" $
                   UI.input ## "es-subject"
                            #. "input is-normal"
