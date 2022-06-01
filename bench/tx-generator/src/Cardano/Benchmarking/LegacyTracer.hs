@@ -128,7 +128,7 @@ initTracers baseTrace tr =
   lowLevelSubmitTracer = toLogObjectMinimal (appendName "llSubmit" tr')
 
   n2nSubmitTracer :: Tracer IO NodeToNodeSubmissionTrace
-  n2nSubmitTracer = toLogObjectMinimal (appendName "submitN2N" tr')
+  n2nSubmitTracer = toLogObjectVerbose (appendName "submitN2N" tr')
 
 instance Transformable Text IO (TraceBenchTxSubmit TxId) where
   -- transform to JSON Object
