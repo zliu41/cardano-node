@@ -24,6 +24,7 @@ import           Cardano.Tracer.Handlers.RTView.UI.CSS.Bulma
 import           Cardano.Tracer.Handlers.RTView.UI.CSS.Own
 import           Cardano.Tracer.Handlers.RTView.UI.HTML.Body
 import           Cardano.Tracer.Handlers.RTView.UI.Img.Icons
+import           Cardano.Tracer.Handlers.RTView.UI.Notifications
 import           Cardano.Tracer.Handlers.RTView.UI.Theme
 import           Cardano.Tracer.Handlers.RTView.UI.Utils
 import           Cardano.Tracer.Handlers.RTView.Update.EKG
@@ -95,6 +96,7 @@ mkMainPage connectedNodes displayedElements acceptedMetrics savedTO
 
   restoreTheme window
   restoreChartsSettings
+  restoreEmailSettings window
 
   uiErrorsTimer <- UI.timer # set UI.interval 3000
   on UI.tick uiErrorsTimer . const $

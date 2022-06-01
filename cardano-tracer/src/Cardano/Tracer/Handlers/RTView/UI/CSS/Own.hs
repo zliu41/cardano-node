@@ -148,10 +148,11 @@ span[data-tooltip] {
   }
 }
 
-@media screen and (min-width: 769px), print
+@media screen and (min-width: 769px), print {
   .field-label {
     flex-grow: 1.5;
   }
+}
 
 @media only screen and (max-width: 769px) {
   .rt-view-peer-modal {

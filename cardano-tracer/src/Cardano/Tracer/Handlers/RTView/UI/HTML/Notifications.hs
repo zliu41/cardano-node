@@ -4,11 +4,12 @@ module Cardano.Tracer.Handlers.RTView.UI.HTML.Notifications
   ) where
 
 --import qualified Data.Text as T
+import           Control.Monad (void)
 import qualified Graphics.UI.Threepenny as UI
 import           Graphics.UI.Threepenny.Core
 
---import           Cardano.Tracer.Handlers.RTView.UI.JS.Utils
---import           Cardano.Tracer.Handlers.RTView.UI.Img.Icons
+import           Cardano.Tracer.Handlers.RTView.UI.Notifications
+import           Cardano.Tracer.Handlers.RTView.UI.Types
 import           Cardano.Tracer.Handlers.RTView.UI.Utils
 
 mkNotificationsEvents :: UI Element
@@ -52,119 +53,46 @@ mkNotificationsSettings = do
               [ UI.p #. "rt-view-email-only" #+
                   [ string "Currently, only email notifications are supported"
                   ]
-              , UI.div #. "field is-horizontal" #+
-                  [ UI.div #. "field-label is-normal" #+
-                      [ UI.label #. "label rt-view-label" # set text "SMTP host *"
-                      ]
-                  , UI.div #. "field-body" #+
-                      [ UI.div #. "field" #+
-                          [ UI.p #. "control" #+
-                              [ UI.input #. "input is-normal"
-                                         # set (attr "placeholder") "e.g. smtp.gmail.com"
-                              ]
-                          ]
-                      ]
-                  ]
-              , UI.div #. "field is-horizontal" #+
-                  [ UI.div #. "field-label is-normal" #+
-                      [ UI.label #. "label rt-view-label" # set text "SMTP port *"
-                      ]
-                  , UI.div #. "field-body" #+
-                      [ UI.div #. "field" #+
-                          [ UI.p #. "control" #+
-                              [ UI.input #. "input is-normal"
-                                         # set UI.type_ "number"
-                                         # set (attr "placeholder") "e.g. 587"
-                              ]
-                          ]
-                      ]
-                  ]
-              , UI.div #. "field is-horizontal" #+
-                  [ UI.div #. "field-label is-normal" #+
-                      [ UI.label #. "label rt-view-label" # set text "Username *"
-                      ]
-                  , UI.div #. "field-body" #+
-                      [ UI.div #. "field" #+
-                          [ UI.p #. "control" #+
-                              [ UI.input #. "input is-normal"
-                                         # set (attr "placeholder") "e.g. your.name@gmail.com"
-                              ]
-                          ]
-                      ]
-                  ]
-              , UI.div #. "field is-horizontal" #+
-                  [ UI.div #. "field-label is-normal" #+
-                      [ UI.label #. "label rt-view-label" # set text "Password *"
-                      ]
-                  , UI.div #. "field-body" #+
-                      [ UI.div #. "field" #+
-                          [ UI.p #. "control" #+
-                              [ UI.input #. "input is-normal"
-                                         # set UI.type_ "password"
-                                         # set (attr "placeholder") "your password"
-                              ]
-                          ]
-                      ]
-                  ]
-              , UI.div #. "field is-horizontal" #+
-                  [ UI.div #. "field-label is-normal" #+
-                      [ UI.label #. "label rt-view-label" # set text "SSL"
-                      ]
-                  , UI.div #. "field-body" #+
-                      [ UI.div #. "field" #+
-                          [ UI.p #. "control" #+
-                              [ UI.div #. "select" #+
-                                  [ UI.select #+
-                                      [ UI.option # set value "TLS"      # set text "TLS"
-                                      , UI.option # set value "STARTTLS" # set text "STARTTLS"
-                                      , UI.option # set value "NO_SSL"   # set text "No SSL"
-                                      ]
-                                  ]
-                              ]
-                          ]
-                      ]
-                  ]
-              , UI.div #. "field is-horizontal" #+
-                  [ UI.div #. "field-label is-normal" #+
-                      [ UI.label #. "label rt-view-label" # set text "From *"
-                      ]
-                  , UI.div #. "field-body" #+
-                      [ UI.div #. "field" #+
-                          [ UI.p #. "control" #+
-                              [ UI.input #. "input is-normal"
-                                         # set UI.type_ "email"
-                                         # set (attr "placeholder") "e.g. your.no.reply@gmail.com"
-                              ]
-                          ]
-                      ]
-                  ]
-              , UI.div #. "field is-horizontal" #+
-                  [ UI.div #. "field-label is-normal" #+
-                      [ UI.label #. "label rt-view-label" # set text "To *"
-                      ]
-                  , UI.div #. "field-body" #+
-                      [ UI.div #. "field" #+
-                          [ UI.p #. "control" #+
-                              [ UI.input #. "input is-normal"
-                                         # set UI.type_ "email"
-                                         # set (attr "placeholder") "e.g. your.name@gmail.com"
-                              ]
-                          ]
-                      ]
-                  ]
-              , UI.div #. "field is-horizontal" #+
-                  [ UI.div #. "field-label is-normal" #+
-                      [ UI.label #. "label rt-view-label" # set text "Subject"
-                      ]
-                  , UI.div #. "field-body" #+
-                      [ UI.div #. "field" #+
-                          [ UI.p #. "control" #+
-                              [ UI.input #. "input is-normal"
-                                         # set (attr "placeholder") "e.g. Cardano RTView Notification"
-                              ]
-                          ]
-                      ]
-                  ]
+              , mkControlPair "SMTP host *" $
+                  UI.input ## "es-smtp-host"
+                           #. "input is-normal"
+                           # set (attr "placeholder") "e.g. smtp.gmail.com"
+              , mkControlPair "SMTP port *" $
+                  UI.input ## "es-smtp-port"
+                           #. "input is-normal"
+                           # set UI.type_ "number"
+                           # set (attr "placeholder") "e.g. 587"
+              , mkControlPair "Username *" $
+                  UI.input ## "es-username"
+                           #. "input is-normal"
+                           # set (attr "placeholder") "e.g. your.name@gmail.com"
+              , mkControlPair "Password *" $
+                  UI.input ## "es-password"
+                           #. "input is-normal"
+                           # set UI.type_ "password"
+                           # set (attr "placeholder") "your password"
+              , mkControlPair "SSL" $
+                  UI.div #. "select" #+
+                    [ UI.select ## "es-ssl" #+
+                        [ UI.option # set value (show TLS)      # set text "TLS"
+                        , UI.option # set value (show STARTTLS) # set text "STARTTLS"
+                        , UI.option # set value (show NoSSL)    # set text "No SSL"
+                        ]
+                    ]
+              , mkControlPair "From *" $
+                  UI.input ## "es-email-from"
+                           #. "input is-normal"
+                           # set UI.type_ "email"
+                           # set (attr "placeholder") "e.g. your.no.reply@gmail.com"
+              , mkControlPair "To *" $
+                  UI.input ## "es-email-to"
+                           #. "input is-normal"
+                           # set UI.type_ "email"
+                           # set (attr "placeholder") "e.g. your.name@gmail.com"
+              , mkControlPair "Subject" $
+                  UI.input ## "es-subject"
+                           #. "input is-normal"
+                           # set (attr "placeholder") "e.g. Cardano RTView Notification"
               ]
           , UI.mkElement "footer" #. "modal-card-foot rt-view-notification-settings-foot" #+
               [ UI.div #. "columns" #+
@@ -176,7 +104,7 @@ mkNotificationsSettings = do
                                           # set text "Send test email"
                               ]
                           , UI.p #. "control" #+
-                              [ string "" -- element searchMessages
+                              [ string ""
                               ]
                           ]
                       ]
@@ -184,9 +112,28 @@ mkNotificationsSettings = do
               ]
           ]
       ]
-  on UI.click closeIt . const $ element notifications #. "modal"
+  on UI.click closeIt . const $ do
+    void $ element notifications #. "modal"
+    askWindow >>= saveEmailSettings
   return notifications
 
+mkControlPair
+  :: String
+  -> UI Element
+  -> UI Element
+mkControlPair labelText control =
+  UI.div #. "field is-horizontal" #+
+    [ UI.div #. "field-label is-normal" #+
+        [ UI.label #. "label rt-view-label" # set text labelText
+        ]
+    , UI.div #. "field-body" #+
+        [ UI.div #. "field" #+
+            [ UI.p #. "control" #+
+                [ control
+                ]
+            ]
+        ]
+    ]
 
 {-
     , UI.div #. [W3RowPadding] #+

@@ -73,6 +73,7 @@ library
                        Cardano.Tracer.Handlers.RTView.UI.JS.Utils
                        Cardano.Tracer.Handlers.RTView.UI.Img.Icons
                        Cardano.Tracer.Handlers.RTView.UI.Charts
+                       Cardano.Tracer.Handlers.RTView.UI.Notifications
                        Cardano.Tracer.Handlers.RTView.UI.Theme
                        Cardano.Tracer.Handlers.RTView.UI.Types
                        Cardano.Tracer.Handlers.RTView.UI.Utils

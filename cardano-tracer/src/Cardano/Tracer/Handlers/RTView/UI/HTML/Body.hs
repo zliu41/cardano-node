@@ -23,6 +23,7 @@ import           Cardano.Tracer.Handlers.RTView.UI.Img.Icons
 import           Cardano.Tracer.Handlers.RTView.UI.JS.ChartJS
 import qualified Cardano.Tracer.Handlers.RTView.UI.JS.Charts as Chart
 import           Cardano.Tracer.Handlers.RTView.UI.JS.Utils
+import           Cardano.Tracer.Handlers.RTView.UI.Notifications
 import           Cardano.Tracer.Handlers.RTView.UI.Theme
 import           Cardano.Tracer.Handlers.RTView.UI.Types
 import           Cardano.Tracer.Handlers.RTView.UI.Utils
@@ -485,7 +486,7 @@ mkPageBody window networkConfig connected
 topNavigation :: UI.Window -> UI Element
 topNavigation window = do
   info <- mkAboutInfo
-  infoIcon <- image "has-tooltip-multiline has-tooltip-bottom rt-view-info-icon mr-3" rtViewInfoSVG
+  infoIcon <- image "has-tooltip-multiline has-tooltip-bottom rt-view-info-icon mr-1" rtViewInfoSVG
                     ## "info-icon"
                     # set dataTooltip "RTView info"
   on UI.click infoIcon . const $ fadeInModal info
@@ -501,8 +502,11 @@ topNavigation window = do
                                  [ image "rt-view-notify-menu-icon" settingsSVG
                                  , string "Settings"
                                  ]
-  on UI.click notificationsEventsItem   . const $ fadeInModal notificationsEvents
-  on UI.click notificationsSettingsItem . const $ fadeInModal notificationsSettings
+  on UI.click notificationsEventsItem . const $
+    fadeInModal notificationsEvents
+  on UI.click notificationsSettingsItem . const $ do
+    restoreEmailSettings window
+    fadeInModal notificationsSettings
 
   notificationsIcon <- image "rt-view-info-icon mr-2" rtViewNotifySVG
                              ## "notifications-icon"

@@ -10,6 +10,8 @@ module Cardano.Tracer.Handlers.RTView.UI.Types
   , Colors
   , DatasetsIndices
   , DatasetsTimestamps
+  , EmailSettings (..)
+  , EmailSSL (..)
   , Index (..)
   ) where
 
@@ -17,6 +19,7 @@ import           Control.Concurrent.STM.TBQueue (TBQueue)
 import           Control.Concurrent.STM.TVar (TVar)
 import           Data.Aeson (FromJSON, ToJSON)
 import           Data.Map.Strict (Map)
+import           Data.Text (Text)
 import           Data.Word (Word16)
 import           GHC.Generics (Generic)
 
@@ -82,3 +85,21 @@ type DatasetsIndices = TVar (Map NodeId Index)
 --   for each chart, to avoid duplicated rendering of the same points.
 type LatestTimestamps   = Map DataName POSIXTime
 type DatasetsTimestamps = TVar (Map NodeId LatestTimestamps)
+
+-- | Email settings for notifications.
+data EmailSSL
+  = TLS
+  | STARTTLS
+  | NoSSL
+  deriving (Generic, FromJSON, ToJSON, Read, Show)
+
+data EmailSettings = EmailSettings
+  { esSMTPHost  :: !Text
+  , esSMTPPort  :: !Int
+  , esUsername  :: !Text
+  , esPassword  :: !Text
+  , esSSL       :: !EmailSSL
+  , esEmailFrom :: !Text
+  , esEmailTo   :: !Text
+  , esSubject   :: !Text
+  } deriving (Generic, FromJSON, ToJSON)
