@@ -113,6 +113,7 @@ library
                        , cborg
                        , containers
                        , contra-tracer
+                       , cryptonite
                        , directory
                        , ekg
                        , ekg-core

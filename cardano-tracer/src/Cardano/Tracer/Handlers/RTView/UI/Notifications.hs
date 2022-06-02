@@ -8,9 +8,14 @@ module Cardano.Tracer.Handlers.RTView.UI.Notifications
   , saveEmailSettings
   ) where
 
-import           Control.Exception.Extra (ignore, try_)
+import           Control.Exception.Extra (ignore)
 import           Control.Monad (unless)
-import           Data.Aeson (decodeFileStrict', encodeFile)
+import           Crypto.Cipher.AES (AES256)
+import           Crypto.Cipher.Types (BlockCipher (..), cipherInit, ctrCombine, nullIV)
+import           Crypto.Error (CryptoError, eitherCryptoError)
+import qualified Data.ByteString as BS
+import qualified Data.ByteString.Lazy as LBS
+import           Data.Aeson (decodeStrict', encode)
 import           Data.Text (pack, unpack)
 import           Graphics.UI.Threepenny.Core
 
@@ -58,14 +63,21 @@ saveEmailSettings window = do
         }
   liftIO . ignore $ do
     (pathToEmailSettings, _) <- getPathsToNotificationsSettings
-    encodeFile pathToEmailSettings settings
+    -- Encrypt JSON-content to avoid saving user's private data in "plain mode".
+    case encryptJSON . LBS.toStrict . encode $ settings of
+      Right encryptedJSON -> BS.writeFile pathToEmailSettings encryptedJSON
+      Left _ -> return ()
 
 readSavedEmailSettings :: UI EmailSettings
 readSavedEmailSettings = liftIO $ do
-  (emailSettings, _) <- getPathsToNotificationsSettings
-  try_ (decodeFileStrict' emailSettings) >>= \case
-    Right (Just (settings :: EmailSettings)) -> return settings
-    _ -> return defaultSettings
+  (pathToEmailSettings, _) <- getPathsToNotificationsSettings
+  encryptedSettings <- BS.readFile pathToEmailSettings
+  case decryptJSON encryptedSettings of
+    Left _ -> return defaultSettings
+    Right jsonSettings ->
+      case decodeStrict' jsonSettings of
+        Nothing -> return defaultSettings
+        Just (settings :: EmailSettings) -> return settings
  where
   defaultSettings = EmailSettings
     { esSMTPHost  = ""
@@ -77,3 +89,18 @@ readSavedEmailSettings = liftIO $ do
     , esEmailTo   = ""
     , esSubject   = ""
     }
+
+encryptJSON :: BS.ByteString -> Either CryptoError BS.ByteString
+encryptJSON plainJSON = ctrCombine
+  <$> cInit
+  <*> pure nullIV
+  <*> pure plainJSON
+ where
+  cInit :: Either CryptoError AES256
+  cInit = eitherCryptoError $ cipherInit key
+
+  key :: BS.ByteString
+  key = "TRALIVALI"
+
+decryptJSON :: BS.ByteString -> Either CryptoError BS.ByteString
+decryptJSON = encryptJSON -- Encryption/decryption is symmetric.
