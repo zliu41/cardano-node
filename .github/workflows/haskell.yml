@@ -166,6 +166,56 @@ jobs:
         echo "SECP256K1_PATH=$SECP256K1_PATH"
         echo "$SECP256K1_PATH" >> $GITHUB_PATH
 
+    - name: Install vcpkg (Windows)
+      if: matrix.os == 'windows-latest'
+      run: |
+        mkdir -p "$HOME/.local/bin"
+        mkdir -p "$HOME/.local/lib"
+
+        cd "$HOME/.local/lib"
+        git clone https://github.com/Microsoft/vcpkg.git
+        vcpkg/bootstrap-vcpkg.bat
+        
+        cd "$HOME/.local/bin"
+        ln -s ../lib/vcpkg/vcpkg.exe vcpkg
+
+        export VCPKG_ROOT="$HOME/.local/lib/vcpkg"
+        echo "VCPKG_ROOT=$VCPKG_ROOT" >> $GITHUB_ENV
+
+        echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+    - name: Install openssl (Windows)
+      if: matrix.os == 'windows-latest'
+      run: |
+        vcpkg install openssl
+        export PKG_CONFIG_PATH="$PKG_CONFIG_PATH:$HOME/.local/lib/vcpkg/packages/openssl_x86-windows/lib/pkgconfig"
+
+    - name: Install secp256k1 (Windows)
+      if: matrix.os == 'windows-latest'
+      env:
+        RUNNER_TEMP: ${{ runner.temp }}
+      run: |
+        echo "RUNNER_TEMP=$RUNNER_TEMP"
+        cd "$RUNNER_TEMP"
+        RUNNER_TEMP_FWD="$(echo "$RUNNER_TEMP" | sed 's|\\|/|g')"
+        curl -Ls \
+          --connect-timeout 5 \
+          --max-time 10 \
+          --retry 5 \
+          --retry-delay 0 \
+          --retry-max-time 40 \
+          https://hydra.iohk.io/job/Cardano/haskell-nix/windows-secp256k1/latest/download/1 -o secp256k1.zip
+        mkdir secp256k1
+        cd secp256k1
+        unzip ../secp256k1.zip
+        cd ..
+        export PKG_CONFIG_PATH="$PKG_CONFIG_PATH:$(readlink -f secp256k1/lib/pkgconfig | sed 's|^/d|D:|g' | tr / '\\')"
+        echo "PKG_CONFIG_PATH=$PKG_CONFIG_PATH"
+        echo "PKG_CONFIG_PATH=$PKG_CONFIG_PATH" >> $GITHUB_ENV
+        export SECP256K1_PATH="$(readlink -f secp256k1/bin | sed 's|^/d|D:|g' | tr / '\\')"
+        echo "SECP256K1_PATH=$SECP256K1_PATH"
+        echo "$SECP256K1_PATH" >> $GITHUB_PATH
+
     - name: Cabal update
       run: retry 2 cabal update
 
