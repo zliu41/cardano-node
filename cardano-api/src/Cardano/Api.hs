@@ -516,6 +516,8 @@ module Cardano.Api (
     envSecurityParam,
     LedgerState(..),
     initialLedgerState,
+    encodeLedgerState,
+    decodeLedgerState,
     applyBlock,
     ValidationMode(..),
 
@@ -689,6 +691,7 @@ import           Cardano.Api.KeysPraos
 import           Cardano.Api.KeysShelley
 import           Cardano.Api.LedgerEvent
 import           Cardano.Api.LedgerState
+import           Cardano.Api.LedgerState.Serialisation
 import           Cardano.Api.Modes
 import           Cardano.Api.NetworkId
 import           Cardano.Api.OperationalCertificate
