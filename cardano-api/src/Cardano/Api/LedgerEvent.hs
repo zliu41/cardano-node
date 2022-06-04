@@ -103,7 +103,7 @@ instance
   where
   toLedgerEvent = toLedgerEventShelley
 
-instance {-# OVERLAPPING #-} ConvertLedgerEvent (ShelleyBlock protocol (AlonzoEra StandardCrypto))
+instance {-# OVERLAPPING #-} ConvertLedgerEvent (ShelleyBlock (AlonzoEra StandardCrypto))
   where
   toLedgerEvent evt = case unwrapLedgerEvent evt of
     LEPlutusSuccess ds -> Just $ SuccessfulPlutusScript ds
@@ -126,7 +126,7 @@ toLedgerEventShelley ::
     Event (Ledger.Core.EraRule "MIR" ledgerera) ~ MirEvent ledgerera,
     Event (Ledger.Core.EraRule "RUPD" ledgerera) ~ RupdEvent (Crypto ledgerera)
   ) =>
-  WrapLedgerEvent (ShelleyBlock protocol ledgerera) ->
+  WrapLedgerEvent (ShelleyBlock ledgerera) ->
   Maybe LedgerEvent
 toLedgerEventShelley evt = case unwrapLedgerEvent evt of
   LEDeltaRewardEvent e m -> Just $ IncrementalRewardsDistribution e m
@@ -256,7 +256,7 @@ pattern LEPlutusSuccess ::
     Event (Ledger.Core.EraRule "UTXOS" ledgerera) ~ UtxosEvent ledgerera
   ) =>
   [PlutusDebug] ->
-  AuxLedgerEvent (LedgerState (ShelleyBlock protocol ledgerera))
+  AuxLedgerEvent (LedgerState (ShelleyBlock ledgerera))
 pattern LEPlutusSuccess ds <-
   ShelleyLedgerEventBBODY
     ( ShelleyInAlonzoEvent
@@ -286,7 +286,7 @@ pattern LEPlutusFailure ::
     Event (Ledger.Core.EraRule "UTXOS" ledgerera) ~ UtxosEvent ledgerera
   ) =>
   NonEmpty PlutusDebug ->
-  AuxLedgerEvent (LedgerState (ShelleyBlock protocol ledgerera))
+  AuxLedgerEvent (LedgerState (ShelleyBlock ledgerera))
 pattern LEPlutusFailure ds <-
   ShelleyLedgerEventBBODY
     ( ShelleyInAlonzoEvent

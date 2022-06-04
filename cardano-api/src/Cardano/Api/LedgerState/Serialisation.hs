@@ -23,7 +23,7 @@ import qualified Ouroboros.Consensus.Shelley.Ledger.Ledger as Shelley
 encodeLedgerState :: LedgerState -> CBOR.Encoding
 encodeLedgerState (LedgerState (HFC.HardForkLedgerState st)) =
   HFC.encodeTelescope
-    (byron :* shelley :* allegra :* mary :* alonzo :* babbage :* Nil)
+    (byron :* shelley :* allegra :* mary :* alonzo :* Nil)
     st
   where
     byron = fn (K . Byron.encodeByronLedgerState)
@@ -31,16 +31,14 @@ encodeLedgerState (LedgerState (HFC.HardForkLedgerState st)) =
     allegra = fn (K . Shelley.encodeShelleyLedgerState)
     mary = fn (K . Shelley.encodeShelleyLedgerState)
     alonzo = fn (K . Shelley.encodeShelleyLedgerState)
-    babbage = fn (K . Shelley.encodeShelleyLedgerState)
 
 decodeLedgerState :: forall s. CBOR.Decoder s LedgerState
 decodeLedgerState =
   LedgerState . HFC.HardForkLedgerState
-    <$> HFC.decodeTelescope (byron :* shelley :* allegra :* mary :* alonzo :* babbage :* Nil)
+    <$> HFC.decodeTelescope (byron :* shelley :* allegra :* mary :* alonzo :* Nil)
   where
     byron = Comp Byron.decodeByronLedgerState
     shelley = Comp Shelley.decodeShelleyLedgerState
     allegra = Comp Shelley.decodeShelleyLedgerState
     mary = Comp Shelley.decodeShelleyLedgerState
     alonzo = Comp Shelley.decodeShelleyLedgerState
-    babbage = Comp Shelley.decodeShelleyLedgerState
