@@ -109,8 +109,9 @@ instance
 instance {-# OVERLAPPING #-} ConvertLedgerEvent (ShelleyBlock protocol (AlonzoEra StandardCrypto))
   where
   toLedgerEvent evt = case unwrapLedgerEvent evt of
-    LEPlutusSuccess _ds -> undefined -- Just $ SuccessfulPlutusScript ds
-    LEPlutusFailure _ds -> undefined -- Just $ FailedPlutusScript ds
+    ShelleyLedgerEventBBODY _ -> undefined
+    -- LEPlutusSuccess _ds -> undefined -- Just $ SuccessfulPlutusScript ds
+    -- LEPlutusFailure _ds -> undefined -- Just $ FailedPlutusScript ds
     _ -> toLedgerEventShelley evt
 
 instance {-# OVERLAPPING #-} ConvertLedgerEvent (ShelleyBlock protocol (BabbageEra StandardCrypto))
