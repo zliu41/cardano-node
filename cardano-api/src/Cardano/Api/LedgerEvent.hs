@@ -67,6 +67,8 @@ import           Ouroboros.Consensus.Shelley.Ledger (ShelleyBlock,
                    ShelleyLedgerEvent (ShelleyLedgerEventBBODY, ShelleyLedgerEventTICK))
 import           Ouroboros.Consensus.TypeFamilyWrappers
 
+import Prelude (undefined)
+
 data LedgerEvent
   = -- | The given pool is being registered for the first time on chain.
     PoolRegistration Certificate
@@ -109,14 +111,14 @@ instance {-# OVERLAPPING #-} ConvertLedgerEvent (ShelleyBlock protocol (AlonzoEr
   toLedgerEvent evt = case unwrapLedgerEvent evt of
     LEPlutusSuccess ds -> Just $ SuccessfulPlutusScript ds
     LEPlutusFailure ds -> Just $ FailedPlutusScript ds
-    _ -> toLedgerEventShelley evt
+    _ -> undefined -- toLedgerEventShelley evt
 
 instance {-# OVERLAPPING #-} ConvertLedgerEvent (ShelleyBlock protocol (BabbageEra StandardCrypto))
   where
   toLedgerEvent evt = case unwrapLedgerEvent evt of
     LEPlutusSuccess ds -> Just $ SuccessfulPlutusScript ds
     LEPlutusFailure ds -> Just $ FailedPlutusScript ds
-    _ -> toLedgerEventShelley evt
+    _ -> undefined -- toLedgerEventShelley evt
 
 instance All ConvertLedgerEvent xs => ConvertLedgerEvent (HardForkBlock xs) where
   toLedgerEvent =
